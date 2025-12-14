@@ -5,23 +5,18 @@
 ## Version: 0.2.0
 ## SavedVariables: GoblinToolboxDB
 
-# Core (must load first)
 Core.lua
 
-# Modules
 Modules\Character.lua
 Modules\Gold.lua
 Modules\Inventory.lua
 Modules\Professions.lua
 
-# UI Components
 HUD.lua
 TrackerBar.lua
 CurrencyBar.lua
 UtilityBar.lua
 
-# Configuration
 Config.lua
 
-# Main (events and initialization - must load last)
 GoblinToolbox.lua
