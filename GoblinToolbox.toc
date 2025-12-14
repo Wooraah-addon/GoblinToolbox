@@ -1,8 +1,27 @@
 ## Interface: 120000
 ## Title: Goblin Toolbox
 ## Notes: Lightweight gold making HUD for goblins
-## Author: <YourName>
-## Version: 0.1.0
+## Author: GoblinDev
+## Version: 0.2.0
 ## SavedVariables: GoblinToolboxDB
 
+# Core (must load first)
+Core.lua
+
+# Modules
+Modules\Character.lua
+Modules\Gold.lua
+Modules\Inventory.lua
+Modules\Professions.lua
+
+# UI Components
+HUD.lua
+TrackerBar.lua
+CurrencyBar.lua
+UtilityBar.lua
+
+# Configuration
+Config.lua
+
+# Main (events and initialization - must load last)
 GoblinToolbox.lua
