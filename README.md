@@ -7,7 +7,7 @@ A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
 ## Overview
 
-Goblin Toolbox provides gold-focused players ("goblins") with at-a-glance information about their gold, inventory, and common utility actions. Inspired by the design philosophy of the Plumber addon, it aims to be lightweight, modular, and visually integrated with Blizzard's default UI.
+Goblin Toolbox provides gold-focused players ("goblins") with at-a-glance information about their gold, inventory, and common utility actions. It aims to be lightweight, modular, and visually integrated with Blizzard's default UI.
 
 With WeakAuras support being removed in the Midnight expansion, Goblin Toolbox consolidates many small quality-of-life gold tracking functions into a single, clean HUD.
 
@@ -123,5 +123,4 @@ This means you are free to:
 
 ## Acknowledgments
 
-- Inspired by the design philosophy of [Plumber](https://www.curseforge.com/wow/addons/plumber)
-- Thanks to the WoW addon development community
+Thanks to my team of beta testers for their invaluable feedback and bug reports.
