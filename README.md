@@ -3,7 +3,7 @@
 A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
 ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-![License](https://img.shields.io/badge/License-Apache%202.0-green)
+![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
 ## Overview
 
@@ -105,17 +105,17 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 This means you are free to:
 - Use, copy, modify, and distribute this addon
-- Use it for commercial purposes
 - Fork and create derivative works
 
 **Requirements:**
-- Include attribution to the original author (Wooraah)
+- Distribute under the same GPL-3.0 license
+- Make source code available
 - State any changes you made
-- Include the license in any distribution
+- Include copyright and license notices
 
 ## Author
 
