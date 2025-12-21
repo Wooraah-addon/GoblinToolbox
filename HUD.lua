@@ -1,5 +1,5 @@
 -- HUD.lua
--- Main HUD frame: sections, layout engine, visibility control
+-- Main HUD frame: sections, layout engine, visibility control, resize functionality
 
 local addonName, addon = ...
 
@@ -8,13 +8,24 @@ local addonName, addon = ...
 -----------------------------------------------------------------------
 
 local HUD = {
-    order    = { "Character", "Gold", "Inventory", "Professions" },
+    -- Professions intentionally omitted for now (module paused).
+    order = { "Character", "Gold", "Inventory" },
     sections = {},
     frame    = nil,
     titleBar = nil,
+    resizeGrip = nil,
     minimized = false,
 }
+
 addon.HUD = HUD
+
+-----------------------------------------------------------------------
+-- Resize constraints
+-----------------------------------------------------------------------
+
+local MIN_WIDTH = 200
+local MAX_WIDTH = 600
+local MIN_HEIGHT = 60  -- Will be overridden by content
 
 -----------------------------------------------------------------------
 -- Position management
@@ -24,12 +35,17 @@ local function ApplyScaleAndPosition(frame)
     local db = addon.db.profile
     frame:SetScale(db.scale or 1.0)
 
+    -- Apply saved width if available
+    local width = db.hudWidth or addon.CONST.HUD_WIDTH
+    frame:SetWidth(width)
+
     if db.point and db.relPoint and db.xOfs and db.yOfs then
         frame:ClearAllPoints()
         frame:SetPoint(db.point, UIParent, db.relPoint, db.xOfs, db.yOfs)
     else
+        -- Default position: top-left, below the character frame area
         frame:ClearAllPoints()
-        frame:SetPoint("TOP", UIParent, "TOP", 0, -200)
+        frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -120)
     end
 end
 
@@ -42,6 +58,11 @@ local function SaveFramePosition(frame)
     db.yOfs     = yOfs
 end
 
+local function SaveFrameWidth(frame)
+    local db = addon.db.profile
+    db.hudWidth = frame:GetWidth()
+end
+
 local function StartDragging(frame)
     if addon.db.profile.lockFrame then
         return
@@ -52,6 +73,75 @@ end
 local function StopDragging(frame)
     frame:StopMovingOrSizing()
     SaveFramePosition(frame)
+end
+
+-----------------------------------------------------------------------
+-- Resize grip creation and management
+-----------------------------------------------------------------------
+
+local function CreateResizeGrip(frame)
+    local grip = CreateFrame("Button", nil, frame)
+    grip:SetSize(16, 16)
+    grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+    grip:SetFrameLevel(frame:GetFrameLevel() + 10)
+
+    local gripTexture = grip:CreateTexture(nil, "OVERLAY")
+    gripTexture:SetAllPoints(true)
+    gripTexture:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    grip.texture = gripTexture
+
+    local highlightTexture = grip:CreateTexture(nil, "HIGHLIGHT")
+    highlightTexture:SetAllPoints(true)
+    highlightTexture:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+
+    grip:SetScript("OnEnter", function(self)
+        if addon.db.profile.lockFrame then
+            return
+        end
+        GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
+        GameTooltip:SetText("Drag to resize", 1, 1, 1)
+        GameTooltip:Show()
+    end)
+
+    grip:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+
+    grip:SetScript("OnMouseDown", function(self, button)
+        if button == "LeftButton" and not addon.db.profile.lockFrame then
+            self.texture:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+            frame:StartSizing("BOTTOMRIGHT")
+            self.isResizing = true
+        end
+    end)
+
+    grip:SetScript("OnMouseUp", function(self, button)
+        if button == "LeftButton" then
+            self.texture:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+            if self.isResizing then
+                frame:StopMovingOrSizing()
+                SaveFrameWidth(frame)
+                SaveFramePosition(frame)
+                self.isResizing = false
+                addon:LayoutHUD()
+            end
+        end
+    end)
+
+    HUD.resizeGrip = grip
+    return grip
+end
+
+local function UpdateResizeGripVisibility()
+    if not HUD.resizeGrip then
+        return
+    end
+
+    if addon.db.profile.lockFrame then
+        HUD.resizeGrip:Hide()
+    else
+        HUD.resizeGrip:Show()
+    end
 end
 
 -----------------------------------------------------------------------
@@ -76,8 +166,23 @@ local function CreateSection(frame, key, headerText, numLines)
     local section = {}
     section.key = key
 
+    local db = addon.db and addon.db.profile
+    db.collapsed = db and (db.collapsed or {}) or {}
+    section.collapsed = (db and db.collapsed and db.collapsed[key]) or false
+
     section.toggle = CreateFrame("Button", nil, frame)
     section.toggle:SetSize(12, 12)
+    section.toggle:SetScript("OnClick", function()
+        local p = addon.db and addon.db.profile
+        if not p then
+            return
+        end
+        p.collapsed = p.collapsed or {}
+        section.collapsed = not section.collapsed
+        p.collapsed[key] = section.collapsed
+        SetToggleTextures(section)
+        addon:LayoutHUD()
+    end)
 
     section.header = frame:CreateFontString(nil, "OVERLAY")
     section.header:SetJustifyH("LEFT")
@@ -92,17 +197,88 @@ local function CreateSection(frame, key, headerText, numLines)
         section.lines[i] = fs
     end
 
-    section.collapsed = addon.db.profile.collapsed[key] or false
+    if key == "Gold" then
+        section.sessionResetBtn = CreateFrame("Button", nil, frame)
+        section.sessionResetBtn:SetSize(14, 14)
+        section.sessionResetBtn:Hide()
+        section.sessionResetBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+        section.sessionResetBtn:SetNormalAtlas("common-icon-undo")
+        section.sessionResetBtn:SetPushedAtlas("common-icon-undo")
+        section.sessionResetBtn:SetHighlightAtlas("common-icon-undo")
+
+        section.sessionResetBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Reset Session")
+            GameTooltip:AddLine("Resets session start gold and timer.", 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        section.sessionResetBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        section.sessionResetBtn:SetScript("OnClick", function()
+            addon:ResetSession()
+            addon:UpdateGoldSection()
+            addon:LayoutHUD()
+        end)
+
+        section.sessionPauseBtn = CreateFrame("Button", nil, frame)
+        section.sessionPauseBtn:SetSize(14, 14)
+        section.sessionPauseBtn:Hide()
+        section.sessionPauseBtn:SetHighlightTexture(130757)
+
+        local function UpdatePauseButtonTexture()
+            local s = addon.state
+            if s.sessionPaused then
+                section.sessionPauseBtn:SetNormalTexture(130866)
+                section.sessionPauseBtn:SetPushedTexture(130866)
+            else
+                section.sessionPauseBtn:SetNormalTexture(137047)
+                section.sessionPauseBtn:SetPushedTexture(137047)
+            end
+        end
+
+        section.sessionPauseBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            local s = addon.state
+            if s.sessionPaused then
+                GameTooltip:SetText("Resume Session")
+                GameTooltip:AddLine("Click to resume tracking", 0.8, 0.8, 0.8, true)
+            else
+                GameTooltip:SetText("Pause Session")
+                GameTooltip:AddLine("Click to pause tracking", 0.8, 0.8, 0.8, true)
+            end
+            GameTooltip:Show()
+        end)
+        section.sessionPauseBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        section.sessionPauseBtn:SetScript("OnClick", function()
+            addon:TogglePauseSession()
+            UpdatePauseButtonTexture()
+            addon:UpdateGoldSection()
+            addon:LayoutHUD()
+        end)
+
+        section.UpdatePauseButtonTexture = UpdatePauseButtonTexture
+        UpdatePauseButtonTexture()
+    end
+
+    if key == "Inventory" then
+        -- Create invisible tooltip button for bag slots line
+        section.bagSlotsTooltipBtn = CreateFrame("Button", nil, frame)
+        section.bagSlotsTooltipBtn:SetSize(1, 1)  -- Will be resized in layout
+        section.bagSlotsTooltipBtn:Hide()
+        section.bagSlotsTooltipBtn:EnableMouse(true)
+        
+        section.bagSlotsTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Free Normal Bag Slots / Free Reagent Bag Slots", 1, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        section.bagSlotsTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+    end
+
     SetToggleTextures(section)
-
-    section.toggle:SetScript("OnClick", function()
-        section.collapsed = not section.collapsed
-        addon.db.profile.collapsed[key] = section.collapsed
-        SetToggleTextures(section)
-        addon:LayoutHUD()
-    end)
-
     HUD.sections[key] = section
+    return section
 end
 
 -----------------------------------------------------------------------
@@ -120,11 +296,25 @@ local function CreateHUD()
     frame:SetSize(addon.CONST.HUD_WIDTH, addon.CONST.HUD_DEFAULT_HEIGHT)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
+    frame:SetResizable(true)
+    frame:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, 800)
     frame:SetUserPlaced(false)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", StartDragging)
     frame:SetScript("OnDragStop", StopDragging)
+
+    frame:SetScript("OnSizeChanged", function(self, width, height)
+        if HUD.resizeGrip and HUD.resizeGrip.isResizing then
+            if not self.layoutPending then
+                self.layoutPending = true
+                C_Timer.After(0.05, function()
+                    self.layoutPending = false
+                    addon:LayoutHUD()
+                end)
+            end
+        end
+    end)
 
     frame:SetBackdrop({
         bgFile   = "Interface\\Buttons\\WHITE8x8",
@@ -134,7 +324,6 @@ local function CreateHUD()
     })
     ApplyScaleAndPosition(frame)
 
-    -- Title bar
     local tb = CreateFrame("Frame", nil, frame, "BackdropTemplate")
     HUD.titleBar = tb
     tb:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
@@ -159,7 +348,6 @@ local function CreateHUD()
 
     local btnSize = 16
 
-    -- Close button
     tb.close = CreateFrame("Button", nil, tb, "UIPanelCloseButton")
     tb.close:SetPoint("RIGHT", tb, "RIGHT", -2, 0)
     tb.close:SetScale(0.7)
@@ -168,7 +356,6 @@ local function CreateHUD()
         addon:UpdateVisibility()
     end)
 
-    -- Menu button
     tb.menu = CreateFrame("Button", nil, tb)
     tb.menu:SetSize(btnSize, btnSize)
     tb.menu:SetPoint("RIGHT", tb.close, "LEFT", -2, 0)
@@ -176,10 +363,22 @@ local function CreateHUD()
     tb.menu:SetHighlightTexture("Interface\\Buttons\\UI-OptionsButton")
     tb.menu:SetScript("OnClick", function() addon:OpenConfig() end)
 
-    -- Lock button
     tb.lock = CreateFrame("Button", nil, tb)
-    tb.lock:SetSize(btnSize, btnSize)
-    tb.lock:SetPoint("RIGHT", tb.menu, "LEFT", -2, 0)
+    tb.lock:SetSize(20, 20)
+    tb.lock:SetPoint("RIGHT", tb.menu, "LEFT", -4, 0)
+
+    tb.lock:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        if addon.db.profile.lockFrame then
+            GameTooltip:SetText("Unlock Frames", 1, 1, 1)
+            GameTooltip:AddLine("Click to unlock all frame positions", 0.8, 0.8, 0.8, true)
+        else
+            GameTooltip:SetText("Lock Frames", 1, 1, 1)
+            GameTooltip:AddLine("Click to lock all frame positions", 0.8, 0.8, 0.8, true)
+        end
+        GameTooltip:Show()
+    end)
+    tb.lock:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     local function UpdateLockTexture()
         if addon.db.profile.lockFrame then
@@ -190,6 +389,20 @@ local function CreateHUD()
             tb.lock:SetPushedTexture("Interface\\Buttons\\LockButton-Unlocked-Down")
         end
         tb.lock:SetHighlightTexture("Interface\\Buttons\\CheckButtonHilight")
+        UpdateResizeGripVisibility()
+
+        if addon.utilityBar and addon.utilityBar.dragHandle then
+            if addon.utilityBar.dragHandle.UpdateColor then addon.utilityBar.dragHandle:UpdateColor() end
+            if addon.utilityBar.dragHandle.UpdateVisibility then addon.utilityBar.dragHandle:UpdateVisibility() end
+        end
+        if addon.trackerFrame and addon.trackerFrame.dragHandle then
+            if addon.trackerFrame.dragHandle.UpdateColor then addon.trackerFrame.dragHandle:UpdateColor() end
+            if addon.trackerFrame.dragHandle.UpdateVisibility then addon.trackerFrame.dragHandle:UpdateVisibility() end
+        end
+        if addon.currencyFrame and addon.currencyFrame.dragHandle then
+            if addon.currencyFrame.dragHandle.UpdateColor then addon.currencyFrame.dragHandle:UpdateColor() end
+            if addon.currencyFrame.dragHandle.UpdateVisibility then addon.currencyFrame.dragHandle:UpdateVisibility() end
+        end
     end
 
     HUD.UpdateLockTexture = UpdateLockTexture
@@ -200,7 +413,6 @@ local function CreateHUD()
         UpdateLockTexture()
     end)
 
-    -- Minimize button
     tb.minimize = CreateFrame("Button", nil, tb)
     tb.minimize:SetSize(btnSize, btnSize)
     tb.minimize:SetPoint("RIGHT", tb.lock, "LEFT", -2, 0)
@@ -212,11 +424,12 @@ local function CreateHUD()
         addon:LayoutHUD()
     end)
 
-    -- Create sections
-    CreateSection(frame, "Character",   "Character",            1)
+    CreateResizeGrip(frame)
+
+    -- Character now has 2 lines (Line 2 = Shard + Move Speed)
+    CreateSection(frame, "Character",   "Character",            2)
     CreateSection(frame, "Gold",        "Gold & Economy",       3)
     CreateSection(frame, "Inventory",   "Inventory & Currency", 3)
-    CreateSection(frame, "Professions", "Professions",          1)
 
     addon:UpdateBackground()
     addon:UpdateTitleBar()
@@ -269,7 +482,8 @@ function addon:LayoutHUD()
     local frame = HUD.frame
     local db = self.db.profile
 
-    -- Minimized state: hide all sections
+    UpdateResizeGripVisibility()
+
     if HUD.minimized then
         for _, key in ipairs(HUD.order) do
             local section = HUD.sections[key]
@@ -279,10 +493,19 @@ function addon:LayoutHUD()
                 for _, fs in ipairs(section.lines) do
                     fs:Hide()
                 end
+                if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
+                    section.sessionResetBtn:Hide()
+                    section.sessionPauseBtn:Hide()
+                end
             end
         end
+
         local h = HUD.titleBar and HUD.titleBar:IsShown() and HUD.titleBar:GetHeight() or addon.CONST.TITLEBAR_HEIGHT
         frame:SetHeight(h + 4)
+
+        if HUD.resizeGrip then
+            HUD.resizeGrip:Hide()
+        end
         return
     end
 
@@ -320,23 +543,91 @@ function addon:LayoutHUD()
                 collapsed = false
             end
 
+            if key == "Gold" and section.sessionResetBtn then
+                section.sessionResetBtn:Hide()
+            end
+
             if collapsed then
                 for _, fs in ipairs(section.lines) do
                     fs:Hide()
                 end
+                if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
+                    section.sessionResetBtn:Hide()
+                    section.sessionPauseBtn:Hide()
+                end
+                if key == "Inventory" and section.bagSlotsTooltipBtn then
+                    section.bagSlotsTooltipBtn:Hide()
+                end
             else
-                for _, fs in ipairs(section.lines) do
+                for i, fs in ipairs(section.lines) do
                     local text = fs:GetText()
                     if text and text ~= "" then
                         fs:Show()
                         fs:SetFontObject(bodyFont)
                         fs:ClearAllPoints()
                         fs:SetPoint("TOPLEFT", frame, "TOPLEFT", db.showHeaders and 18 or 6, y)
-                        fs:SetPoint("RIGHT", frame, "RIGHT", -6, 0)
-                        y = y - fs:GetStringHeight() - 2
+
+                        local rightPad = -6
+
+                        if key == "Gold" and i == 2 and section.sessionResetBtn and section.sessionPauseBtn then
+                            local elem = db.elements or {}
+                            local showButtons = (elem.goldSession ~= false)
+
+                            if showButtons then
+                                if section.UpdatePauseButtonTexture then
+                                    section.UpdatePauseButtonTexture()
+                                end
+
+                                section.sessionResetBtn:Show()
+                                section.sessionPauseBtn:Show()
+
+                                section.sessionResetBtn:ClearAllPoints()
+                                section.sessionResetBtn:SetPoint("RIGHT", frame, "RIGHT", -6, 0)
+                                section.sessionResetBtn:SetPoint("CENTER", fs, "CENTER", section.sessionResetBtn:GetWidth() / 2, 0)
+
+                                section.sessionPauseBtn:ClearAllPoints()
+                                section.sessionPauseBtn:SetPoint("RIGHT", section.sessionResetBtn, "LEFT", -4, 0)
+
+                                local totalButtonWidth = section.sessionResetBtn:GetWidth() + section.sessionPauseBtn:GetWidth() + 4
+                                rightPad = -(6 + totalButtonWidth + 6)
+                            else
+                                section.sessionResetBtn:Hide()
+                                section.sessionPauseBtn:Hide()
+                            end
+                        end
+
+                        fs:SetPoint("RIGHT", frame, "RIGHT", rightPad, 0)
+
+                        -- Position Inventory tooltip button over Line 2 (bag slots)
+                        if key == "Inventory" and i == 2 and section.bagSlotsTooltipBtn then
+                            local elem = db.elements or {}
+                            if elem.invBagSlots ~= false then
+                                section.bagSlotsTooltipBtn:ClearAllPoints()
+                                section.bagSlotsTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.bagSlotsTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                            end
+                        end
+
+                        local lineSpacing = 2
+                        -- Add extra spacing for Inventory section
+                        if key == "Inventory" then
+                            lineSpacing = 4
+                        end
+
+                        y = y - fs:GetStringHeight() - lineSpacing
                     else
                         fs:Hide()
                     end
+                end
+            end
+
+            if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
+                local elem = db.elements or {}
+                local sessionText = section.lines[2] and section.lines[2]:GetText() or ""
+                local showButtons = (elem.goldSession ~= false) and (not collapsed) and (sessionText ~= "")
+                if not showButtons then
+                    section.sessionResetBtn:Hide()
+                    section.sessionPauseBtn:Hide()
                 end
             end
 
@@ -347,10 +638,22 @@ function addon:LayoutHUD()
             for _, fs in ipairs(section.lines) do
                 fs:Hide()
             end
+            if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
+                section.sessionResetBtn:Hide()
+                section.sessionPauseBtn:Hide()
+            end
+            if key == "Inventory" and section.bagSlotsTooltipBtn then
+                section.bagSlotsTooltipBtn:Hide()
+            end
         end
     end
 
-    local totalHeight = math.abs(y) + 6
+    local bottomPadding = 6
+    if not db.lockFrame and HUD.resizeGrip then
+        bottomPadding = 18
+    end
+
+    local totalHeight = math.abs(y) + bottomPadding
     frame:SetHeight(totalHeight)
 end
 
@@ -367,12 +670,8 @@ function addon:UpdateVisibility()
 
     if not db.enabled then
         HUD.frame:Hide()
-        if self.trackerFrame then
-            self.trackerFrame:Hide()
-        end
-        if self.currencyFrame then
-            self.currencyFrame:Hide()
-        end
+        if self.trackerFrame then self.trackerFrame:Hide() end
+        if self.currencyFrame then self.currencyFrame:Hide() end
         self:SetSecureFrameVisible(self.utilityBar, false)
         return
     end
@@ -392,12 +691,8 @@ function addon:UpdateVisibility()
 
     if hideAll then
         HUD.frame:Hide()
-        if self.trackerFrame then
-            self.trackerFrame:Hide()
-        end
-        if self.currencyFrame then
-            self.currencyFrame:Hide()
-        end
+        if self.trackerFrame then self.trackerFrame:Hide() end
+        if self.currencyFrame then self.currencyFrame:Hide() end
         self:SetSecureFrameVisible(self.utilityBar, false)
         return
     end
@@ -431,7 +726,6 @@ function addon:UpdateAllSections()
     self:UpdateCharacterSection()
     self:UpdateGoldSection()
     self:UpdateInventorySection()
-    self:UpdateProfessionsSection()
     self:UpdateTrackedBar()
     self:UpdateCurrencyBar()
     self:LayoutHUD()

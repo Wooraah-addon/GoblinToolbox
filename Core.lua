@@ -14,7 +14,7 @@ addon.CONST = {
     HUD_WIDTH = 360,
     HUD_DEFAULT_HEIGHT = 120,
     BUTTON_SIZE = 32,
-    BUTTON_SIZE_SMALL = 28,
+    BUTTON_SIZE_SMALL = 36,  -- Increased from 28 for better readability on tracker bars
     BUTTON_SPACING = 6,
     SPACING_SMALL = 4,
     PADDING = 4,
@@ -82,13 +82,34 @@ local DEFAULTS = {
         showTitleBar     = true,
         showBackground   = true,
         preferWarbandBankOnOpen = false,
+        sessionPersistOnLogout = false,
 
         modules = {
             Character   = true,
             Gold        = true,
             Inventory   = true,
-            Professions = true,
             Utility     = true,
+        },
+
+        -- Individual element toggles within modules
+        elements = {
+            -- Character elements
+            charIcon      = true,
+            charClassIcon = true,
+            charName      = true,
+            charRealm     = true,
+            charShardID   = false,  -- Off by default (can be noisy)
+            charMovespeed = false,  -- Off by default (updates frequently)
+            -- Gold & Economy elements
+            goldCharacter = true,
+            goldWarband   = true,
+            goldGuild     = true,
+            goldSession   = true,
+            goldToken     = true,
+            -- Inventory elements
+            invBagSlots   = true,
+            invBagValue   = true,
+            invWarbank    = true,
         },
 
         collapsed       = {},
@@ -98,6 +119,20 @@ local DEFAULTS = {
 
         showTracker     = true,
         showCurrencyTracker = true,
+
+        -- Tooltip IDs settings (all off by default)
+        tooltipIDs = {
+            enabled     = false,
+            item        = false,
+            spell       = false,
+            currency    = false,
+            unit        = false,
+            achievement = false,
+            quest       = false,
+            talent      = false,
+            mount       = false,
+            icon        = false,
+        },
 
         -- Utility bar button states
         utilityButtons = {
@@ -114,6 +149,7 @@ local DEFAULTS = {
         relPoint        = nil,
         xOfs            = nil,
         yOfs            = nil,
+        hudWidth        = nil,
 
         utilityPoint     = nil,
         utilityRelPoint  = nil,
@@ -136,6 +172,10 @@ local DEFAULTS = {
 
     characters = {},
     guilds     = {},
+    warband    = {
+        gold        = 0,
+        lastUpdate  = 0,
+    },
 }
 
 local function CopyDefaults(src, dst)
@@ -198,12 +238,23 @@ function addon:FormatMoney(amount)
 end
 
 function addon:GetWarbandBankGold()
+    -- Try to fetch current warband bank gold
     if C_Bank and Enum and Enum.BankType and Enum.BankType.Account then
         local ok, value = pcall(C_Bank.FetchDepositedMoney, Enum.BankType.Account)
-        if ok and type(value) == "number" then
+        if ok and type(value) == "number" and value > 0 then
+            -- We have access - update cache
+            self.db.warband = self.db.warband or {}
+            self.db.warband.gold = value
+            self.db.warband.lastUpdate = time()
             return value
         end
     end
+    
+    -- No access or API failed - return cached value
+    if self.db and self.db.warband and self.db.warband.gold then
+        return self.db.warband.gold
+    end
+    
     return 0
 end
 

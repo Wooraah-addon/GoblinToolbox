@@ -101,6 +101,16 @@ local EventHandlers = {
         addon:ResetSession()
         addon:StartSessionTicker()
         addon:StartTokenTicker()
+        
+        -- Start character speed ticker (if module loaded)
+        if addon.Character and addon.Character.StartSpeedTicker then
+            addon.Character:StartSpeedTicker()
+        end
+        
+        -- Start character combat log monitoring for shard detection
+        if addon.Character and addon.Character.StartCombatLogMonitoring then
+            addon.Character:StartCombatLogMonitoring()
+        end
 
         addon.Gold:UpdateCharacterCache()
 
@@ -114,6 +124,24 @@ local EventHandlers = {
         addon:UpdateUtilityCooldowns()
         addon:UpdateVisibility()
 
+        -- Initialize TooltipIDs module
+        if addon.TooltipIDs and addon.TooltipIDs.Enable then
+            addon.TooltipIDs:Enable()
+        end
+        
+        -- Delayed update for Character section (some APIs need time to initialize)
+        C_Timer.After(0.5, function()
+            addon:UpdateCharacterSection()
+            addon:LayoutHUD()
+        end)
+        addon:UpdateVisibility()
+        
+        -- Fix initial positioning only if user hasn't moved frames yet
+        local db = addon.db.profile
+        if not db.trackerPoint and not db.currencyPoint and not db.utilityBarPos then
+            addon:ResetAllPositions()
+        end
+        
         print("Goblin Toolbox loaded. Type /gtb for options.")
     end,
 
@@ -128,6 +156,7 @@ local EventHandlers = {
     end,
 
     ACCOUNT_MONEY = function()
+        addon:GetWarbandBankGold()  -- This will update cache if we have access
         addon:UpdateGoldSection()
         addon:LayoutHUD()
     end,
@@ -148,6 +177,13 @@ local EventHandlers = {
             addon:ResetBankAutoSwitchState()
             C_Timer.After(0.05, function()
                 addon:TryAutoSwitchToWarbandBank()
+            end)
+            
+            -- Update warband bank gold cache when opening banker
+            C_Timer.After(0.2, function()
+                addon:GetWarbandBankGold()  -- This will update cache if we have access
+                addon:UpdateGoldSection()
+                addon:LayoutHUD()
             end)
         end
 
@@ -324,7 +360,7 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
     else
         print("Goblin Toolbox commands:")
         print("  /gtb              - open settings window")
-        print("  /gtb add [link]   - add item to tracker")
+        print("  /gtb add [link/name] - add item or currency to tracker")
         print("  /gtb addcurrency [name/ID] - add currency to tracker")
         print("  /gtb currencies   - list tracked currencies")
         print("  /gtb reset        - reset gold session")

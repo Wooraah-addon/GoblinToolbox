@@ -1,0 +1,96 @@
+GENERAL UI/UX	STATUS
+Resizeable HUD window overall like the way you can resize chat window	COMPLETE
+Moveable/scalable UI element with some basic font options	COMPLETE
+Checkboxes for which UI elements you want to show	COMPLETE
+Collapsible groups	COMPLETE
+Option to show/hide headers	COMPLETE
+Hide in combat/raid option	COMPLETE
+Make locking icon more obvious - currently too small and inconspicuous	COMPLETE
+Reset all to default button - default position should be top left below where character pane shows in default WoW UI config	COMPLETE
+	
+CHARACTER & SERVER	
+Change section title in HD and Options from Character to "Character and Server"	COMPLETE
+Character Name & Class icon	COMPLETE
+Current Realm Name	COMPLETE
+Has warband access (Yes/no)	COMPLETE
+Current movement speed (a la monkeyspeed) - for use when you're wearing a speed set.	COMPLETE
+Display Shard ID after server name. And add option to show/hide in menu	COMPLETE
+XP Tracking functionality - Lower Priority - and also perhaps separate module	INCOMPLETE
+	
+GOLD & ECONOMY	
+Current Character Gold	COMPLETE
+Current Warband Gold	COMPLETE
+Current GPH / Session - time elapsed, starting and ending gold, net gold, gold per hour	PARTIALLY COMPLETE
+Add gold Earned (session):?	COMPLETE
+Add gold spent (session):?	INCOMPLETE
+Gold options for Earned/Session, Earned/Day, Earned/Week, Earned/Month	INCOMPLETE
+Current Token price + recent trend indicator + alert for if value drops below threshold	PARTIALLY COMPLETE
+Posted AH Value (based on chosen TSM value source)	INCOMPLETE
+Number of posted items (based on TSM data)	INCOMPLETE
+Reset Session button	COMPLETE
+Pause Session button	COMPLETE
+	
+INVENTORY & CURRENCY	
+Free bag slots	COMPLETE
+Free bag slots turn red when full	COMPLETE
+Bag Value (based on chosen TSM value source) - need to add vendor value as an option	COMPLETE
+Change bag slot tracking to cover both Bag and Reagent bag space separately	COMPLETE
+Add looted item value / Session	INCOMPLETE
+	
+PROFESSIONS (PHASED IMPLEMENTATION, MAJORITY DEFERRED UNTIL MIDNIGHT STABILIZES)	
+Baseline Profession Display – display learned primary professions with current skill level and click-to-open Blizzard profession UI	INCOMPLETE
+Concentration Display  – optional display of current and max concentration (crafting profs only) with visual indicator for when the bar is full and counter "Time till full".	INCOMPLETE
+Contextual Profession Actions – add profession-specific actions (for example Disenchant) via Utility Bar where relevant - based on check s of what profs the player has	INCOMPLETE
+Profession Cooldown and Buff Reminders – high-level reminders for reliable profession cooldowns or temporary buffs	INCOMPLETE
+Profession Knowledge and Quest Tracking – tracking of profession knowledge sources, weekly activities, or quest-based progression (expansion-specific)	CURRENTLY OUT OF SCOPE
+Profession Treasure Tracking – tracking of profession-related treasures and knowledge unlock sources (data-heavy, advanced feature)	CURRENTLY OUT OF SCOPE
+	
+UTILITY BAR	
+Clickable buttons for warband bank,mailbox,brutos, vendor mount	PARTIALLY COMPLETE
+Change default bank access to Warband - (Will conflict with various bag addons)	COMPLETE
+Hearthstone/Dal HS/Garrison HS/Portal Buttons/dropdowns for quick travel	COMPLETE
+Make MOLL-E show if Katy/Perch are on CD and you have engineering.	COMPLETE
+BUG: Katy stampwhistle CD shows when the toy is used, but the icon on the bar is not clickable	INCOMPLETE
+Dalaran Hearthstone & Garrison hearthstone should appear with a red overlay or X mark if not available to the character.	INCOMPLETE
+Instance reset button -> Create a group, listed it, and leave the group, for fast reset of instances, one action per press	INCOMPLETE
+Improve menu to allow for selection of individual Utility buttons	COMPLETE
+Add Cooking Pets/spells to utility bar - Checks 1) Char has cooking 2) Prio list - Lil’ Ragnaros > Pierre > Crystalline Campfire > Cozy Bonfire > Maruuk Cooking Pot > Muckpool Cookpot > Steamworks Sausage Grill > Eternal Kiln > Felflame Campfire > Grim Campfire > Leylight Brazier > Little Wickerman > Cooking Fire	INCOMPLETE
+Add Portable Anvil to utility bar - Alvin (pet) > Thermal Anvil (item)	INCOMPLETE
+Add Housing Teleport/Return button - New feature in retail WoW for latest patch introduces housing and this is a quick teleport to your house.	INCOMPLETE
+Lumber tracking (On/Off)	INCOMPLETE
+Add Auction House and Vendor Mount Support on Utility Bar	INCOMPLETE
+Add support for more quick travel functionality (dungeon portals/wormhole generator/guild cloak/Earthen Portals/Mage Portals)	INCOMPLETE
+Add shift+right click functionality to allow users to quickly remove buttons from the utility bar in a similar fashion to removal of items and currencies from their respective bars	COMPLETE
+Invite/leave buttons for easyparty?	INCOMPLETE
+	
+ITEM TRACKER BAR	
+Collection/Tracking of specified materials by item ID with icons	PARTIALLY COMPLETE
+Modify fonts to make number of items more visible on item tracking icons	COMPLETE
+Add anchor or make frame more obvious for item/currency tracking - small icon representing items	COMPLETE
+Items dragable onto tracking bar	COMPLETE
+Make item quality also show in item tracker toolbar where relevant (just shows basic item icon at the moment) - e.g. Bismuth rank 3	INCOMPLETE
+Added icon in the tracker toolbar which shows when nothing is being tracked, shows adding instructions on hover	COMPLETE
+Display value as well as number of tracked items (based on chosen price source) - see https://wago.io/ePkU0SnDg	INCOMPLETE
+Create 2nd row of item tracking after 8 items - Not priority/not required?	INCOMPLETE
+	
+CURRENCY TRACKER BAR	
+Create Functionality that largely replicates item tracking, but for currency tracking (adding currently not working, getting "Goblin Toolbox: could not identify item from input" in chat when I attempt to add a currency to tracing using /gtb add	COMPLETE
+Collection/Tracking of specified currencies by item ID with icons - Separate Bar 	COMPLETE
+	
+OPTIONS MENU	
+Add author and version number to Menu screen	COMPLETE
+Add ability to select / deselect display of utility buttons	INCOMPLETE
+Subdivide menu with more options to enable/disable distinct elements	COMPLETE
+Menu option for "Session preferences" - Session persists on logout, session resets on logout - Menu option exists, but functionality not working session resets on logout even with option ticked	INCOMPLETE
+Change the title of the menu option "Warbank" under Inventory to read "Has Warbank Access"	COMPLETE
+	
+OTHER	
+Sales tracker - replicate : https://wago.io/YHKFhrUDt - Split by type (Auction House / Trade /  Crafting orders etc)	INCOMPLETE
+Track Profession Overload (for mining & herbing)	INCOMPLETE
+Add Auctionator Price Source Support	INCOMPLETE
+	
+	
+Addon Notes	
+The addon stores a small rolling history of recent WoW Token prices and compares the average of the latest three updates with the average of the three updates before that. An up or down arrow is only shown if the difference between those averages is at least 10,000 gold; otherwise no indicator is displayed.	
+	
+Goblin Toolbox is released under the terms of the GNU General Public License, which means anyone can take it and do whatever they want with it, as long as they don't claim they wrote it and they too release their code under the same terms.	

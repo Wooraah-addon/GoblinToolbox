@@ -261,73 +261,105 @@ end
 -----------------------------------------------------------------------
 
 function Gold:Update()
-    if not addon.db.profile.modules.Gold then
+    -- Treat nil as enabled, older saved variables may not have the key.
+    if addon.db.profile.modules.Gold == false then
         return
     end
+
     
     local sec = addon.HUD and addon.HUD.sections and addon.HUD.sections.Gold
     if not sec then
         return
     end
 
+    local db = addon.db.profile
+    local elem = db.elements or {}
+
     self:UpdateCharacterCache()
 
-    local charGold = GetMoney()
-    local warbandGold = addon:GetWarbandBankGold()
+    -- Line 1: Character gold, Warband gold, Guild gold
+    local goldParts = {}
+    
+    if elem.goldCharacter ~= false then
+        local charGold = GetMoney()
+        table.insert(goldParts, "Char: " .. addon:FormatMoney(charGold))
+    end
+    
+    if elem.goldWarband ~= false then
+        local warbandGold = addon:GetWarbandBankGold()
+        table.insert(goldParts, "WB: " .. addon:FormatMoney(warbandGold))
+    end
+    
+    if elem.goldGuild ~= false then
+        local guildGold, guildName, guildLastUpdate = self:GetGuildGold()
+        local guildText
 
-    local guildGold, guildName, guildLastUpdate = self:GetGuildGold()
-    local guildText
+        if not guildName then
+            guildText = "None"
+        elseif guildGold then
+            guildText = addon:FormatMoney(guildGold)
 
-    if not guildName then
-        guildText = "None"
-    elseif guildGold then
-        guildText = addon:FormatMoney(guildGold)
-
-        local isStale = false
-        if guildLastUpdate then
-            if (time() - guildLastUpdate) > addon.CONST.GUILD_STALE_THRESHOLD then
+            local isStale = false
+            if guildLastUpdate then
+                if (time() - guildLastUpdate) > addon.CONST.GUILD_STALE_THRESHOLD then
+                    isStale = true
+                end
+            else
                 isStale = true
             end
+
+            if isStale then
+                guildText = guildText .. " |TInterface\\TimeManager\\Clock-Red:0:0:0:0|t"
+            end
         else
-            isStale = true
+            guildText = "|cffff4444Visit|r"
         end
-
-        if isStale then
-            guildText = guildText .. " |TInterface\\TimeManager\\Clock-Red:0:0:0:0|t"
-        end
-    else
-        guildText = "|cffff4444Visit|r"
+        
+        table.insert(goldParts, "Guild: " .. guildText)
     end
 
-    sec.lines[1]:SetText(string.format("Char: %s   WB: %s   Guild: %s",
-        addon:FormatMoney(charGold), addon:FormatMoney(warbandGold), guildText))
-
-    local elapsed, net, gph = self:GetSessionStats()
-    local hours = math.floor(elapsed / 3600)
-    local minutes = math.floor((elapsed % 3600) / 60)
-    local timeStr
-    if hours > 0 then
-        timeStr = string.format("%dh %02dm", hours, minutes)
+    if #goldParts > 0 then
+        sec.lines[1]:SetText(table.concat(goldParts, "   "))
     else
-        timeStr = string.format("%dm", minutes)
+        sec.lines[1]:SetText("")
     end
 
-    sec.lines[2]:SetText(string.format("Session: %s  Earnt: %s  (%s / h)",
-        timeStr, addon:FormatMoney(net), addon:FormatMoney(gph)))
-
-    local tokenPrice = addon.token and addon.token.lastPrice or 0
-    if tokenPrice and tokenPrice > 0 then
-        local trend = self:GetTokenTrend()
-        local marker = " "
-        if trend == "up" then
-            marker = "▲"
-        elseif trend == "down" then
-            marker = "▼"
+    -- Line 2: Session tracking
+    if elem.goldSession ~= false then
+        local elapsed, net, gph = self:GetSessionStats()
+        local hours = math.floor(elapsed / 3600)
+        local minutes = math.floor((elapsed % 3600) / 60)
+        local timeStr
+        if hours > 0 then
+            timeStr = string.format("%dh %02dm", hours, minutes)
+        else
+            timeStr = string.format("%dm", minutes)
         end
 
-        sec.lines[3]:SetText(string.format("Token: %s %s", addon:FormatMoney(tokenPrice), marker))
+        sec.lines[2]:SetText(string.format("Session: %s  Earnt: %s  (%s / h)",
+            timeStr, addon:FormatMoney(net), addon:FormatMoney(gph)))
     else
-        sec.lines[3]:SetText("Token: n/a")
+        sec.lines[2]:SetText("")
+    end
+
+    -- Line 3: Token price
+    if elem.goldToken ~= false then
+        local tokenPrice = addon.token and addon.token.lastPrice or 0
+        if tokenPrice and tokenPrice > 0 then
+            local trend = self:GetTokenTrend()
+            local marker = " "
+            if trend == "up" then
+                marker = "▲"
+            elseif trend == "down" then
+                marker = "▼"
+            end
+
+            sec.lines[3]:SetText(string.format("Token: %s %s", addon:FormatMoney(tokenPrice), marker))
+        else
+            sec.lines[3]:SetText("Token: n/a")
+        end
+    else
+        sec.lines[3]:SetText("")
     end
 end
 

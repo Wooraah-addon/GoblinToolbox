@@ -1,8 +1,0 @@
-## Interface: 120000
-## Title: Goblin Toolbox
-## Notes: Lightweight gold making HUD for goblins
-## Author: <YourName>
-## Version: 0.1.0
-## SavedVariables: GoblinToolboxDB
-
-GoblinToolbox.lua
