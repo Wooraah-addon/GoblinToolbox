@@ -10,10 +10,10 @@ Wooraah (golbintoolbox@gmail.com)
 
 ## Design Philosophy
 
-- **Plumber-inspired**: Modular, lightweight, minimal configuration
-- **Blizzard UI integration**: Fonts, colors, spacing match default WoW look
+- **Overall design**: Modular, lightweight, flexible configuration for end users
+- **UI Design**: Clear, easily readable fonts, colors and spacing
 - **Conservative patterns**: Readable code over clever abstractions
-- **No required dependencies**: Works standalone, optional TSM integration
+- **Limited dependencies**: Should be able to work standalone, optional integrations with common pricing based addons such as TSM and Auctionator.
 
 ## Tech Stack
 
@@ -74,33 +74,19 @@ Use `addon:SetSecureFrameVisible(frame, visible)` instead.
 
 ## Current Development Status
 
-See `Current_Development_status.txt` for detailed feature completion status.
+See `Current_Development_status.txt` for the most detailed and up to date tracking of feature completion and current bugs.
 
-### Complete
-- HUD frame with movable/resizable/lockable functionality
-- Character module (name, realm, icons, shard ID, movement speed)
-- Gold module (character, warband, guild, session, token)
-- Inventory module (bag slots, bag value, warband access)
-- Item and Currency tracker bars
-- Utility bar with hearthstones and portable services
-- Options panel with collapsible sections
-- Tooltip ID display
-
-### Incomplete / In Progress
-- Session persistence on logout (option exists but not working)
-- Gold spent tracking
-- Extended period tracking (day/week/month)
-- Additional utility buttons (cooking fire, anvil, housing)
-- Professions module (paused for Midnight)
 
 ## Code Style Preferences
 
-1. **Always return complete files** - no snippets or diffs
-2. **Preserve existing structure** - comments, formatting, organization
-3. **Use local functions** where possible
-4. **Follow existing patterns** for consistency
-5. **Conservative error handling** - pcall for external APIs
-6. **Clear variable names** over brevity
+- Edit in place with minimal diffs — change only what is necessary; avoid unrelated refactors or formatting changes.
+- Preserve existing structure — keep comments, formatting, file organization, and naming conventions unless the change requires otherwise.
+- Prefer local scope — use local functions/variables where appropriate; avoid introducing new globals.
+- Follow existing patterns — mirror current module/section/toggle conventions and UI construction patterns for consistency.
+- Conservative error handling — nil-guard timing-sensitive WoW API usage; use pcall only for optional external integrations (e.g., TSM).
+- Readable over clever — clear variable names, straightforward control flow, and small functions; no abstraction layers unless they clearly reduce duplication.
+- Performance-aware — avoid OnUpdate loops unless necessary; throttle/batch high-frequency event work; cache repeat computations where sensible.
+- WoW safety — avoid taint/combat-lockdown hazards; do not modify protected/secure UI state in combat; defer or guard with InCombatLockdown() when needed.
 
 ## Common Tasks
 
@@ -123,6 +109,14 @@ See `Current_Development_status.txt` for detailed feature completion status.
 3. Create frame with backdrop, drag handle, buttons pattern
 4. Add position persistence to saved variables
 5. Call from GoblinToolbox.lua initialization
+
+
+### Git Hygiene & Releases
+
+- Commit whenever: /reload is clean and the testing checklist passes for the change.
+- Prefer small commits with clear intent (e.g., fix: nil guard bag scan, feat: add warband gold line).
+- For releases: tag vX.Y.Z. Release notes should be short and user-facing (what changed, what to watch).
+- If a release pipeline is present (CurseForge packaging), keep packaging metadata updated and avoid manual zip edits.
 
 ## Testing Checklist
 

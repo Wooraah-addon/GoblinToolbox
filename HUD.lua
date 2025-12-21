@@ -123,7 +123,7 @@ local function CreateResizeGrip(frame)
                 SaveFrameWidth(frame)
                 SaveFramePosition(frame)
                 self.isResizing = false
-                addon:LayoutHUD()
+                addon:SafeLayoutHUD()
             end
         end
     end)
@@ -181,7 +181,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.collapsed = not section.collapsed
         p.collapsed[key] = section.collapsed
         SetToggleTextures(section)
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
     end)
 
     section.header = frame:CreateFontString(nil, "OVERLAY")
@@ -216,7 +216,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.sessionResetBtn:SetScript("OnClick", function()
             addon:ResetSession()
             addon:UpdateGoldSection()
-            addon:LayoutHUD()
+            addon:SafeLayoutHUD()
         end)
 
         section.sessionPauseBtn = CreateFrame("Button", nil, frame)
@@ -252,7 +252,7 @@ local function CreateSection(frame, key, headerText, numLines)
             addon:TogglePauseSession()
             UpdatePauseButtonTexture()
             addon:UpdateGoldSection()
-            addon:LayoutHUD()
+            addon:SafeLayoutHUD()
         end)
 
         section.UpdatePauseButtonTexture = UpdatePauseButtonTexture
@@ -310,7 +310,7 @@ local function CreateHUD()
                 self.layoutPending = true
                 C_Timer.After(0.05, function()
                     self.layoutPending = false
-                    addon:LayoutHUD()
+                    addon:SafeLayoutHUD()
                 end)
             end
         end
@@ -421,7 +421,7 @@ local function CreateHUD()
     tb.minimize:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight")
     tb.minimize:SetScript("OnClick", function()
         HUD.minimized = not HUD.minimized
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
     end)
 
     CreateResizeGrip(frame)
@@ -433,7 +433,7 @@ local function CreateHUD()
 
     addon:UpdateBackground()
     addon:UpdateTitleBar()
-    addon:LayoutHUD()
+    addon:SafeLayoutHUD()
 end
 
 -----------------------------------------------------------------------

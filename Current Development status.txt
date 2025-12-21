@@ -7,6 +7,11 @@ Option to show/hide headers	COMPLETE
 Hide in combat/raid option	COMPLETE
 Make locking icon more obvious - currently too small and inconspicuous	COMPLETE
 Reset all to default button - default position should be top left below where character pane shows in default WoW UI config	COMPLETE
+More tooltips on menu optiosn to help explain to novices	INCOMPLETE
+Add Reload UI button to bottom of menu	INCOMPLETE
+Add some default visibility setups to menu options "All Enabled", "Slimline", "Farmer", "Flipper"	INCOMPLETE
+Add a tooltip to the Cogwheel on the hug to read "Open Menu Settings".	INCOMPLETE
+ID options for Achievement ID, Quest ID, Macro ID are not obviously useful and don't show where i'd expect, consider removing.	INCOMPLETE
 	
 CHARACTER & SERVER	
 Change section title in HD and Options from Character to "Character and Server"	COMPLETE
@@ -15,6 +20,7 @@ Current Realm Name	COMPLETE
 Has warband access (Yes/no)	COMPLETE
 Current movement speed (a la monkeyspeed) - for use when you're wearing a speed set.	COMPLETE
 Display Shard ID after server name. And add option to show/hide in menu	COMPLETE
+Add Class Spec Icon	INCOMPLETE
 XP Tracking functionality - Lower Priority - and also perhaps separate module	INCOMPLETE
 	
 GOLD & ECONOMY	
@@ -50,8 +56,8 @@ Clickable buttons for warband bank,mailbox,brutos, vendor mount	PARTIALLY COMPLE
 Change default bank access to Warband - (Will conflict with various bag addons)	COMPLETE
 Hearthstone/Dal HS/Garrison HS/Portal Buttons/dropdowns for quick travel	COMPLETE
 Make MOLL-E show if Katy/Perch are on CD and you have engineering.	COMPLETE
-BUG: Katy stampwhistle CD shows when the toy is used, but the icon on the bar is not clickable	INCOMPLETE
-Dalaran Hearthstone & Garrison hearthstone should appear with a red overlay or X mark if not available to the character.	INCOMPLETE
+BUG: Katy stampwhistle CD shows when the toy is used, but the icon on the bar is not clickable	TEST
+Grey overlay and different informational tooltip added to Utility icons when they are not usable by the character in question (e.g. doesn’t own the toy or hearthstone, or doesn’t have rep for Mobile Banking).	COMPLETE
 Instance reset button -> Create a group, listed it, and leave the group, for fast reset of instances, one action per press	INCOMPLETE
 Improve menu to allow for selection of individual Utility buttons	COMPLETE
 Add Cooking Pets/spells to utility bar - Checks 1) Char has cooking 2) Prio list - Lil’ Ragnaros > Pierre > Crystalline Campfire > Cozy Bonfire > Maruuk Cooking Pot > Muckpool Cookpot > Steamworks Sausage Grill > Eternal Kiln > Felflame Campfire > Grim Campfire > Leylight Brazier > Little Wickerman > Cooking Fire	INCOMPLETE
@@ -84,6 +90,167 @@ Subdivide menu with more options to enable/disable distinct elements	COMPLETE
 Menu option for "Session preferences" - Session persists on logout, session resets on logout - Menu option exists, but functionality not working session resets on logout even with option ticked	INCOMPLETE
 Change the title of the menu option "Warbank" under Inventory to read "Has Warbank Access"	COMPLETE
 	
+CURRENT BUGS	
+The tooltips for Drag handles currently obstruct the functionality of tooltips, the bounding box of these tooltips needs to be shrunk, and position moved up and left if possible.	COMPLETE
+When clicking on Pause, the timing of the session pauses, but tracking of gold does not, I'm not sure this logic is correct, when paused, if you loot gold, this should NOT be tracked.	COMPLETE
+"13x GoblinToolbox/Modules/Gold.lua:265: attempt to index field 'db' (a nil value)
+[GoblinToolbox/Modules/Gold.lua]:265: in function 'Update'
+[GoblinToolbox/Modules/Gold.lua]:380: in function 'UpdateGoldSection'
+[GoblinToolbox/GoblinToolbox.lua]:235: in function 'handler'
+[GoblinToolbox/GoblinToolbox.lua]:261: in function <GoblinToolbox/GoblinToolbox.lua:258>
+
+Locals:
+self = <table> {
+}
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = nil
+(*temporary) = ""attempt to index field 'db' (a nil value)""
+addon = <table> {
+ API = <table> {
+ }
+ _utilityMovedThisSession = false
+ state = <table> {
+ }
+ HUD = <table> {
+ }
+ TOOLTIP_ID_TYPE_ORDER = <table> {
+ }
+ TooltipIDs = <table> {
+ }
+ _bankAutoSwitchDone = false
+ trackedCounts = <table> {
+ }
+ TOOLTIP_ID_TYPES = <table> {
+ }
+ utilityButtons = <table> {
+ }
+ Inventory = <table> {
+ }
+ Character = <table> {
+ }
+ _bankAutoSwitchTries = 0
+ modules = <table> {
+ }
+ token = <table> {
+ }
+ CONST = <table> {
+ }
+ Gold = <table> {
+ }
+ trackerButtons = <table> {
+ }
+}
+gistfile2.txt
+22x GoblinToolbox/GoblinToolbox.lua:149: attempt to call method 'SaveUtilityBarPositionOnLogout' (a nil value)
+[GoblinToolbox/GoblinToolbox.lua]:149: in function 'handler'
+[GoblinToolbox/GoblinToolbox.lua]:261: in function <GoblinToolbox/GoblinToolbox.lua:258>
+
+Locals:
+(*temporary) = nil
+(*temporary) = <table> {
+ trackerFrame = GoblinToolboxTracker {
+ }
+ API = <table> {
+ }
+ _utilityMovedThisSession = false
+ state = <table> {
+ }
+ HUD = <table> {
+ }
+ TOOLTIP_ID_TYPE_ORDER = <table> {
+ }
+ TooltipIDs = <table> {
+ }
+ db = <table> {
+ }
+ currencyFrame = GoblinToolboxCurrencyTracker {
+ }
+ _bankAutoSwitchDone = false
+ trackedCounts = <table> {
+ }
+ utilityBar = GoblinToolboxUtilityBar {
+ }
+ TOOLTIP_ID_TYPES = <table> {
+ }
+ utilityButtons = <table> {
+ }
+ Inventory = <table> {
+ }
+ Character = <table> {
+ }
+ _bankAutoSwitchTries = 0
+ modules = <table> {
+ }
+ token = <table> {
+ }
+ CONST = <table> {
+ }
+ Gold = <table> {
+ }
+ trackerButtons = <table> {
+ }
+}
+(*temporary) = ""attempt to call method 'SaveUtilityBarPositionOnLogout' (a nil value)""
+addon = <table> {
+ trackerFrame = GoblinToolboxTracker {
+ }
+ API = <table> {
+ }
+ _utilityMovedThisSession = false
+ state = <table> {
+ }
+ HUD = <table> {
+ }
+ TOOLTIP_ID_TYPE_ORDER = <table> {
+ }
+ TooltipIDs = <table> {
+ }
+ db = <table> {
+ }
+ currencyFrame = GoblinToolboxCurrencyTracker {
+ }
+ _bankAutoSwitchDone = false
+ trackedCounts = <table> {
+ }
+ utilityBar = GoblinToolboxUtilityBar {
+ }
+ TOOLTIP_ID_TYPES = <table> {
+ }
+ utilityButtons = <table> {
+ }
+ Inventory = <table> {
+ }
+ Character = <table> {
+ }
+ _bankAutoSwitchTries = 0
+ modules = <table> {
+ }
+ token = <table> {
+ }
+ CONST = <table> {
+ }
+ Gold = <table> {
+ }
+ trackerButtons = <table> {
+ }
+}"	TEST
 OTHER	
 Sales tracker - replicate : https://wago.io/YHKFhrUDt - Split by type (Auction House / Trade /  Crafting orders etc)	INCOMPLETE
 Track Profession Overload (for mining & herbing)	INCOMPLETE

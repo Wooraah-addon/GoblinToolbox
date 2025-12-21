@@ -680,7 +680,7 @@ local function CreateConfigFrame()
                 addon.db.profile.tsmSource = value
                 UIDropDownMenu_SetText(f.tsmDropdown, entry.text)
                 addon:UpdateInventorySection()
-                addon:LayoutHUD()
+                addon:SafeLayoutHUD()
                 addon:QueueBagValueRecalc()
             end
             info.checked = (current == entry.value)
@@ -980,7 +980,7 @@ local function CreateConfigFrame()
         addon.db.profile.fontSize = value
         addon:ResetFontCache()
         addon:UpdateAllSections()
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
     end)
 
     f.customEdit:SetScript("OnEnterPressed", function(self)
@@ -1053,7 +1053,7 @@ function addon:ResetAllPositions()
         end
     end
 
-    self:LayoutHUD()
+    self:SafeLayoutHUD()
 end
 
 function addon:ResetAllSettings()

@@ -13,9 +13,9 @@ local function CreateDragHandle(parent)
     handle:SetSize(10, 10)  -- Visual size
     handle:SetPoint("TOPLEFT", parent, "TOPLEFT", 2, -2)
     handle:SetFrameLevel(parent:GetFrameLevel() + 5)
-    
-    -- Expand hitbox beyond visual (easier to grab)
-    handle:SetHitRectInsets(-6, -6, -6, -6)
+
+    -- Expand hitbox slightly beyond visual (easier to grab, but not obtrusive)
+    handle:SetHitRectInsets(-2, -2, -2, -2)
     
     -- Ring layer (dark background circle)
     local ring = handle:CreateTexture(nil, "BACKGROUND")

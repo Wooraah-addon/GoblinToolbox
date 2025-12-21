@@ -14,8 +14,8 @@ local function CreateDragHandle(parent)
     handle:SetPoint("TOPLEFT", parent, "TOPLEFT", 2, -2)
     handle:SetFrameLevel(parent:GetFrameLevel() + 5)
 
-    -- Expand hitbox beyond visual (easier to grab)
-    handle:SetHitRectInsets(-6, -6, -6, -6)
+    -- Expand hitbox slightly beyond visual (easier to grab, but not obtrusive)
+    handle:SetHitRectInsets(-2, -2, -2, -2)
 
     -- Ring layer (dark background circle)
     local ring = handle:CreateTexture(nil, "BACKGROUND")
@@ -263,23 +263,35 @@ end
 -----------------------------------------------------------------------
 
 local function IsMobileBankingAvailable()
-    -- Check 1: Player must be in a guild
+    -- Check if player is in a guild
     if not IsInGuild() then
         return false, "Not in a guild"
     end
-    
-    -- Check 2: Player must have Friendly or higher guild reputation (not Neutral)
-    local guildName, _, standingID = GetGuildInfo("player")
+
+    local guildName = GetGuildInfo("player")
     if not guildName then
         return false, "Not in a guild"
     end
-    
-    -- standingID: 1=Hated, 2=Hostile, 3=Unfriendly, 4=Neutral, 5=Friendly, 6=Honored, 7=Revered, 8=Exalted
+
+    -- Find guild faction in reputation list to check standing
     -- Mobile Banking requires Friendly (5) or higher
-    if standingID and standingID < 5 then
-        return false, "Requires Friendly guild reputation"
+    if C_Reputation and C_Reputation.GetNumFactions then
+        local numFactions = C_Reputation.GetNumFactions()
+        for i = 1, numFactions do
+            local factionData = C_Reputation.GetFactionDataByIndex(i)
+            if factionData and not factionData.isHeader and factionData.name == guildName then
+                -- factionData.reaction: 1=Hated, 2=Hostile, 3=Unfriendly, 4=Neutral, 5=Friendly, 6=Honored, 7=Revered, 8=Exalted
+                local standingID = factionData.reaction
+                if standingID and standingID < 5 then
+                    return false, "Requires Friendly guild reputation"
+                end
+                return true, nil
+            end
+        end
     end
-    
+
+    -- Fallback: if we can't check reputation, assume available if in guild
+    -- (Better to show it and have it fail than hide it when it should work)
     return true, nil
 end
 

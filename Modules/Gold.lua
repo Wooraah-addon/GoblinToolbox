@@ -63,6 +63,7 @@ function Gold:ResetSession()
     s.sessionPaused = false
     s.pauseStartTime = nil
     s.pausedDuration = 0
+    s.pauseGoldSnapshot = nil
 end
 
 function Gold:TogglePauseSession()
@@ -73,15 +74,26 @@ function Gold:TogglePauseSession()
     end
 
     if s.sessionPaused then
+        -- Resuming: adjust baseline to exclude gold changes during pause
         s.sessionPaused = false
         if s.pauseStartTime then
             s.pausedDuration = s.pausedDuration + (time() - s.pauseStartTime)
         end
         s.pauseStartTime = nil
+
+        -- Adjust sessionStartGold to exclude gold gained/lost during pause
+        if s.pauseGoldSnapshot then
+            local goldDuringPause = GetMoney() - s.pauseGoldSnapshot
+            s.sessionStartGold = s.sessionStartGold + goldDuringPause
+            s.pauseGoldSnapshot = nil
+        end
+
         print("Goblin Toolbox: session resumed.")
     else
+        -- Pausing: snapshot current gold
         s.sessionPaused = true
         s.pauseStartTime = time()
+        s.pauseGoldSnapshot = GetMoney()
         print("Goblin Toolbox: session paused.")
     end
 end
@@ -105,7 +117,9 @@ function Gold:GetSessionStats()
         elapsed = 1
     end
 
-    local net = GetMoney() - s.sessionStartGold
+    -- Use frozen gold snapshot while paused, current gold otherwise
+    local currentGold = (s.sessionPaused and s.pauseGoldSnapshot) or GetMoney()
+    local net = currentGold - s.sessionStartGold
     local gph = net * 3600 / elapsed
 
     return elapsed, net, gph
@@ -139,7 +153,7 @@ function Gold:StartSessionTicker()
         end
 
         addon:UpdateGoldSection()
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
     end)
 end
 
@@ -261,12 +275,17 @@ end
 -----------------------------------------------------------------------
 
 function Gold:Update()
+    -- Nil guard for database
+    if not addon.db or not addon.db.profile then
+        return
+    end
+
     -- Treat nil as enabled, older saved variables may not have the key.
     if addon.db.profile.modules.Gold == false then
         return
     end
 
-    
+
     local sec = addon.HUD and addon.HUD.sections and addon.HUD.sections.Gold
     if not sec then
         return

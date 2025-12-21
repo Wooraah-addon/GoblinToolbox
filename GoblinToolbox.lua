@@ -80,6 +80,18 @@ function addon:TryAutoSwitchToWarbandBank()
 end
 
 -----------------------------------------------------------------------
+-- Safe layout helper (prevents combat taint)
+-----------------------------------------------------------------------
+
+function addon:SafeLayoutHUD()
+    if InCombatLockdown() then
+        self._needsLayoutRefresh = true
+        return
+    end
+    self:LayoutHUD()
+end
+
+-----------------------------------------------------------------------
 -- Event handlers
 -----------------------------------------------------------------------
 
@@ -132,7 +144,7 @@ local EventHandlers = {
         -- Delayed update for Character section (some APIs need time to initialize)
         C_Timer.After(0.5, function()
             addon:UpdateCharacterSection()
-            addon:LayoutHUD()
+            addon:SafeLayoutHUD()
         end)
         addon:UpdateVisibility()
         
@@ -152,13 +164,13 @@ local EventHandlers = {
     PLAYER_MONEY = function()
         addon.Gold:UpdateCharacterCache()
         addon:UpdateGoldSection()
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
     end,
 
     ACCOUNT_MONEY = function()
         addon:GetWarbandBankGold()  -- This will update cache if we have access
         addon:UpdateGoldSection()
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
     end,
 
     BAG_UPDATE_DELAYED = function()
@@ -168,7 +180,7 @@ local EventHandlers = {
     GUILDBANK_UPDATE_MONEY = function()
         addon.Gold:UpdateGuildGoldFromBank()
         addon:UpdateGoldSection()
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
     end,
 
     PLAYER_INTERACTION_MANAGER_FRAME_SHOW = function(interactionType)
@@ -183,7 +195,7 @@ local EventHandlers = {
             C_Timer.After(0.2, function()
                 addon:GetWarbandBankGold()  -- This will update cache if we have access
                 addon:UpdateGoldSection()
-                addon:LayoutHUD()
+                addon:SafeLayoutHUD()
             end)
         end
 
@@ -192,7 +204,7 @@ local EventHandlers = {
             C_Timer.After(0.1, function()
                 addon.Gold:UpdateGuildGoldFromBank()
                 addon:UpdateGoldSection()
-                addon:LayoutHUD()
+                addon:SafeLayoutHUD()
             end)
         end
     end,
@@ -216,6 +228,10 @@ local EventHandlers = {
             addon:UpdateUtilityBar()
             addon:UpdateUtilityCooldowns()
         end
+        if addon._needsLayoutRefresh then
+            addon._needsLayoutRefresh = false
+            addon:LayoutHUD()
+        end
     end,
 
     PLAYER_ENTERING_WORLD = function()
@@ -233,7 +249,7 @@ local EventHandlers = {
     TOKEN_MARKET_PRICE_UPDATED = function()
         if addon:UpdateTokenCache() then
             addon:UpdateGoldSection()
-            addon:LayoutHUD()
+            addon:SafeLayoutHUD()
         end
     end,
 }
@@ -322,13 +338,13 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
     elseif cmd == "reset" then
         addon:ResetSession()
         addon:UpdateGoldSection()
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
         print("Goblin Toolbox: session reset.")
 
     elseif cmd == "pause" or cmd == "resume" then
         addon:TogglePauseSession()
         addon:UpdateGoldSection()
-        addon:LayoutHUD()
+        addon:SafeLayoutHUD()
 
     elseif cmd == "lock" then
         addon.db.profile.lockFrame = true
