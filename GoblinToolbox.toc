@@ -4,6 +4,7 @@
 ## Author: Wooraah
 ## Version: 0.3.2
 ## SavedVariables: GoblinToolboxDB
+## License: Apache-2.0
 
 Core.lua
 

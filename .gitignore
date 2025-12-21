@@ -1,0 +1,39 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Editor and IDE files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+
+# WoW addon development
+*.bak
+*.orig
+
+# Build and release artifacts
+.release/
+release/
+dist/
+
+# BigWigs Packager output
+.pkgmeta.bak
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
