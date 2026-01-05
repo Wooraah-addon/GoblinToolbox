@@ -136,12 +136,16 @@ local DEFAULTS = {
 
         -- Utility bar button states
         utilityButtons = {
-            mobileBank   = true,
-            mailbox      = true,
-            warbandBank  = true,
-            hearthstone  = true,
-            dalaranHS    = true,
-            garrisonHS   = true,
+            logout            = false,
+            mobileBank        = true,
+            mailbox           = true,
+            tradersBrutosaur  = true,
+            vendorMount       = true,
+            warbandBank       = true,
+            hearthstone       = true,
+            dalaranHS         = true,
+            garrisonHS        = true,
+            housingTeleport   = false,
         },
 
         -- Position persistence

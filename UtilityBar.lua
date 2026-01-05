@@ -125,6 +125,14 @@ end
 -----------------------------------------------------------------------
 
 local UTILITY_ACTIONS = {
+    logout = {
+        key         = "logout",
+        label       = "Logout",
+        kind        = "macro",
+        macroText   = "/logout",
+        iconTexture = 3565717,  -- Ability_revendreth_demonhunter
+    },
+
     mobileBank = {
         key         = "mobileBank",
         label       = "Mobile Banking",
@@ -142,6 +150,20 @@ local UTILITY_ACTIONS = {
             addon.CONST.ITEMS.OHUNA_PERCH,
             addon.CONST.ITEMS.MOLL_E,
         },
+    },
+
+    tradersBrutosaur = {
+        key         = "tradersBrutosaur",
+        label       = "Auction House",
+        kind        = "mount",
+        spellID     = 465235, -- Trader's Gilded Brutosaur
+    },
+
+    vendorMount = {
+        key         = "vendorMount",
+        label       = "Vendor Mount",
+        kind        = "mount",
+        -- spellID resolved dynamically from priority list
     },
 
     warbandBank = {
@@ -175,15 +197,27 @@ local UTILITY_ACTIONS = {
         kind     = "item",
         itemID   = addon.CONST.ITEMS.GARRISON_HS,
     },
+
+    housingTeleport = {
+        key             = "housingTeleport",
+        label           = "Housing",
+        kind            = "housing",
+        iconTexture     = 7252953,  -- Ui_homestone-64
+        cooldownSpellID = 1233637,  -- Teleport Home spell ID for cooldown tracking
+    },
 }
 
 local UTILITY_ORDER = {
+    "logout",
     "mobileBank",
     "mailbox",
+    "tradersBrutosaur",
+    "vendorMount",
     "warbandBank",
     "hearthstone",
     "dalaranHS",
     "garrisonHS",
+    "housingTeleport",
 }
 
 -----------------------------------------------------------------------
@@ -256,6 +290,94 @@ local function PickMailboxToyID()
     end
 
     return nil
+end
+
+-----------------------------------------------------------------------
+-- Mount helpers
+-----------------------------------------------------------------------
+
+local function IsMountCollectedBySpell(spellID)
+    if not spellID then
+        return false
+    end
+
+    if C_MountJournal and C_MountJournal.GetMountFromSpell and C_MountJournal.GetMountInfoByID then
+        local mountID = C_MountJournal.GetMountFromSpell(spellID)
+        if mountID then
+            local _, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(mountID)
+            return isCollected == true
+        end
+    end
+
+    -- Fallback: spell-known heuristic
+    if IsSpellKnown and IsSpellKnown(spellID) then
+        return true
+    end
+
+    return false
+end
+
+local VENDOR_MOUNT_PRIORITY = {
+    { spellID = 264058, label = "Mighty Caravan Brutosaur" },
+    { spellID = 457485, label = "Grizzly Hills Packmaster" },
+    { spellID = 122708, label = "Grand Expedition Yak" },
+}
+
+local function GetTundraMammothSpellByFaction()
+    local faction = UnitFactionGroup and UnitFactionGroup("player")
+    if faction == "Horde" then
+        return 61447 -- Traveler's Tundra Mammoth (Horde)
+    end
+    return 61425 -- Traveler's Tundra Mammoth (Alliance)
+end
+
+local function ResolveVendorMountSpellID()
+    for _, entry in ipairs(VENDOR_MOUNT_PRIORITY) do
+        if IsMountCollectedBySpell(entry.spellID) then
+            return entry.spellID
+        end
+    end
+
+    local mammothSpell = GetTundraMammothSpellByFaction()
+    if IsMountCollectedBySpell(mammothSpell) then
+        return mammothSpell
+    end
+
+    return nil
+end
+
+-----------------------------------------------------------------------
+-- Housing helpers
+-----------------------------------------------------------------------
+
+-- Global helper function using correct async event pattern
+function GoblinToolbox_HousingTeleport()
+    local success, err = pcall(function()
+        if not C_Housing or not EventUtil then
+            return
+        end
+
+        -- Correct pattern: register ONCE, then request
+        -- The event callback receives the house list as argument
+        EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_HOUSE_LIST_UPDATED", function(houseList)
+            if houseList and houseList[1] then
+                local h = houseList[1]
+                if h.neighborhoodGUID and h.houseGUID and h.plotID then
+                    C_Housing.TeleportHome(h.neighborhoodGUID, h.houseGUID, h.plotID)
+
+                    -- Refresh cooldown display shortly after teleport
+                    C_Timer.After(0.1, function()
+                        if addon and addon.UpdateUtilityCooldowns then
+                            addon:UpdateUtilityCooldowns()
+                        end
+                    end)
+                end
+            end
+        end)
+
+        -- Request the list (triggers the event with data)
+        C_Housing.GetPlayerOwnedHouses()
+    end)
 end
 
 -----------------------------------------------------------------------
@@ -380,14 +502,40 @@ local function IsGarrisonHSAvailable()
     return true, nil
 end
 
+local function IsTradersBrutosaurAvailable()
+    local spellID = UTILITY_ACTIONS.tradersBrutosaur and UTILITY_ACTIONS.tradersBrutosaur.spellID
+    if spellID and IsMountCollectedBySpell(spellID) then
+        return true, nil
+    end
+    return false, "Requires Trader's Gilded Brutosaur mount"
+end
+
+local function IsVendorMountAvailable()
+    local spellID = ResolveVendorMountSpellID()
+    if spellID then
+        return true, nil
+    end
+    return false, "Requires a vendor mount (Brutosaur/Packmaster/Yak/Mammoth)"
+end
+
+local function IsHousingTeleportAvailable()
+    if not (C_Housing and C_Housing.TeleportHome) then
+        return false, "Housing not unlocked"
+    end
+    return true, nil
+end
+
 -- Map utility keys to their availability check functions
 local AVAILABILITY_CHECKS = {
-    mobileBank  = IsMobileBankingAvailable,
-    mailbox     = IsMailboxAvailable,
-    warbandBank = IsWarbandBankAvailable,
-    hearthstone = IsHearthstoneAvailable,
-    dalaranHS   = IsDalaranHSAvailable,
-    garrisonHS  = IsGarrisonHSAvailable,
+    mobileBank       = IsMobileBankingAvailable,
+    mailbox          = IsMailboxAvailable,
+    tradersBrutosaur = IsTradersBrutosaurAvailable,
+    vendorMount      = IsVendorMountAvailable,
+    warbandBank      = IsWarbandBankAvailable,
+    hearthstone      = IsHearthstoneAvailable,
+    dalaranHS        = IsDalaranHSAvailable,
+    garrisonHS       = IsGarrisonHSAvailable,
+    housingTeleport  = IsHousingTeleportAvailable,
 }
 
 -----------------------------------------------------------------------
@@ -663,6 +811,7 @@ local function CreateUtilityButton(parent, index, size)
 
     btn.utilDef = nil
     btn.itemID = nil
+    btn.itemName = nil
     btn.spellKey = nil
     btn.utilityKey = nil
     btn.tooltip = nil
@@ -686,12 +835,21 @@ local function GetCooldownForUtilityButton(btn)
 
     local def = btn.utilDef
 
-    if def.kind == "spell" then
+    if def.kind == "spell" or def.kind == "mount" then
         local spellID = def.spellID
         if not spellID then
             return 0, 0, 0
         end
         return GetSpellCooldownCompat(spellID)
+    end
+
+    if def.kind == "housing" then
+        -- Use cooldownSpellID for housing button cooldown display
+        local spellID = def.cooldownSpellID
+        if spellID then
+            return GetSpellCooldownCompat(spellID)
+        end
+        return 0, 0, 0
     end
 
     if def.kind == "item" then
@@ -760,6 +918,7 @@ end
 local function SetupUtilityButton(btn, def, resolvedItemID)
     btn.utilDef = def
     btn.itemID = nil
+    btn.itemName = nil
     btn.spellKey = nil
     btn.utilityKey = def.key
     btn.unavailableReason = nil
@@ -790,7 +949,64 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
 
     local icon, tip
 
-    if def.kind == "spell" then
+    if def.kind == "mount" then
+        -- Mount-specific path: use Mount Journal as source of truth
+        local spellID = resolvedItemID or def.spellID  -- resolvedItemID repurposed for mount spellID
+
+        if spellID and C_MountJournal and C_MountJournal.GetMountFromSpell and C_MountJournal.GetMountInfoByID then
+            local mountID = C_MountJournal.GetMountFromSpell(spellID)
+            if mountID then
+                local mountName, mountSpellID, mountIcon = C_MountJournal.GetMountInfoByID(mountID)
+
+                if mountName and mountIcon then
+                    if not InCombatLockdown() then
+                        btn:SetAttribute("type", "spell")
+                        btn:SetAttribute("typerelease", "spell")
+                        btn:SetAttribute("spell", mountName)  -- Use localized mount name
+                        btn:SetAttribute("toy", nil)
+                        btn:SetAttribute("item", nil)
+                    end
+
+                    btn.spellKey = mountName
+                    icon = mountIcon  -- Use icon from Mount Journal
+                    tip = mountName or def.label or "Mount"
+                end
+            end
+        end
+
+        -- Fallback if Mount Journal fails
+        if not icon then
+            icon = "Interface\\Icons\\INV_Misc_QuestionMark"
+            tip = def.label or "Mount"
+        end
+
+    elseif def.kind == "macro" then
+        -- Macro button: executes macro text
+        if def.macroText and not InCombatLockdown() then
+            btn:SetAttribute("type", "macro")
+            btn:SetAttribute("macrotext", def.macroText)
+            btn:SetAttribute("toy", nil)
+            btn:SetAttribute("item", nil)
+            btn:SetAttribute("spell", nil)
+        end
+
+        icon = def.iconTexture or "Interface\\Icons\\INV_Misc_QuestionMark"
+        tip = def.label or "Macro"
+
+    elseif def.kind == "housing" then
+        -- Housing button: always teleport mode
+        if not InCombatLockdown() then
+            btn:SetAttribute("type", "macro")
+            btn:SetAttribute("macrotext", "/run GoblinToolbox_HousingTeleport()")
+            btn:SetAttribute("toy", nil)
+            btn:SetAttribute("item", nil)
+            btn:SetAttribute("spell", nil)
+        end
+
+        icon = def.iconTexture or 7252953  -- Ui_homestone-64
+        tip = "Teleport Home"
+
+    elseif def.kind == "spell" then
         local spellName = addon.API.GetSpellName(def.spellID)
         local key = spellName or def.spellID
 
@@ -823,10 +1039,14 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
                 btn:SetAttribute("toy", itemID)
                 btn:SetAttribute("item", nil)
             else
-                btn:SetAttribute("type", "item")
-                btn:SetAttribute("typerelease", "item")
-                btn:SetAttribute("item", itemID)
-                btn:SetAttribute("toy", nil)
+                -- For physical items, must use item name (not ID)
+                local itemName = GetItemInfo and GetItemInfo(itemID)
+                if itemName then
+                    btn:SetAttribute("type", "item")
+                    btn:SetAttribute("typerelease", "item")
+                    btn:SetAttribute("item", itemName)
+                    btn:SetAttribute("toy", nil)
+                end
             end
         end
 
@@ -836,12 +1056,15 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
             local name = GetToyNameCached(itemID)
             tip = name or def.label or "Toy"
         else
+            local name = nil
             if itemID and GetItemInfo then
-                local name = GetItemInfo(itemID)
+                name = GetItemInfo(itemID)
                 tip = name or def.label or "Item"
             else
                 tip = def.label or "Item"
             end
+            -- Store item name for secure attribute (needed for physical items)
+            btn.itemName = name
         end
     else
         if not InCombatLockdown() then
@@ -855,13 +1078,29 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         tip = def.label or "Utility"
     end
 
-    btn.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+    -- Only set texture if icon is provided (nil means atlas was already set, e.g., housing return mode)
+    if icon then
+        btn.icon:SetTexture(icon)
+    elseif icon == false then
+        -- Explicitly set fallback
+        btn.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+    end
+    -- If icon is nil, assume texture/atlas was already set by kind-specific code
     btn.tooltip = nil
     btn.tooltipTitle = nil
     btn.tooltipSubtext = nil
 
-    -- Tooltip UX: keep Hearthstone button semantics consistent even when a toy is used.
-    if def.key == "hearthstone" then
+    -- Tooltip UX: special handling for certain button types
+    if def.key == "tradersBrutosaur" then
+        btn.tooltipTitle = "Auction House"
+        btn.tooltipSubtext = tip  -- Mount name
+    elseif def.key == "vendorMount" then
+        btn.tooltipTitle = "Vendor Mount"
+        btn.tooltipSubtext = tip  -- Resolved mount name
+    elseif def.key == "housingTeleport" then
+        btn.tooltipTitle = "Housing"
+        btn.tooltipSubtext = btn.housingTooltipLine or "Teleport Home"
+    elseif def.key == "hearthstone" then
         btn.tooltipTitle = "Hearthstone"
         if btn.itemID == 6948 then
             btn.tooltipSubtext = "Uses Hearthstone"
@@ -1040,6 +1279,30 @@ function addon:UpdateUtilityBar()
                         bar.buttons[shown] = btn
                     end
                     SetupUtilityButton(btn, def, mailboxItemID)
+                end
+
+            elseif key == "tradersBrutosaur" then
+                local spellID = def.spellID
+                if spellID and IsMountCollectedBySpell(spellID) then
+                    shown = shown + 1
+                    local btn = bar.buttons[shown]
+                    if not btn then
+                        btn = CreateUtilityButton(bar, shown, size)
+                        bar.buttons[shown] = btn
+                    end
+                    SetupUtilityButton(btn, def, spellID)  -- Pass spellID as resolvedItemID
+                end
+
+            elseif key == "vendorMount" then
+                local spellID = ResolveVendorMountSpellID()
+                if spellID then
+                    shown = shown + 1
+                    local btn = bar.buttons[shown]
+                    if not btn then
+                        btn = CreateUtilityButton(bar, shown, size)
+                        bar.buttons[shown] = btn
+                    end
+                    SetupUtilityButton(btn, def, spellID)  -- Pass resolved spellID
                 end
 
             elseif key == "hearthstone" then

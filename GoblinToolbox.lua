@@ -238,6 +238,10 @@ local EventHandlers = {
         addon:UpdateVisibility()
     end,
 
+    ZONE_CHANGED = function()
+        addon:UpdateVisibility()
+    end,
+
     ZONE_CHANGED_NEW_AREA = function()
         addon:UpdateVisibility()
     end,
@@ -290,6 +294,7 @@ EventFrame:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
 EventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 EventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+EventFrame:RegisterEvent("ZONE_CHANGED")
 EventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 EventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 EventFrame:RegisterEvent("TOKEN_MARKET_PRICE_UPDATED")

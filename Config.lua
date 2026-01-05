@@ -509,12 +509,16 @@ local function CreateConfigFrame()
 
     -- Utility Bar module with individual button checkboxes
     f.utilModule = CreateModuleCheckbox(scrollChild, modulesSection, "Utility", "Utility Bar", INDENT, y, {
+        { key = "logout", label = "Logout", width = 70 },
         { key = "mobileBank", label = "Mobile Bank", width = 105 },
         { key = "mailbox", label = "Mailbox", width = 85 },
+        { key = "tradersBrutosaur", label = "AH Mount", width = 95 },
+        { key = "vendorMount", label = "Vendor Mount", width = 110 },
         { key = "warbandBank", label = "Warband", width = 85 },
         { key = "hearthstone", label = "Hearthstone", width = 105 },
         { key = "dalaranHS", label = "Dalaran HS", width = 95 },
         { key = "garrisonHS", label = "Garrison HS", width = 100 },
+        { key = "housingTeleport", label = "Housing", width = 75 },
     }, function() Apply() end)
     y = y - f.utilModule.totalHeight - SECTION_GAP
 
@@ -782,11 +786,20 @@ local function CreateConfigFrame()
         end
 
         -- Utility button sub-elements
+        if f.utilModule.childCheckboxes.logout then
+            f.utilModule.childCheckboxes.logout:SetChecked(db.utilityButtons.logout ~= false)
+        end
         if f.utilModule.childCheckboxes.mobileBank then
             f.utilModule.childCheckboxes.mobileBank:SetChecked(db.utilityButtons.mobileBank ~= false)
         end
         if f.utilModule.childCheckboxes.mailbox then
             f.utilModule.childCheckboxes.mailbox:SetChecked(db.utilityButtons.mailbox ~= false)
+        end
+        if f.utilModule.childCheckboxes.tradersBrutosaur then
+            f.utilModule.childCheckboxes.tradersBrutosaur:SetChecked(db.utilityButtons.tradersBrutosaur ~= false)
+        end
+        if f.utilModule.childCheckboxes.vendorMount then
+            f.utilModule.childCheckboxes.vendorMount:SetChecked(db.utilityButtons.vendorMount ~= false)
         end
         if f.utilModule.childCheckboxes.warbandBank then
             f.utilModule.childCheckboxes.warbandBank:SetChecked(db.utilityButtons.warbandBank ~= false)
@@ -799,6 +812,9 @@ local function CreateConfigFrame()
         end
         if f.utilModule.childCheckboxes.garrisonHS then
             f.utilModule.childCheckboxes.garrisonHS:SetChecked(db.utilityButtons.garrisonHS ~= false)
+        end
+        if f.utilModule.childCheckboxes.housingTeleport then
+            f.utilModule.childCheckboxes.housingTeleport:SetChecked(db.utilityButtons.housingTeleport ~= false)
         end
 
         -- Tracker bars
@@ -900,11 +916,20 @@ local function CreateConfigFrame()
         end
 
         -- Utility button sub-elements
+        if f.utilModule.childCheckboxes.logout then
+            db.utilityButtons.logout = f.utilModule.childCheckboxes.logout:GetChecked()
+        end
         if f.utilModule.childCheckboxes.mobileBank then
             db.utilityButtons.mobileBank = f.utilModule.childCheckboxes.mobileBank:GetChecked()
         end
         if f.utilModule.childCheckboxes.mailbox then
             db.utilityButtons.mailbox = f.utilModule.childCheckboxes.mailbox:GetChecked()
+        end
+        if f.utilModule.childCheckboxes.tradersBrutosaur then
+            db.utilityButtons.tradersBrutosaur = f.utilModule.childCheckboxes.tradersBrutosaur:GetChecked()
+        end
+        if f.utilModule.childCheckboxes.vendorMount then
+            db.utilityButtons.vendorMount = f.utilModule.childCheckboxes.vendorMount:GetChecked()
         end
         if f.utilModule.childCheckboxes.warbandBank then
             db.utilityButtons.warbandBank = f.utilModule.childCheckboxes.warbandBank:GetChecked()
@@ -917,6 +942,9 @@ local function CreateConfigFrame()
         end
         if f.utilModule.childCheckboxes.garrisonHS then
             db.utilityButtons.garrisonHS = f.utilModule.childCheckboxes.garrisonHS:GetChecked()
+        end
+        if f.utilModule.childCheckboxes.housingTeleport then
+            db.utilityButtons.housingTeleport = f.utilModule.childCheckboxes.housingTeleport:GetChecked()
         end
 
         -- Tracker bars
@@ -1105,12 +1133,16 @@ function addon:ResetAllSettings()
         showCurrencyTracker = true,
 
         utilityButtons = {
-            mobileBank   = true,
-            mailbox      = true,
-            warbandBank  = true,
-            hearthstone  = true,
-            dalaranHS    = true,
-            garrisonHS   = true,
+            logout            = false,
+            mobileBank        = true,
+            mailbox           = true,
+            tradersBrutosaur  = true,
+            vendorMount       = true,
+            warbandBank       = true,
+            hearthstone       = true,
+            dalaranHS         = true,
+            garrisonHS        = true,
+            housingTeleport   = false,
         },
 
         point    = DEFAULT_HUD_POSITION.point,
