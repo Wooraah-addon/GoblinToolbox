@@ -131,7 +131,7 @@ local function GetMovementSpeed()
     local baseSpeed = 7
     local speedPercent = (currentSpeed / baseSpeed) * 100
 
-    return math.floor(speedPercent)
+    return speedPercent
 end
 
 -----------------------------------------------------------------------
@@ -209,7 +209,7 @@ function Character:Update()
 
         if elem.charMovespeed ~= false then
             local speed = GetMovementSpeed()
-            table.insert(parts, "MoveSpeed: " .. tostring(speed) .. "%")
+            table.insert(parts, string.format("MoveSpeed: %.3f%%", speed))
         end
 
         local line2 = table.concat(parts, "   ")

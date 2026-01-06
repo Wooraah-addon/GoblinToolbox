@@ -251,6 +251,27 @@ function addon:UpdateTrackedBar()
     end
 
     local f = self.trackerFrame
+
+    -- Respect global HUD visibility settings
+    if not db.enabled then
+        f:Hide()
+        return
+    end
+
+    -- Check if we should hide due to combat/instances
+    if db.hideInCombat and UnitAffectingCombat("player") then
+        f:Hide()
+        return
+    end
+
+    if db.hideInInstances then
+        local inInstance, instanceType = IsInInstance()
+        if inInstance and instanceType ~= "none" then
+            f:Hide()
+            return
+        end
+    end
+
     f:Show()
     
     -- Update drag handle color if it exists

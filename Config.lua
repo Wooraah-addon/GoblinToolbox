@@ -193,18 +193,18 @@ end
 
 local function CreateSlider(parent, label, x, y, minVal, maxVal, step)
     local container = CreateFrame("Frame", nil, parent)
-    container:SetSize(200, 44)
+    container:SetSize(360, 24)
     container:SetPoint("TOPLEFT", x, y)
 
     local sliderLabel = container:CreateFontString(nil, "OVERLAY")
     sliderLabel:SetFontObject(OPT_BODY_FONT)
-    sliderLabel:SetPoint("TOPLEFT", 0, 0)
+    sliderLabel:SetPoint("LEFT", 0, 0)
     sliderLabel:SetText(label)
     container.label = sliderLabel
 
     local slider = CreateFrame("Slider", nil, container, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", 0, -18)
-    slider:SetSize(180, 17)
+    slider:SetPoint("RIGHT", container, "RIGHT", -50, 0)
+    slider:SetSize(150, 17)
     slider:SetMinMaxValues(minVal, maxVal)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
@@ -437,10 +437,24 @@ local function CreateConfigFrame()
     y = y - ITEM_HEIGHT
 
     f.hideCombatCB = CreateCheckbox(scrollChild, "Hide in combat", INDENT, y)
+    f.hideCombatCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Hide in Combat", 1, 1, 1)
+        GameTooltip:AddLine("Automatically hides the HUD when entering combat to reduce screen clutter.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.hideCombatCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     generalSection:AddChild(f.hideCombatCB)
     y = y - ITEM_HEIGHT
 
     f.hideInstCB = CreateCheckbox(scrollChild, "Hide in instances / raids", INDENT, y)
+    f.hideInstCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Hide in Instances/Raids", 1, 1, 1)
+        GameTooltip:AddLine("Automatically hides the HUD when inside dungeons, raids, scenarios, delves, and arenas.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.hideInstCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     generalSection:AddChild(f.hideInstCB)
     y = y - ITEM_HEIGHT - SECTION_GAP
 
@@ -452,24 +466,49 @@ local function CreateConfigFrame()
     y = y - 26
 
     f.headerCB = CreateCheckbox(scrollChild, "Show group headers", INDENT, y)
+    f.headerCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Show Group Headers", 1, 1, 1)
+        GameTooltip:AddLine("Displays collapsible section headers (Character, Gold, Inventory) with +/- toggle buttons.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.headerCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     appearanceSection:AddChild(f.headerCB)
     y = y - ITEM_HEIGHT
 
     f.titlebarCB = CreateCheckbox(scrollChild, "Show title bar", INDENT, y)
+    f.titlebarCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Show Title Bar", 1, 1, 1)
+        GameTooltip:AddLine("Displays the title bar with addon name, settings button, lock button, and minimize button.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.titlebarCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     appearanceSection:AddChild(f.titlebarCB)
     y = y - ITEM_HEIGHT
 
     f.bgCB = CreateCheckbox(scrollChild, "Show background", INDENT, y)
+    f.bgCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Show Background", 1, 1, 1)
+        GameTooltip:AddLine("Displays a semi-transparent dark background behind the HUD for better readability.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.bgCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     appearanceSection:AddChild(f.bgCB)
     y = y - ITEM_HEIGHT - 4
 
+    f.opacityContainer = CreateSlider(scrollChild, "HUD Background Opacity", INDENT, y, 0.0, 1.0, 0.05)
+    appearanceSection:AddChild(f.opacityContainer)
+    y = y - 28
+
     f.scaleContainer = CreateSlider(scrollChild, "UI Scale", INDENT, y, 0.5, 2.0, 0.05)
     appearanceSection:AddChild(f.scaleContainer)
-    y = y - 48
+    y = y - 28
 
     f.fontContainer = CreateSlider(scrollChild, "Font Size", INDENT, y, 10, 16, 1)
     appearanceSection:AddChild(f.fontContainer)
-    y = y - 48 - SECTION_GAP
+    y = y - 28 - SECTION_GAP
 
     -----------------------------------------------------------------------
     -- Section 3: Modules
@@ -487,6 +526,18 @@ local function CreateConfigFrame()
         { key = "charShardID", label = "Shard ID", width = 75 },
         { key = "charMovespeed", label = "MoveSpeed", width = 80 },
     }, function() Apply() end)
+
+    -- Add tooltip for Shard ID
+    if f.charModule.childCheckboxes.charShardID then
+        f.charModule.childCheckboxes.charShardID:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Shard ID", 1, 1, 1)
+            GameTooltip:AddLine("WoW splits busy zones into multiple parallel instances ('shards'). This shows which one you're on—handy for coordinating farms or troubleshooting sharding/phasing.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        f.charModule.childCheckboxes.charShardID:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
     y = y - f.charModule.totalHeight - 4
 
     -- Gold & Economy module with sub-elements
@@ -505,11 +556,24 @@ local function CreateConfigFrame()
         { key = "invBagSlots", label = "Bag Slots", width = 90 },
         { key = "invWarbank", label = "Warbank Access Indicator", width = 135 },
     }, function() Apply() end)
+
+    -- Add tooltip for Warbank Access Indicator
+    if f.invModule.childCheckboxes.invWarbank then
+        f.invModule.childCheckboxes.invWarbank:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Warbank Access Indicator", 1, 1, 1)
+            GameTooltip:AddLine("The Warband Bank is shared across your Battle.net account. If you are logged in on multiple WoW clients simultaneously, this indicator will clearly show which of your clients has access to the Warband Bank.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        f.invModule.childCheckboxes.invWarbank:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
     y = y - f.invModule.totalHeight - 4
 
     -- Utility Bar module with individual button checkboxes
     f.utilModule = CreateModuleCheckbox(scrollChild, modulesSection, "Utility", "Utility Bar", INDENT, y, {
         { key = "logout", label = "Logout", width = 70 },
+        { key = "reload", label = "Reload", width = 70 },
         { key = "mobileBank", label = "Mobile Bank", width = 105 },
         { key = "mailbox", label = "Mailbox", width = 85 },
         { key = "tradersBrutosaur", label = "AH Mount", width = 95 },
@@ -573,6 +637,13 @@ local function CreateConfigFrame()
     y = y - 28
 
     f.sessionPersistCB = CreateCheckbox(scrollChild, "Keep session data on logout/reload", INDENT, y)
+    f.sessionPersistCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Keep Session Data", 1, 1, 1)
+        GameTooltip:AddLine("When enabled, session gold tracking persists across logout/reload. When disabled, session resets each time you log in.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.sessionPersistCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     goldOptsSection:AddChild(f.sessionPersistCB)
     y = y - ITEM_HEIGHT - SECTION_GAP
 
@@ -615,6 +686,15 @@ local function CreateConfigFrame()
     y = y - 26
 
     f.wbBankDefaultCB = CreateCheckbox(scrollChild, "Prefer Warband Bank on bank visit (may conflict with bag addons)", INDENT, y)
+    f.wbBankDefaultCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Prefer Warband Bank", 1, 1, 1)
+        GameTooltip:AddLine("Automatically switches to the Warband Bank tab when you open a bank.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ", 1, 1, 1)
+        GameTooltip:AddLine("|cffff8800Warning:|r May conflict with bag addons like Bagnon or AdiBags that manage bank windows.", 1, 0.5, 0.5, true)
+        GameTooltip:Show()
+    end)
+    f.wbBankDefaultCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     behaviorSection:AddChild(f.wbBankDefaultCB)
     y = y - ITEM_HEIGHT - SECTION_GAP
 
@@ -648,6 +728,14 @@ local function CreateConfigFrame()
     resetAllBtn:SetText("Reset All Settings")
     resetAllBtn:SetScript("OnClick", function()
         StaticPopup_Show("GOBLINTOOLBOX_RESET_ALL")
+    end)
+
+    local reloadBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    reloadBtn:SetSize(100, 24)
+    reloadBtn:SetPoint("LEFT", resetAllBtn, "RIGHT", 8, 0)
+    reloadBtn:SetText("Reload UI")
+    reloadBtn:SetScript("OnClick", function()
+        ReloadUI()
     end)
 
     StaticPopupDialogs["GOBLINTOOLBOX_RESET_ALL"] = {
@@ -711,6 +799,10 @@ local function CreateConfigFrame()
         f.bgCB:SetChecked(db.showBackground)
         f.wbBankDefaultCB:SetChecked(db.preferWarbandBankOnOpen)
         f.sessionPersistCB:SetChecked(db.sessionPersistOnLogout or false)
+
+        local opacity = db.backgroundOpacity or 0.30
+        f.opacityContainer.slider:SetValue(opacity)
+        f.opacityContainer.valueText:SetText(string.format("%.0f%%", opacity * 100))
 
         local scale = db.scale or 1.0
         f.scaleContainer.slider:SetValue(scale)
@@ -788,6 +880,9 @@ local function CreateConfigFrame()
         -- Utility button sub-elements
         if f.utilModule.childCheckboxes.logout then
             f.utilModule.childCheckboxes.logout:SetChecked(db.utilityButtons.logout ~= false)
+        end
+        if f.utilModule.childCheckboxes.reload then
+            f.utilModule.childCheckboxes.reload:SetChecked(db.utilityButtons.reload ~= false)
         end
         if f.utilModule.childCheckboxes.mobileBank then
             f.utilModule.childCheckboxes.mobileBank:SetChecked(db.utilityButtons.mobileBank ~= false)
@@ -919,6 +1014,9 @@ local function CreateConfigFrame()
         if f.utilModule.childCheckboxes.logout then
             db.utilityButtons.logout = f.utilModule.childCheckboxes.logout:GetChecked()
         end
+        if f.utilModule.childCheckboxes.reload then
+            db.utilityButtons.reload = f.utilModule.childCheckboxes.reload:GetChecked()
+        end
         if f.utilModule.childCheckboxes.mobileBank then
             db.utilityButtons.mobileBank = f.utilModule.childCheckboxes.mobileBank:GetChecked()
         end
@@ -994,6 +1092,13 @@ local function CreateConfigFrame()
     HookCheckbox(f.trackerCB)
     HookCheckbox(f.currencyCB)
     HookCheckbox(f.tooltipEnabledCB)
+
+    f.opacityContainer.slider:SetScript("OnValueChanged", function(self, value)
+        value = math.floor(value * 20 + 0.5) / 20
+        f.opacityContainer.valueText:SetText(string.format("%.0f%%", value * 100))
+        addon.db.profile.backgroundOpacity = value
+        addon:UpdateBackground()
+    end)
 
     f.scaleContainer.slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value * 20 + 0.5) / 20
@@ -1098,6 +1203,7 @@ function addon:ResetAllSettings()
         showHeaders         = true,
         showTitleBar        = true,
         showBackground      = true,
+        backgroundOpacity   = 0.30,
         preferWarbandBankOnOpen = false,
         sessionPersistOnLogout = false,
 
@@ -1134,6 +1240,7 @@ function addon:ResetAllSettings()
 
         utilityButtons = {
             logout            = false,
+            reload            = false,
             mobileBank        = true,
             mailbox           = true,
             tradersBrutosaur  = true,

@@ -305,7 +305,13 @@ function addon:UpdateCurrencyBar()
     end
 
     local f = self.currencyFrame
-    
+
+    -- Respect global HUD visibility settings
+    if not db.enabled then
+        f:Hide()
+        return
+    end
+
     -- Check hide in combat/instances
     local shouldHide = false
     if db.hideInCombat and UnitAffectingCombat("player") then
@@ -317,12 +323,12 @@ function addon:UpdateCurrencyBar()
             shouldHide = true
         end
     end
-    
+
     if shouldHide then
         f:Hide()
         return
     end
-    
+
     f:Show()
     
     -- Update drag handle color if it exists

@@ -12,13 +12,14 @@ Add Reload UI button to bottom of menu	INCOMPLETE
 Add some default visibility setups to menu options "All Enabled", "Slimline", "Farmer", "Flipper"	INCOMPLETE
 Add a tooltip to the Cogwheel on the hug to read "Open Menu Settings".	INCOMPLETE
 ID options for Achievement ID, Quest ID, Macro ID are not obviously useful and don't show where i'd expect, consider removing.	INCOMPLETE
+Add ability to modify opacity	INCOMPLETE
 	
 CHARACTER & SERVER	
 Change section title in HD and Options from Character to "Character and Server"	COMPLETE
 Character Name & Class icon	COMPLETE
 Current Realm Name	COMPLETE
 Has warband access (Yes/no)	COMPLETE
-Current movement speed (a la monkeyspeed) - for use when you're wearing a speed set.	COMPLETE
+Current movement speed (a la monkeyspeed) - for use when you're wearing a speed set. Have had a request to change this to 3 decimal places display if possible, to investigate.	PARTIALLY COMPLETE
 Display Shard ID after server name. And add option to show/hide in menu	COMPLETE
 Add a custom label that is saved in the account state, a label to identify which Account this is (e.g. WOW1) - menu option off by default	INCOMPLETE
 Add Class Spec Icon	INCOMPLETE
@@ -59,6 +60,7 @@ Add Housing Teleport  button - Note that "Return to Previous Location" is not su
 Add logout button	COMPLETE
 AH Mount and Vendor Mount Support on Utility Bar	COMPLETE
 Add shift+right click functionality to allow users to quickly remove buttons from the utility bar in a similar fashion to removal of items and currencies from their respective bars	COMPLETE
+Add reload button to the right of Logout button (disabled by default)	INCOMPLETE
 Add Cooking Pets/spells to utility bar - Checks 1) Char has cooking 2) Prio list - Lil’ Ragnaros > Pierre > Crystalline Campfire > Cozy Bonfire > Maruuk Cooking Pot > Muckpool Cookpot > Steamworks Sausage Grill > Eternal Kiln > Felflame Campfire > Grim Campfire > Leylight Brazier > Little Wickerman > Cooking Fire	INCOMPLETE
 Add Portable Anvil to utility bar - Alvin (pet) > Thermal Anvil (item)	INCOMPLETE
 Lumber tracking (On/Off)	INCOMPLETE
@@ -87,6 +89,7 @@ Change the title of the menu option "Warbank" under Inventory to read "Has Warba
 Menu option for "Session preferences" - Session persists on logout, session resets on logout - Menu option exists, but functionality not working session resets on logout even with option ticked	INCOMPLETE
 	
 CURRENT BUGS	
+When users select "Enable HUD" in the menu, the item tracker bar still does not hide (the main hud, utility bar and currency tracker bar do hide properly)	INCOMPLETE
 	
 FIXED BUGS	
 Gold.lua: Gold:Update() was called before the Gold module’s db reference was initialized, causing a nil self.db access at line 265.	TEST

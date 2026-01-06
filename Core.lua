@@ -81,6 +81,7 @@ local DEFAULTS = {
         showHeaders      = true,
         showTitleBar     = true,
         showBackground   = true,
+        backgroundOpacity = 0.30,
         preferWarbandBankOnOpen = false,
         sessionPersistOnLogout = false,
 
@@ -127,9 +128,6 @@ local DEFAULTS = {
             spell       = false,
             currency    = false,
             unit        = false,
-            achievement = false,
-            quest       = false,
-            talent      = false,
             mount       = false,
             icon        = false,
         },
@@ -137,6 +135,7 @@ local DEFAULTS = {
         -- Utility bar button states
         utilityButtons = {
             logout            = false,
+            reload            = false,
             mobileBank        = true,
             mailbox           = true,
             tradersBrutosaur  = true,

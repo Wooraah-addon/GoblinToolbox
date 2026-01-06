@@ -362,6 +362,12 @@ local function CreateHUD()
     tb.menu:SetNormalTexture("Interface\\Buttons\\UI-OptionsButton")
     tb.menu:SetHighlightTexture("Interface\\Buttons\\UI-OptionsButton")
     tb.menu:SetScript("OnClick", function() addon:OpenConfig() end)
+    tb.menu:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Open Menu Settings", 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    tb.menu:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     tb.lock = CreateFrame("Button", nil, tb)
     tb.lock:SetSize(20, 20)
@@ -442,7 +448,8 @@ end
 
 function addon:UpdateBackground()
     local show = self.db.profile.showBackground
-    local alpha = show and 0.30 or 0.0
+    local opacity = self.db.profile.backgroundOpacity or 0.30
+    local alpha = show and opacity or 0.0
 
     if HUD.frame then
         HUD.frame:SetBackdropColor(0, 0, 0, alpha)

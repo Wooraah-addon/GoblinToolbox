@@ -125,22 +125,6 @@ end
 -----------------------------------------------------------------------
 
 local UTILITY_ACTIONS = {
-    logout = {
-        key         = "logout",
-        label       = "Logout",
-        kind        = "macro",
-        macroText   = "/logout",
-        iconTexture = 3565717,  -- Ability_revendreth_demonhunter
-    },
-
-    reload = {
-        key         = "reload",
-        label       = "Reload",
-        kind        = "macro",
-        macroText   = "/reload",
-        iconTexture = 3565720,  -- Ability_revendreth_mage
-    },
-
     mobileBank = {
         key         = "mobileBank",
         label       = "Mobile Banking",
@@ -156,22 +140,23 @@ local UTILITY_ACTIONS = {
         mailboxCandidates = {
             addon.CONST.ITEMS.KATY_STAMPWHISTLE,
             addon.CONST.ITEMS.OHUNA_PERCH,
+            239693, -- Radiant Lynx Whistle (shared CD with Katy/Ohuna)
             addon.CONST.ITEMS.MOLL_E,
         },
     },
 
     tradersBrutosaur = {
-        key         = "tradersBrutosaur",
-        label       = "Auction House",
-        kind        = "mount",
-        spellID     = 465235, -- Trader's Gilded Brutosaur
+        key     = "tradersBrutosaur",
+        label   = "Auction House",
+        kind    = "spell",
+        spellID = 465235, -- Trader's Gilded Brutosaur
     },
 
     vendorMount = {
-        key         = "vendorMount",
-        label       = "Vendor Mount",
-        kind        = "mount",
-        -- spellID resolved dynamically from priority list
+        key   = "vendorMount",
+        label = "Vendor Mount",
+        kind  = "spell",
+        -- spellID is resolved dynamically based on collected mounts
     },
 
     warbandBank = {
@@ -205,19 +190,9 @@ local UTILITY_ACTIONS = {
         kind     = "item",
         itemID   = addon.CONST.ITEMS.GARRISON_HS,
     },
-
-    housingTeleport = {
-        key             = "housingTeleport",
-        label           = "Housing",
-        kind            = "housing",
-        iconTexture     = 7252953,  -- Ui_homestone-64
-        cooldownSpellID = 1233637,  -- Teleport Home spell ID for cooldown tracking
-    },
 }
 
 local UTILITY_ORDER = {
-    "logout",
-    "reload",
     "mobileBank",
     "mailbox",
     "tradersBrutosaur",
@@ -226,7 +201,6 @@ local UTILITY_ORDER = {
     "hearthstone",
     "dalaranHS",
     "garrisonHS",
-    "housingTeleport",
 }
 
 -----------------------------------------------------------------------
@@ -286,14 +260,74 @@ local function IsToyOwnedAndUsable(itemID)
     return true
 end
 
+local function IsToyOwned(itemID)
+    if not itemID then
+        return false
+    end
+    if PlayerHasToy and PlayerHasToy(itemID) then
+        return true
+    end
+    return false
+end
+
+local function HasItemAnywhere(itemID)
+    if not itemID or not GetItemCount then
+        return false
+    end
+    return (GetItemCount(itemID, true) or 0) > 0
+end
+
+local function IsToyUsableNow(itemID)
+    if not itemID then
+        return false
+    end
+    if C_ToyBox and C_ToyBox.IsToyUsable then
+        return C_ToyBox.IsToyUsable(itemID)
+    end
+    return true
+end
+
+local function IsItemUsableNow(itemID)
+    if not itemID then
+        return false
+    end
+    if IsUsableItem then
+        local usable = IsUsableItem(itemID)
+        return usable == true
+    end
+    return true
+end
+
 local function PickMailboxToyID()
     local def = UTILITY_ACTIONS.mailbox
     if not def or not def.mailboxCandidates then
         return nil
     end
 
+    -- Pass 1: Prefer collected toys that are currently usable.
     for _, itemID in ipairs(def.mailboxCandidates) do
-        if IsToyOwnedAndUsable(itemID) then
+        if IsToyOwned(itemID) and IsToyUsableNow(itemID) then
+            return itemID
+        end
+    end
+
+    -- Pass 2: If all collected toys are on cooldown, still return the first collected toy.
+    for _, itemID in ipairs(def.mailboxCandidates) do
+        if IsToyOwned(itemID) then
+            return itemID
+        end
+    end
+
+    -- Pass 3: Fall back to physical items in bags.
+    for _, itemID in ipairs(def.mailboxCandidates) do
+        if HasItemAnywhere(itemID) and IsItemUsableNow(itemID) then
+            return itemID
+        end
+    end
+
+    -- Pass 4: Any physical item, even if currently unusable.
+    for _, itemID in ipairs(def.mailboxCandidates) do
+        if HasItemAnywhere(itemID) then
             return itemID
         end
     end
@@ -302,7 +336,7 @@ local function PickMailboxToyID()
 end
 
 -----------------------------------------------------------------------
--- Mount helpers
+-- Mount helpers (Auction House / Vendor mounts)
 -----------------------------------------------------------------------
 
 local function IsMountCollectedBySpell(spellID)
@@ -337,7 +371,7 @@ local function GetTundraMammothSpellByFaction()
     if faction == "Horde" then
         return 61447 -- Traveler's Tundra Mammoth (Horde)
     end
-    return 61425 -- Traveler's Tundra Mammoth (Alliance)
+    return 61425 -- Traveler's Tundra Mammoth (Alliance/default)
 end
 
 local function ResolveVendorMountSpellID()
@@ -353,40 +387,6 @@ local function ResolveVendorMountSpellID()
     end
 
     return nil
-end
-
------------------------------------------------------------------------
--- Housing helpers
------------------------------------------------------------------------
-
--- Global helper function using correct async event pattern
-function GoblinToolbox_HousingTeleport()
-    local success, err = pcall(function()
-        if not C_Housing or not EventUtil then
-            return
-        end
-
-        -- Correct pattern: register ONCE, then request
-        -- The event callback receives the house list as argument
-        EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_HOUSE_LIST_UPDATED", function(houseList)
-            if houseList and houseList[1] then
-                local h = houseList[1]
-                if h.neighborhoodGUID and h.houseGUID and h.plotID then
-                    C_Housing.TeleportHome(h.neighborhoodGUID, h.houseGUID, h.plotID)
-
-                    -- Refresh cooldown display shortly after teleport
-                    C_Timer.After(0.1, function()
-                        if addon and addon.UpdateUtilityCooldowns then
-                            addon:UpdateUtilityCooldowns()
-                        end
-                    end)
-                end
-            end
-        end)
-
-        -- Request the list (triggers the event with data)
-        C_Housing.GetPlayerOwnedHouses()
-    end)
 end
 
 -----------------------------------------------------------------------
@@ -422,7 +422,6 @@ local function IsMobileBankingAvailable()
     end
 
     -- Fallback: if we can't check reputation, assume available if in guild
-    -- (Better to show it and have it fail than hide it when it should work)
     return true, nil
 end
 
@@ -430,7 +429,6 @@ local function IsWarbandBankAvailable()
     -- Check if the spell is actually usable by this character
     local spellID = addon.CONST.SPELLS.WARBAND_BANK_INHIBITOR
     
-    -- Method 1: Check if spell is usable (most reliable)
     if C_Spell and C_Spell.IsSpellUsable then
         local usable = C_Spell.IsSpellUsable(spellID)
         if usable then
@@ -438,12 +436,10 @@ local function IsWarbandBankAvailable()
         end
     end
     
-    -- Method 2: Check if spell is known (fallback)
     if IsSpellKnown and IsSpellKnown(spellID) then
         return true, nil
     end
     
-    -- Method 3: Legacy check for account lock (secondary fallback)
     if C_PlayerInfo and C_PlayerInfo.HasAccountInventoryLock then
         local hasLock = C_PlayerInfo.HasAccountInventoryLock()
         if not hasLock then
@@ -455,60 +451,19 @@ local function IsWarbandBankAvailable()
 end
 
 local function IsMailboxAvailable()
-    -- Check if we have any usable mailbox toy
+    -- Check if we have any mailbox candidate (toy collected or item in bags)
     local def = UTILITY_ACTIONS.mailbox
     if not def or not def.mailboxCandidates then
         return false, "No mailbox toys configured"
     end
 
     for _, itemID in ipairs(def.mailboxCandidates) do
-        if IsToyOwnedAndUsable(itemID) then
+        if IsToyOwned(itemID) or HasItemAnywhere(itemID) then
             return true, nil
         end
     end
-    
-    return false, "Requires mailbox toy (Katy/Ohuna/MOLL-E)"
-end
 
-local function IsHearthstoneAvailable()
-    -- Hearthstone is always available (everyone has access)
-    return true, nil
-end
-
-local function IsDalaranHSAvailable()
-    local itemID = addon.CONST.ITEMS.DALARAN_HS
-    
-    -- Check 1: Do we own the toy?
-    if not (PlayerHasToy and PlayerHasToy(itemID)) then
-        return false, "Don't own Dalaran Hearthstone toy"
-    end
-    
-    -- Check 2: Did we complete "In the Blink of an Eye" quest?  (Quest ID: 44663)
-    if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
-        if not C_QuestLog.IsQuestFlaggedCompleted(44663) then
-            return false, "Complete Legion intro quest to unlock"
-        end
-    end
-    
-    return true, nil
-end
-
-local function IsGarrisonHSAvailable()
-    local itemID = addon.CONST.ITEMS.GARRISON_HS
-    
-    -- Check 1: Do we own the toy?
-    if not (PlayerHasToy and PlayerHasToy(itemID)) then
-        return false, "Don't own Garrison Hearthstone toy"
-    end
-    
-    -- Check 2: Did we complete "Establish Your Garrison" quest? (Quest ID: 34378)
-    if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
-        if not C_QuestLog.IsQuestFlaggedCompleted(34378) then
-            return false, "Complete WoD garrison quests to unlock"
-        end
-    end
-    
-    return true, nil
+    return false, "Requires mailbox toy (Katy/Ohuna/Radiant/MOLL-E)"
 end
 
 local function IsTradersBrutosaurAvailable()
@@ -527,72 +482,65 @@ local function IsVendorMountAvailable()
     return false, "Requires a vendor mount (Brutosaur/Packmaster/Yak/Mammoth)"
 end
 
-local function IsHousingTeleportAvailable()
-    if not (C_Housing and C_Housing.TeleportHome) then
-        return false, "Housing not unlocked"
+local function IsHearthstoneAvailable()
+    return true, nil
+end
+
+local function IsDalaranHSAvailable()
+    local itemID = addon.CONST.ITEMS.DALARAN_HS
+    
+    if not (PlayerHasToy and PlayerHasToy(itemID)) then
+        return false, "Don't own Dalaran Hearthstone toy"
     end
+    
+    if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
+        if not C_QuestLog.IsQuestFlaggedCompleted(44663) then
+            return false, "Complete Legion intro quest to unlock"
+        end
+    end
+    
+    return true, nil
+end
+
+local function IsGarrisonHSAvailable()
+    local itemID = addon.CONST.ITEMS.GARRISON_HS
+    
+    if not (PlayerHasToy and PlayerHasToy(itemID)) then
+        return false, "Don't own Garrison Hearthstone toy"
+    end
+    
+    if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
+        if not C_QuestLog.IsQuestFlaggedCompleted(34378) then
+            return false, "Complete WoD garrison quests to unlock"
+        end
+    end
+    
     return true, nil
 end
 
 -- Map utility keys to their availability check functions
 local AVAILABILITY_CHECKS = {
-    mobileBank       = IsMobileBankingAvailable,
-    mailbox          = IsMailboxAvailable,
-    tradersBrutosaur = IsTradersBrutosaurAvailable,
-    vendorMount      = IsVendorMountAvailable,
-    warbandBank      = IsWarbandBankAvailable,
-    hearthstone      = IsHearthstoneAvailable,
-    dalaranHS        = IsDalaranHSAvailable,
-    garrisonHS       = IsGarrisonHSAvailable,
-    housingTeleport  = IsHousingTeleportAvailable,
+    mobileBank        = IsMobileBankingAvailable,
+    mailbox           = IsMailboxAvailable,
+    tradersBrutosaur  = IsTradersBrutosaurAvailable,
+    vendorMount       = IsVendorMountAvailable,
+    warbandBank       = IsWarbandBankAvailable,
+    hearthstone       = IsHearthstoneAvailable,
+    dalaranHS         = IsDalaranHSAvailable,
+    garrisonHS        = IsGarrisonHSAvailable,
 }
 
 -----------------------------------------------------------------------
 -- Hearthstone resolver
---
--- Practical fix:
--- 1) Prefer item 6948 if in bags (reliable).
--- 2) Otherwise, prefer any owned/usable hearthstone toy from a known list
---    (sourced from RandomHearth's rhToys list).
--- 3) If none found, fallback to a ToyBox scan using GetItemSpell == 8690,
---    which is NOT universal but may help on some clients.
 -----------------------------------------------------------------------
 
 -- Known hearthstone toys (from RandomHearth; robust in practice)
 local KNOWN_HEARTHSTONE_TOYS = {
-    184353, -- Kyrian Hearthstone
-    183716, -- Venthyr Sinstone
-    180290, -- Night Fae Hearthstone
-    182773, -- Necrolord Hearthstone
-    54452,  -- Ethereal Portal
-    64488,  -- The Innkeeper's Daughter
-    93672,  -- Dark Portal
-    142542, -- Tome of Town Portal
-    162973, -- Greatfather Winter's Hearthstone
-    163045, -- Headless Horseman's Hearthstone
-    165669, -- Lunar Elder's Hearthstone
-    165670, -- Peddlefeet's Lovely Hearthstone
-    165802, -- Noble Gardener's Hearthstone
-    166746, -- Fire Eater's Hearthstone
-    166747, -- Brewfest Reveler's Hearthstone
-    168907, -- Holographic Digitalization Hearthstone
-    172179, -- Eternal Traveler's Hearthstone
-    193588, -- Timewalker's Hearthstone
-    188952, -- Dominated Hearthstone
-    200630, -- Ohn'ir Windsage's Hearthstone
-    190237, -- Broker Translocation Matrix
-    190196, -- Enlightened Hearthstone
-    209035, -- Hearthstone of the Flame
-    208704, -- Deepdweller's Earthen Hearthstone
-    206195, -- Path of the Naaru
-    212337, -- Stone of the Hearth
-    210455, -- Draenic Hologem
-    228940, -- Notorious Thread's Hearthstone
-    235016, -- Redeployment Module
-    236687, -- Explosive Hearthstone
-    245970, -- P.O.S.T Master's Express Hearthstone
-    246565, -- Cosmic Hearthstone
-    263489, -- Naaru's Enfold
+    184353, 183716, 180290, 182773, 54452, 64488, 93672, 142542,
+    162973, 163045, 165669, 165670, 165802, 166746, 166747, 168907,
+    172179, 193588, 188952, 200630, 190237, 190196, 209035, 208704,
+    206195, 212337, 210455, 228940, 235016, 236687, 245970, 246565,
+    263489,
 }
 
 local hearthstoneCache = {
@@ -619,14 +567,12 @@ local function IsHearthstoneToyItemBySpell(itemID, hearthSpellID)
 end
 
 local function FindHearthstoneToyID()
-    -- 1) Prefer known list (fast + reliable)
     for _, toyID in ipairs(KNOWN_HEARTHSTONE_TOYS) do
         if IsToyOwnedAndUsable(toyID) then
             return toyID
         end
     end
 
-    -- 2) Fallback: scan ToyBox for matching spell (not universal)
     if not (C_ToyBox and C_ToyBox.GetNumToys and C_ToyBox.GetToyFromIndex and C_ToyBox.GetToyInfo) then
         return nil
     end
@@ -703,7 +649,6 @@ local function GetToyNameCached(itemID)
         end
     end
 
-    -- Asynchronous load; when ready, refresh the bar (out of combat only).
     if Item and Item.CreateFromItemID then
         local item = Item:CreateFromItemID(itemID)
         if item and item.ContinueOnItemLoad then
@@ -757,7 +702,6 @@ local function CreateUtilityButton(parent, index, size)
     btn.icon = btn:CreateTexture(nil, "ARTWORK")
     btn.icon:SetAllPoints(true)
 
-    -- Desaturation overlay (grey out unavailable buttons)
     btn.overlay = btn:CreateTexture(nil, "OVERLAY")
     btn.overlay:SetAllPoints(btn.icon)
     btn.overlay:SetColorTexture(0, 0, 0, 0.6)
@@ -771,7 +715,6 @@ local function CreateUtilityButton(parent, index, size)
 
     btn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
 
-    -- IMPORTANT: Toys are much more reliable when the secure click is processed on mouse down.
     btn:RegisterForClicks("AnyDown")
     if not InCombatLockdown() then
         btn:SetAttribute("pressAndHoldAction", true)
@@ -790,7 +733,6 @@ local function CreateUtilityButton(parent, index, size)
             GameTooltip:AddLine(selfBtn.tooltipSubtext, 0.8, 0.8, 0.8, true)
         end
         
-        -- Show unavailability reason if present
         if selfBtn.unavailableReason then
             GameTooltip:AddLine(" ", 1, 1, 1)
             GameTooltip:AddLine("|cffff4444Not Available:|r " .. selfBtn.unavailableReason, 1, 0.5, 0.5, true)
@@ -820,8 +762,8 @@ local function CreateUtilityButton(parent, index, size)
 
     btn.utilDef = nil
     btn.itemID = nil
-    btn.itemName = nil
     btn.spellKey = nil
+    btn.spellID = nil
     btn.utilityKey = nil
     btn.tooltip = nil
     btn.tooltipTitle = nil
@@ -844,21 +786,12 @@ local function GetCooldownForUtilityButton(btn)
 
     local def = btn.utilDef
 
-    if def.kind == "spell" or def.kind == "mount" then
-        local spellID = def.spellID
+    if def.kind == "spell" then
+        local spellID = btn.spellID or def.spellID
         if not spellID then
             return 0, 0, 0
         end
         return GetSpellCooldownCompat(spellID)
-    end
-
-    if def.kind == "housing" then
-        -- Use cooldownSpellID for housing button cooldown display
-        local spellID = def.cooldownSpellID
-        if spellID then
-            return GetSpellCooldownCompat(spellID)
-        end
-        return 0, 0, 0
     end
 
     if def.kind == "item" then
@@ -867,7 +800,7 @@ local function GetCooldownForUtilityButton(btn)
             return 0, 0, 0
         end
 
-        if PlayerHasToy and PlayerHasToy(itemID) and C_ToyBox and C_ToyBox.GetToyCooldown then
+        if btn.isToy and C_ToyBox and C_ToyBox.GetToyCooldown then
             local tStart, tDur, tEnabled = C_ToyBox.GetToyCooldown(itemID)
             tStart = tStart or 0
             tDur = tDur or 0
@@ -924,15 +857,14 @@ end
 -- Button setup
 -----------------------------------------------------------------------
 
-local function SetupUtilityButton(btn, def, resolvedItemID)
+local function SetupUtilityButton(btn, def, resolvedItemID, resolvedSpellID)
     btn.utilDef = def
     btn.itemID = nil
-    btn.itemName = nil
     btn.spellKey = nil
+    btn.spellID = nil
     btn.utilityKey = def.key
     btn.unavailableReason = nil
 
-    -- Check availability for this button type
     local checkFunc = AVAILABILITY_CHECKS[def.key]
     local isAvailable = true
     local unavailableReason = nil
@@ -941,7 +873,6 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         isAvailable, unavailableReason = checkFunc()
     end
     
-    -- Update desaturation overlay
     if isAvailable then
         btn.icon:SetDesaturated(false)
         if btn.overlay then
@@ -958,66 +889,10 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
 
     local icon, tip
 
-    if def.kind == "mount" then
-        -- Mount-specific path: use Mount Journal as source of truth
-        local spellID = resolvedItemID or def.spellID  -- resolvedItemID repurposed for mount spellID
-
-        if spellID and C_MountJournal and C_MountJournal.GetMountFromSpell and C_MountJournal.GetMountInfoByID then
-            local mountID = C_MountJournal.GetMountFromSpell(spellID)
-            if mountID then
-                local mountName, mountSpellID, mountIcon = C_MountJournal.GetMountInfoByID(mountID)
-
-                if mountName and mountIcon then
-                    if not InCombatLockdown() then
-                        btn:SetAttribute("type", "spell")
-                        btn:SetAttribute("typerelease", "spell")
-                        btn:SetAttribute("spell", mountName)  -- Use localized mount name
-                        btn:SetAttribute("toy", nil)
-                        btn:SetAttribute("item", nil)
-                    end
-
-                    btn.spellKey = mountName
-                    icon = mountIcon  -- Use icon from Mount Journal
-                    tip = mountName or def.label or "Mount"
-                end
-            end
-        end
-
-        -- Fallback if Mount Journal fails
-        if not icon then
-            icon = "Interface\\Icons\\INV_Misc_QuestionMark"
-            tip = def.label or "Mount"
-        end
-
-    elseif def.kind == "macro" then
-        -- Macro button: executes macro text
-        if def.macroText and not InCombatLockdown() then
-            btn:SetAttribute("type", "macro")
-            btn:SetAttribute("macrotext", def.macroText)
-            btn:SetAttribute("toy", nil)
-            btn:SetAttribute("item", nil)
-            btn:SetAttribute("spell", nil)
-        end
-
-        icon = def.iconTexture or "Interface\\Icons\\INV_Misc_QuestionMark"
-        tip = def.label or "Macro"
-
-    elseif def.kind == "housing" then
-        -- Housing button: always teleport mode
-        if not InCombatLockdown() then
-            btn:SetAttribute("type", "macro")
-            btn:SetAttribute("macrotext", "/run GoblinToolbox_HousingTeleport()")
-            btn:SetAttribute("toy", nil)
-            btn:SetAttribute("item", nil)
-            btn:SetAttribute("spell", nil)
-        end
-
-        icon = def.iconTexture or 7252953  -- Ui_homestone-64
-        tip = "Teleport Home"
-
-    elseif def.kind == "spell" then
-        local spellName = addon.API.GetSpellName(def.spellID)
-        local key = spellName or def.spellID
+    if def.kind == "spell" then
+        local spellID = resolvedSpellID or def.spellID
+        local spellName = addon.API.GetSpellName(spellID)
+        local key = spellName or spellID
 
         if not InCombatLockdown() then
             btn:SetAttribute("type", "spell")
@@ -1028,7 +903,8 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         end
 
         btn.spellKey = key
-        icon = GetUtilityIcon(def)
+        btn.spellID = spellID
+        icon = addon.API.GetSpellTexture(spellID) or GetUtilityIcon(def)
         tip = spellName or def.label or "Spell"
 
     elseif def.kind == "item" then
@@ -1036,6 +912,7 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         btn.itemID = itemID
 
         local isToy = (itemID and PlayerHasToy and PlayerHasToy(itemID)) or false
+        btn.isToy = isToy
 
         if not InCombatLockdown() then
             btn:SetAttribute("type", nil)
@@ -1048,14 +925,10 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
                 btn:SetAttribute("toy", itemID)
                 btn:SetAttribute("item", nil)
             else
-                -- For physical items, must use item name (not ID)
-                local itemName = GetItemInfo and GetItemInfo(itemID)
-                if itemName then
-                    btn:SetAttribute("type", "item")
-                    btn:SetAttribute("typerelease", "item")
-                    btn:SetAttribute("item", itemName)
-                    btn:SetAttribute("toy", nil)
-                end
+                btn:SetAttribute("type", "item")
+                btn:SetAttribute("typerelease", "item")
+                btn:SetAttribute("item", itemID)
+                btn:SetAttribute("toy", nil)
             end
         end
 
@@ -1065,15 +938,12 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
             local name = GetToyNameCached(itemID)
             tip = name or def.label or "Toy"
         else
-            local name = nil
             if itemID and GetItemInfo then
-                name = GetItemInfo(itemID)
+                local name = GetItemInfo(itemID)
                 tip = name or def.label or "Item"
             else
                 tip = def.label or "Item"
             end
-            -- Store item name for secure attribute (needed for physical items)
-            btn.itemName = name
         end
     else
         if not InCombatLockdown() then
@@ -1087,28 +957,18 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         tip = def.label or "Utility"
     end
 
-    -- Only set texture if icon is provided (nil means atlas was already set, e.g., housing return mode)
-    if icon then
-        btn.icon:SetTexture(icon)
-    elseif icon == false then
-        -- Explicitly set fallback
-        btn.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-    end
-    -- If icon is nil, assume texture/atlas was already set by kind-specific code
+    btn.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
     btn.tooltip = nil
     btn.tooltipTitle = nil
     btn.tooltipSubtext = nil
 
-    -- Tooltip UX: special handling for certain button types
-    if def.key == "tradersBrutosaur" then
-        btn.tooltipTitle = "Auction House"
-        btn.tooltipSubtext = tip  -- Mount name
-    elseif def.key == "vendorMount" then
+    -- Tooltip UX: keep Hearthstone button semantics consistent even when a toy is used.
+    if def.key == "vendorMount" then
         btn.tooltipTitle = "Vendor Mount"
-        btn.tooltipSubtext = tip  -- Resolved mount name
-    elseif def.key == "housingTeleport" then
-        btn.tooltipTitle = "Housing"
-        btn.tooltipSubtext = btn.housingTooltipLine or "Teleport Home"
+        btn.tooltipSubtext = tip
+    elseif def.key == "tradersBrutosaur" then
+        btn.tooltipTitle = "Auction House"
+        btn.tooltipSubtext = tip
     elseif def.key == "hearthstone" then
         btn.tooltipTitle = "Hearthstone"
         if btn.itemID == 6948 then
@@ -1124,7 +984,7 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
 end
 
 -----------------------------------------------------------------------
--- Position persistence (minimal, stable)
+-- Position persistence
 -----------------------------------------------------------------------
 
 addon._utilityMovedThisSession = false
@@ -1204,7 +1064,6 @@ function addon:CreateUtilityBar()
     Utility_DeferredApply()
 
     f.dragHandle = CreateDragHandle(f)
-
     f.buttons = {}
 
     self:UpdateBackground()
@@ -1276,6 +1135,9 @@ function addon:UpdateUtilityBar()
     for _, key in ipairs(UTILITY_ORDER) do
         local def = UTILITY_ACTIONS[key]
         local enabled = db.utilityButtons and db.utilityButtons[key]
+        if enabled == nil and (key == "tradersBrutosaur" or key == "vendorMount") then
+            enabled = true
+        end
 
         if def and enabled then
             if key == "mailbox" then
@@ -1299,7 +1161,7 @@ function addon:UpdateUtilityBar()
                         btn = CreateUtilityButton(bar, shown, size)
                         bar.buttons[shown] = btn
                     end
-                    SetupUtilityButton(btn, def, spellID)  -- Pass spellID as resolvedItemID
+                    SetupUtilityButton(btn, def, nil, spellID)
                 end
 
             elseif key == "vendorMount" then
@@ -1311,7 +1173,7 @@ function addon:UpdateUtilityBar()
                         btn = CreateUtilityButton(bar, shown, size)
                         bar.buttons[shown] = btn
                     end
-                    SetupUtilityButton(btn, def, spellID)  -- Pass resolved spellID
+                    SetupUtilityButton(btn, def, nil, spellID)
                 end
 
             elseif key == "hearthstone" then
@@ -1331,7 +1193,7 @@ function addon:UpdateUtilityBar()
                     btn = CreateUtilityButton(bar, shown, size)
                     bar.buttons[shown] = btn
                 end
-                SetupUtilityButton(btn, def, nil)
+                SetupUtilityButton(btn, def, nil, nil)
             end
         end
     end

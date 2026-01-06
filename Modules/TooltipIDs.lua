@@ -15,16 +15,13 @@ local ID_TYPES = {
     spell       = "Spell ID",
     currency    = "Currency ID",
     unit        = "NPC ID",
-    achievement = "Achievement ID",
-    quest       = "Quest ID",
-    talent      = "Talent ID",
     mount       = "Mount ID",
     icon        = "Icon ID",
 }
 
 -- Order for config display
 local ID_TYPE_ORDER = {
-    "item", "spell", "currency", "unit", "achievement", "quest", "talent", "mount", "icon"
+    "item", "spell", "currency", "unit", "mount", "icon"
 }
 
 -----------------------------------------------------------------------
@@ -40,8 +37,6 @@ local TOOLTIP_TYPE_MAP = {
     [5]  = "currency",    -- Currency
     [7]  = "spell",       -- UnitAura
     [10] = "mount",       -- Mount
-    [12] = "achievement", -- Achievement
-    [23] = "quest",       -- Quest
 }
 
 local function AddIDLine(tooltip, id, idType)
