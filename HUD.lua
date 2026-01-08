@@ -697,21 +697,29 @@ function addon:UpdateVisibility()
     end
 
     if hideAll then
-        self:SetSecureFrameVisible(HUD.frame, false)
-        self:SetSecureFrameVisible(self.trackerFrame, false)
-        self:SetSecureFrameVisible(self.currencyFrame, false)
+        HUD.frame:Hide()
+        if self.trackerFrame then self.trackerFrame:Hide() end
+        if self.currencyFrame then self.currencyFrame:Hide() end
         self:SetSecureFrameVisible(self.utilityBar, false)
         return
     end
 
-    self:SetSecureFrameVisible(HUD.frame, true)
+    HUD.frame:Show()
 
     if self.trackerFrame then
-        self:SetSecureFrameVisible(self.trackerFrame, db.showTracker ~= false)
+        if db.showTracker ~= false then
+            self.trackerFrame:Show()
+        else
+            self.trackerFrame:Hide()
+        end
     end
 
     if self.currencyFrame then
-        self:SetSecureFrameVisible(self.currencyFrame, db.showCurrencyTracker ~= false)
+        if db.showCurrencyTracker ~= false then
+            self.currencyFrame:Show()
+        else
+            self.currencyFrame:Hide()
+        end
     end
 
     if db.modules and db.modules.Utility then

@@ -147,13 +147,13 @@ local EventHandlers = {
             addon:SafeLayoutHUD()
         end)
         addon:UpdateVisibility()
-        
-        -- Fix initial positioning only if user hasn't moved frames yet
+
+        -- Set default positions only on true first run (HUD has never been positioned)
         local db = addon.db.profile
-        if not db.trackerPoint and not db.currencyPoint and not db.utilityBarPos then
+        if not db.point then
             addon:ResetAllPositions()
         end
-        
+
         print("Goblin Toolbox loaded. Type /gtb for options.")
     end,
 

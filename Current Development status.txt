@@ -1,120 +1,156 @@
-GENERAL UI/UX	STATUS
-Resizeable HUD window overall like the way you can resize chat window	COMPLETE
-Moveable/scalable UI element with some basic font options	COMPLETE
-Checkboxes for which UI elements you want to show	COMPLETE
-Collapsible groups	COMPLETE
-Option to show/hide headers	COMPLETE
-Hide in combat/raid option	COMPLETE
-Make locking icon more obvious - currently too small and inconspicuous	COMPLETE
-Reset all to default button - default position should be top left below where character pane shows in default WoW UI config	COMPLETE
-More tooltips on menu options to help explain to novices	INCOMPLETE
-Add Reload UI button to bottom of menu	INCOMPLETE
-Add some default visibility setups to menu options "All Enabled", "Slimline", "Farmer", "Flipper"	INCOMPLETE
-Add a tooltip to the Cogwheel on the hug to read "Open Menu Settings".	INCOMPLETE
-ID options for Achievement ID, Quest ID, Macro ID are not obviously useful and don't show where i'd expect, consider removing.	INCOMPLETE
-Add ability to modify opacity	INCOMPLETE
-	
-CHARACTER & SERVER	
-Change section title in HD and Options from Character to "Character and Server"	COMPLETE
-Character Name & Class icon	COMPLETE
-Current Realm Name	COMPLETE
-Has warband access (Yes/no)	COMPLETE
-Current movement speed (a la monkeyspeed) - for use when you're wearing a speed set. Have had a request to change this to 3 decimal places display if possible, to investigate.	PARTIALLY COMPLETE
-Display Shard ID after server name. And add option to show/hide in menu	COMPLETE
-Add a custom label that is saved in the account state, a label to identify which Account this is (e.g. WOW1) - menu option off by default	INCOMPLETE
-Add Class Spec Icon	INCOMPLETE
-XP Tracking functionality - Lower Priority - and also perhaps separate module	INCOMPLETE
-	
-GOLD & ECONOMY	
-Current Character Gold	COMPLETE
-Current Warband Gold	COMPLETE
-Add gold Earned (session):?	COMPLETE
-Reset Session button	COMPLETE
-Pause Session button	COMPLETE
-Current Token price + recent trend indicator, recent trend indicator could do with modification, tolerances are too strict now and the arrow only shows in the case of extreme swings.	PARTIALLY COMPLETE
-Current GPH / Session - time elapsed, starting and ending gold, net gold, gold per hour	PARTIALLY COMPLETE
-Add gold spent (session):?	INCOMPLETE
-Gold options for Earned/Session, Earned/Day, Earned/Week, Earned/Month	INCOMPLETE
-Posted AH Value (based on chosen TSM value source)	INCOMPLETE
-Number of posted items (based on TSM data)	INCOMPLETE
-	
-INVENTORY & CURRENCY	
-Free bag slots	COMPLETE
-Free bag slots turn red when full	COMPLETE
-Bag Value (based on chosen TSM value source) - need to add vendor value as an option	COMPLETE
-Change bag slot tracking to cover both Bag and Reagent bag space separately	COMPLETE
-BUG: Item tracker bar not hiding in raid when option is selected	TEST
-Add looted item value / Session	INCOMPLETE
-Add option to also track items in inventory+warband bank	INCOMPLETE
-	
-	
-UTILITY BAR	
-Clickable buttons for warband bank,mailbox,brutos, vendor mount	COMPLETE
-Change default bank access to Warband - (Will conflict with various bag addons)	COMPLETE
-Hearthstone/Dal HS/Garrison HS/Portal Buttons/dropdowns for quick travel	COMPLETE
-Make MOLL-E show if Katy/Perch are on CD and you have engineering.	COMPLETE
-BUG: Katy stampwhistle CD shows when the toy is used, but the icon on the bar is not clickable	COMPLETE
-Grey overlay and different informational tooltip added to Utility icons when they are not usable by the character in question (e.g. doesn’t own the toy or hearthstone, or doesn’t have rep for Mobile Banking).	COMPLETE
-Improve menu to allow for selection of individual Utility buttons	COMPLETE
-Add Housing Teleport  button - Note that "Return to Previous Location" is not supported - too complicated to be worth the effort for the time being.	COMPLETE
-Add logout button	COMPLETE
-AH Mount and Vendor Mount Support on Utility Bar	COMPLETE
-Add shift+right click functionality to allow users to quickly remove buttons from the utility bar in a similar fashion to removal of items and currencies from their respective bars	COMPLETE
-Add reload button to the right of Logout button (disabled by default)	INCOMPLETE
-Add Cooking Pets/spells to utility bar - Checks 1) Char has cooking 2) Prio list - Lil’ Ragnaros > Pierre > Crystalline Campfire > Cozy Bonfire > Maruuk Cooking Pot > Muckpool Cookpot > Steamworks Sausage Grill > Eternal Kiln > Felflame Campfire > Grim Campfire > Leylight Brazier > Little Wickerman > Cooking Fire	INCOMPLETE
-Add Portable Anvil to utility bar - Alvin (pet) > Thermal Anvil (item)	INCOMPLETE
-Lumber tracking (On/Off)	INCOMPLETE
-Instance reset button -> Create a group, listed it, and leave the group, for fast reset of instances, one action per press	INCOMPLETE
-Invite/leave buttons for easyparty?	INCOMPLETE
-	
-ITEM TRACKER BAR	
-Collection/Tracking of specified materials by item ID with icons	COMPLETE
-Modify fonts to make number of items more visible on item tracking icons	COMPLETE
-Add anchor or make frame more obvious for item/currency tracking - small icon representing items	COMPLETE
-Items dragable onto tracking bar	COMPLETE
-Added icon in the tracker toolbar which shows when nothing is being tracked, shows adding instructions on hover	COMPLETE
-Make item quality also show in item tracker toolbar where relevant (just shows basic item icon at the moment) - e.g. Bismuth rank 3	INCOMPLETE
-Display value as well as number of tracked items (based on chosen price source) - see https://wago.io/ePkU0SnDg	INCOMPLETE
-Create 2nd row of item tracking after 8 items - Not priority/not required?	INCOMPLETE
-	
-CURRENCY TRACKER BAR	
-Create Functionality that largely replicates item tracking, but for currency tracking (adding currently not working, getting "Goblin Toolbox: could not identify item from input" in chat when I attempt to add a currency to tracing using /gtb add	COMPLETE
-Collection/Tracking of specified currencies by item ID with icons - Separate Bar 	COMPLETE
-	
-OPTIONS MENU	
-Add author and version number to Menu screen	COMPLETE
-Add ability to select / deselect display of utility buttons	COMPLETE
-Subdivide menu with more options to enable/disable distinct elements	COMPLETE
-Change the title of the menu option "Warbank" under Inventory to read "Has Warbank Access"	COMPLETE
-Menu option for "Session preferences" - Session persists on logout, session resets on logout - Menu option exists, but functionality not working session resets on logout even with option ticked	INCOMPLETE
-	
-CURRENT BUGS	
-When users select "Enable HUD" in the menu, the item tracker bar still does not hide (the main hud, utility bar and currency tracker bar do hide properly)	INCOMPLETE
-	
-FIXED BUGS	
-Gold.lua: Gold:Update() was called before the Gold module’s db reference was initialized, causing a nil self.db access at line 265.	TEST
-Combat in instances related bug - I couldn't replicate, but hopefully fixed	TEST
-The tooltips for Drag handles currently obstruct the functionality of tooltips, the bounding box of these tooltips needs to be shrunk, and position moved up and left if possible.	COMPLETE
-When clicking on Pause, the timing of the session pauses, but tracking of gold does not, I'm not sure this logic is correct, when paused, if you loot gold, this should NOT be tracked.	COMPLETE
-Heathstone itcon not working in Utility bar if hearthstone is  in bags. 	COMPLETE
-	
-OTHER	
-Sales tracker - replicate : https://wago.io/YHKFhrUDt - Split by type (Auction House / Trade /  Crafting orders etc)	INCOMPLETE
-Track Profession Overload (for mining & herbing)	INCOMPLETE
-Add Auctionator Price Source Support	INCOMPLETE
-Code Cleanup Pass prior to release - to remove redundant code and bloat	INCOMPLETE
-	
-PROFESSIONS (PHASED IMPLEMENTATION, MAJORITY DEFERRED UNTIL MIDNIGHT STABILIZES)	
-Baseline Profession Display – display learned primary professions with current skill level and click-to-open Blizzard profession UI	INCOMPLETE
-Concentration Display  – optional display of current and max concentration (crafting profs only) with visual indicator for when the bar is full and counter "Time till full".	INCOMPLETE
-Contextual Profession Actions – add profession-specific actions (for example Disenchant) via Utility Bar where relevant - based on check s of what profs the player has	INCOMPLETE
-Profession Cooldown and Buff Reminders – high-level reminders for reliable profession cooldowns or temporary buffs	INCOMPLETE
-Profession Knowledge and Quest Tracking – tracking of profession knowledge sources, weekly activities, or quest-based progression (expansion-specific)	CURRENTLY OUT OF SCOPE
-Profession Treasure Tracking – tracking of profession-related treasures and knowledge unlock sources (data-heavy, advanced feature)	CURRENTLY OUT OF SCOPE
-	
-CURRENTLY OUT OF SCOPE	
-Add support for more quick travel functionality (dungeon portals/wormhole generator/guild cloak/Earthen Portals/Mage Portals) - I think other addons like Opie and Tome of Teleportation handle this better. The core teleports already work	INCOMPLETE
-	
-	
-Addon Notes	
-The addon stores a small rolling history of recent WoW Token prices and compares the average of the latest three updates with the average of the three updates before that. An up or down arrow is only shown if the difference between those averages is at least 10,000 gold; otherwise no indicator is displayed.	
+GENERAL UI/UX	STATUS	PRIORITY
+Resizeable HUD window overall like the way you can resize chat window	COMPLETE	n/a
+Moveable/scalable UI element with some basic font options	COMPLETE	n/a
+Checkboxes for which UI elements you want to show	COMPLETE	n/a
+Collapsible groups	COMPLETE	n/a
+Option to show/hide headers	COMPLETE	n/a
+Hide in combat/raid option	COMPLETE	n/a
+Make locking icon more obvious - currently too small and inconspicuous	COMPLETE	n/a
+Reset all to default button - default position should be top left below where character pane shows in default WoW UI config	COMPLETE	n/a
+More tooltips on menu options to help explain to novices	COMPLETE	n/a
+Add Reload UI button to bottom of menu	COMPLETE	n/a
+Add a tooltip to the Cogwheel on the hud to read "Open Menu Settings".	COMPLETE	n/a
+ID options for Achievement ID, Quest ID, Macro ID are not obviously useful and don't show where i'd expect, consider removing.	COMPLETE	n/a
+Add ability to modify opacity	COMPLETE	n/a
+Add some default visibility setups to menu options "All Enabled", "Essentials", "Farmer", "Flipper"	INCOMPLETE	MEDIUM
+		
+CHARACTER & SERVER		
+Change section title in HD and Options from Character to "Character and Server"	COMPLETE	n/a
+Character Name & Class icon	COMPLETE	n/a
+Current Realm Name	COMPLETE	n/a
+Has warband access (Yes/no)	COMPLETE	n/a
+Current movement speed (a la monkeyspeed) - for use when you're wearing a speed set. Have had a request to change this to 3 decimal places display if possible, to investigate.	COMPLETE	n/a
+Display Shard ID after server name. And add option to show/hide in menu	COMPLETE	n/a
+Add a custom label that is saved in the account state, a label to identify which Account this is (e.g. WOW1) - menu option off by default	INCOMPLETE	LOW
+Add Class Spec Icon	INCOMPLETE	LOW
+XP Tracking functionality - Lower Priority - and also perhaps separate module	INCOMPLETE	LOW
+		
+GOLD & ECONOMY		
+Current Character Gold	COMPLETE	n/a
+Current Warband Gold	COMPLETE	n/a
+Add gold Earned (session)	COMPLETE	n/a
+Reset Session button	COMPLETE	n/a
+Pause Session button	COMPLETE	n/a
+"Enhance gold tracking with 2 options: Simple vs Detailed view for gold tracking, selectable in menu. 
+Detailed version to look more like this, whilst retaining the yellow gold icons where relevant and showing the net in red when below zero, and in green when above zero. Also note the replacement of the word Session with a clock icon. The clock icon should also turn red when the session is paused, and show as green when the session is running. The · symbol shown below represents the current gold icon we're using.
+[Gold & Economy]
+Char: 132,396   WB: 1,234,567  Guild: 820,000
+⏱ 42m  Start: 123,456·  Current: 132,396·  (12,320·/h)
+Earned:14,200·  Spent:5.300·  Net: 8,000·
+Token: 255,000·  ▲"	PARTIALLY COMPLETE	HIGH
+Add some kind of additional indicator (perhaps after the timer count) that shows "(Paused)" when tracking is paused either due to AFK or the user pressing the pause session button.	INCOMPLETE	MEDIUM
+Current Token price + recent trend indicator, recent trend indicator could do with modification, tolerances are too strict now and the arrow only shows in the case of extreme swings.	PARTIALLY COMPLETE	MEDIUM
+Posted AH Value (based on chosen TSM value source)	INCOMPLETE	MEDIUM
+Number of posted items (based on TSM data)	INCOMPLETE	MEDIUM
+		
+INVENTORY & CURRENCY		
+Free bag slots	COMPLETE	n/a
+Free bag slots turn red when full	COMPLETE	n/a
+Bag Value (based on chosen TSM value source) - need to add vendor value as an option	COMPLETE	n/a
+Change bag slot tracking to cover both Bag and Reagent bag space separately	COMPLETE	n/a
+Item tracker bar not hiding in raid when option is selected	COMPLETE	n/a
+Add "Looted Item Value" (per session calculation, using the same session and constraints as gold tracking per session - along with related menu option (default enabled). Positioning should be before Bag value	INCOMPLETE	HIGH
+Add option to also track items in inventory+warband bank	INCOMPLETE	HIGH
+		
+UTILITY BAR		
+Clickable buttons for warband bank,mailbox,brutos, vendor mount	COMPLETE	n/a
+Change default bank access to Warband - (Will conflict with various bag addons)	COMPLETE	n/a
+Hearthstone/Dal HS/Garrison HS/Portal Buttons/dropdowns for quick travel	COMPLETE	n/a
+Make MOLL-E show if Katy/Perch are on CD and you have engineering.	COMPLETE	n/a
+BUG: Katy stampwhistle CD shows when the toy is used, but the icon on the bar is not clickable	COMPLETE	n/a
+Grey overlay and different informational tooltip added to Utility icons when they are not usable by the character in question (e.g. doesn’t own the toy or hearthstone, or doesn’t have rep for Mobile Banking).	COMPLETE	n/a
+Improve menu to allow for selection of individual Utility buttons	COMPLETE	n/a
+Add Housing Teleport  button - Note that "Return to Previous Location" is not supported - too complicated to be worth the effort for the time being.	COMPLETE	n/a
+Add logout button	COMPLETE	n/a
+AH Mount and Vendor Mount Support on Utility Bar	COMPLETE	n/a
+Add shift+right click functionality to allow users to quickly remove buttons from the utility bar in a similar fashion to removal of items and currencies from their respective bars	COMPLETE	n/a
+Add reload button to the right of Logout button (disabled by default)	COMPLETE	n/a
+Add Cooking Pets/spells to utility bar - Checks 1) Char has cooking 2) Prio list - Lil’ Ragnaros > Pierre > Crystalline Campfire > Cozy Bonfire > Maruuk Cooking Pot > Muckpool Cookpot > Steamworks Sausage Grill > Eternal Kiln > Felflame Campfire > Grim Campfire > Leylight Brazier > Little Wickerman > Cooking Fire	INCOMPLETE	LOW
+Add Portable Anvil to utility bar - Alvin (pet) > Thermal Anvil (item)	INCOMPLETE	LOW
+Lumber tracking (On/Off)	INCOMPLETE	LOW
+Instance reset button -> Create a group, listed it, and leave the group, for fast reset of instances, one action per press	INCOMPLETE	LOW
+Invite/leave buttons for easyparty?	INCOMPLETE	LOW
+		
+ITEM TRACKER BAR		
+Collection/Tracking of specified materials by item ID with icons	COMPLETE	n/a
+Modify fonts to make number of items more visible on item tracking icons	COMPLETE	n/a
+Add anchor or make frame more obvious for item/currency tracking - small icon representing items	COMPLETE	n/a
+Items dragable onto tracking bar	COMPLETE	n/a
+Added icon in the tracker toolbar which shows when nothing is being tracked, shows adding instructions on hover	COMPLETE	n/a
+Make item quality also show in item tracker toolbar where relevant (just shows basic item icon at the moment) - e.g. Bismuth rank 3	COMPLETE	n/a
+Display value as well as number of tracked items (based on chosen price source) - see https://wago.io/ePkU0SnDg	COMPLETE	n/a
+Create 2nd row of item tracking after 8 items - Not priority/not required?	INCOMPLETE	LOW
+		
+CURRENCY TRACKER BAR		
+Create Functionality that largely replicates item tracking, but for currency tracking (adding currently not working, getting "Goblin Toolbox: could not identify item from input" in chat when I attempt to add a currency to tracing using /gtb add	COMPLETE	n/a
+Collection/Tracking of specified currencies by item ID with icons - Separate Bar 	COMPLETE	n/a
+		
+OPTIONS MENU		
+Add author and version number to Menu screen	COMPLETE	n/a
+Add ability to select / deselect display of utility buttons	COMPLETE	n/a
+Subdivide menu with more options to enable/disable distinct elements	COMPLETE	n/a
+Change the title of the menu option "Warbank" under Inventory to read "Has Warbank Access"	COMPLETE	n/a
+Menu option for "Session preferences" - Session persists on logout, session resets on logout - Menu option exists, but functionality not working session resets on logout even with option ticked	INCOMPLETE	HIGH
+		
+CURRENT BUGS		
+"ERROR ON ENTERING COMBAT - UI HID ITSELF AS EXPECTED, BUT THREW THIS ERROR: 1x [ADDON_ACTION_BLOCKED] AddOn 'GoblinToolbox' tried to call the protected function 'GoblinToolboxHUD:EnableMouse()'.
+[!BugGrabber/BugGrabber.lua]:583: in function '?'
+[!BugGrabber/BugGrabber.lua]:507: in function <!BugGrabber/BugGrabber.lua:507>
+[C]: in function 'EnableMouse'
+[GoblinToolbox/Core.lua]:278: in function 'SetSecureFrameVisible'
+[GoblinToolbox/HUD.lua]:700: in function 'UpdateVisibility'
+[GoblinToolbox/GoblinToolbox.lua]:242: in function 'handler'
+[GoblinToolbox/GoblinToolbox.lua]:281: in function <GoblinToolbox/GoblinToolbox.lua:278>
+
+Locals:
+self = <table> {
+}
+event = ""ADDON_ACTION_BLOCKED""
+addonName = ""GoblinToolbox""
+addonFunc = ""GoblinToolboxHUD:EnableMouse()""
+name = ""GoblinToolbox""
+badAddons = <table> {
+ GoblinToolbox = true
+}
+L = <table> {
+ ADDON_CALL_PROTECTED_MATCH = ""^%[(.*)%] (AddOn '.*' tried to call the protected function '.*'.)$""
+ NO_DISPLAY_2 = ""|cffffff00The standard display is called BugSack, and can probably be found on the same site where you found !BugGrabber.|r""
+ ERROR_DETECTED = ""%s |cffffff00captured, click the link for more information.|r""
+ USAGE = ""|cffffff00Usage: /buggrabber <1-%d>.|r""
+ BUGGRABBER_STOPPED = ""|cffffff00There are too many errors in your UI. As a result, your game experience may be degraded. Disable or update the failing addons if you don't want to see this message again.|r""
+ STOP_NAG = ""|cffffff00!BugGrabber will not nag about missing a display addon again until next patch.|r""
+ ADDON_DISABLED = ""|cffffff00!BugGrabber and %s cannot coexist; %s has been forcefully disabled. If you want to, you may log out, disable !BugGrabber, and enable %s.|r""
+ NO_DISPLAY_STOP = ""|cffffff00If you don't want to be reminded about this again, run /stopnag.|r""
+ NO_DISPLAY_1 = ""|cffffff00You seem to be running !BugGrabber with no display addon to go along with it. Although a slash command is provided for accessing error reports, a display can help you manage these errors in a more convenient way.|r""
+ ERROR_UNABLE = ""|cffffff00!BugGrabber is unable to retrieve errors from other players by itself. Please install BugSack or a similar display addon that might give you this functionality.|r""
+ ADDON_CALL_PROTECTED = ""[%s] AddOn '%s' tried to call the protected function '%s'.""
+}"	INCOMPLETE	
+		
+FIXED BUGS		
+Gold.lua: Gold:Update() was called before the Gold module’s db reference was initialized, causing a nil self.db access at line 265.	TEST	n/a
+Combat in instances related bug - I couldn't replicate, but hopefully fixed	TEST	n/a
+The tooltips for Drag handles currently obstruct the functionality of tooltips, the bounding box of these tooltips needs to be shrunk, and position moved up and left if possible.	COMPLETE	n/a
+When clicking on Pause, the timing of the session pauses, but tracking of gold does not, I'm not sure this logic is correct, when paused, if you loot gold, this should NOT be tracked.	COMPLETE	n/a
+Heathstone itcon not working in Utility bar if hearthstone is  in bags. 	COMPLETE	n/a
+When users select "Enable HUD" in the menu, the item tracker bar still does not hide (the main hud, utility bar and currency tracker bar do hide properly)	COMPLETE	n/a
+		
+OTHER		
+Sales tracker - replicate : https://wago.io/YHKFhrUDt - Split by type (Auction House / Trade /  Crafting orders etc)	INCOMPLETE	LOW
+Track Profession Overload (for mining & herbing)	INCOMPLETE	LOW
+Add Auctionator Price Source Support	INCOMPLETE	MEDIUM
+Code Cleanup Pass prior to release - to remove redundant code and bloat	INCOMPLETE	LOW
+		
+PROFESSIONS (PHASED IMPLEMENTATION, MAJORITY DEFERRED UNTIL MIDNIGHT STABILIZES)		
+Baseline Profession Display – display learned primary professions with current skill level and click-to-open Blizzard profession UI	INCOMPLETE	LOW
+Concentration Display  – optional display of current and max concentration (crafting profs only) with visual indicator for when the bar is full and counter "Time till full".	INCOMPLETE	LOW
+Contextual Profession Actions – add profession-specific actions (for example Disenchant) via Utility Bar where relevant - based on check s of what profs the player has	INCOMPLETE	LOW
+Profession Cooldown and Buff Reminders – high-level reminders for reliable profession cooldowns or temporary buffs	INCOMPLETE	LOW
+Profession Knowledge and Quest Tracking – tracking of profession knowledge sources, weekly activities, or quest-based progression (expansion-specific)	CURRENTLY OUT OF SCOPE	n/a
+Profession Treasure Tracking – tracking of profession-related treasures and knowledge unlock sources (data-heavy, advanced feature)	CURRENTLY OUT OF SCOPE	n/a
+		
+CURRENTLY OUT OF SCOPE		
+Add support for more quick travel functionality (dungeon portals/wormhole generator/guild cloak/Earthen Portals/Mage Portals) - I think other addons like Opie and Tome of Teleportation handle this better. The core teleports already work	INCOMPLETE	n/a
+		
+		
+Addon Notes		
+The addon stores a small rolling history of recent WoW Token prices and compares the average of the latest three updates with the average of the three updates before that. An up or down arrow is only shown if the difference between those averages is at least 10,000 gold; otherwise no indicator is displayed.		

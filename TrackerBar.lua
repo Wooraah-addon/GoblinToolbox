@@ -12,7 +12,7 @@ local function CreateDragHandle(parent)
     local handle = CreateFrame("Button", nil, parent)
     handle:SetSize(10, 10)  -- Visual size
     handle:SetPoint("TOPLEFT", parent, "TOPLEFT", 2, -2)
-    handle:SetFrameLevel(parent:GetFrameLevel() + 5)
+    handle:SetFrameLevel(1000)  -- Very high level to appear above Blizzard action bars
 
     -- Expand hitbox slightly beyond visual (easier to grab, but not obtrusive)
     handle:SetHitRectInsets(-2, -2, -2, -2)
@@ -96,6 +96,9 @@ local function CreateDragHandle(parent)
     
     -- Update visibility based on lock state
     handle.UpdateVisibility = function(self)
+        -- Always ensure mouse is enabled
+        self:EnableMouse(true)
+
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             -- Locked: visible but subdued (you can see it's there)
             self:SetAlpha(0.5)
@@ -124,6 +127,7 @@ function addon:CreateTrackerFrame()
     self.trackerFrame = f
 
     f:SetSize(260, 34)
+    f:SetFrameStrata("MEDIUM")  -- Same as Blizzard action bars
     f:SetClampedToScreen(true)
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -175,8 +179,11 @@ function addon:CreateTrackerFrame()
     -- Enable item drag-and-drop
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnReceiveDrag", function(self)
-        local infoType, itemID = GetCursorInfo()
-        if infoType == "item" and itemID then
+        local infoType, itemID, itemLink = GetCursorInfo()
+        if infoType == "item" and itemLink then
+            ClearCursor()
+            addon:AddTrackedItem(itemLink)
+        elseif infoType == "item" and itemID then
             ClearCursor()
             addon:AddTrackedItem(tostring(itemID))
         end
@@ -189,7 +196,8 @@ function addon:CreateTrackerFrame()
     f.addButton:SetSize(addButtonSize, addButtonSize)
     f.addButton:SetPoint("LEFT", f, "LEFT", 4, 0)
     f.addButton:SetAlpha(0.5)  -- 50% opacity
-    
+    f.addButton:RegisterForDrag("LeftButton")  -- Enable drag-and-drop
+
     local addIcon = f.addButton:CreateTexture(nil, "ARTWORK")
     addIcon:SetAllPoints(true)
     addIcon:SetTexture("Interface\\Buttons\\UI-PlusButton-Up")
@@ -217,8 +225,11 @@ function addon:CreateTrackerFrame()
     
     -- Enable drag-and-drop on the add button too
     f.addButton:SetScript("OnReceiveDrag", function(self)
-        local infoType, itemID = GetCursorInfo()
-        if infoType == "item" and itemID then
+        local infoType, itemID, itemLink = GetCursorInfo()
+        if infoType == "item" and itemLink then
+            ClearCursor()
+            addon:AddTrackedItem(itemLink)
+        elseif infoType == "item" and itemID then
             ClearCursor()
             addon:AddTrackedItem(tostring(itemID))
         end
@@ -315,22 +326,42 @@ function addon:UpdateTrackedBar()
             btn.icon = btn:CreateTexture(nil, "ARTWORK")
             btn.icon:SetAllPoints(true)
 
+            -- Count text (center of icon, to avoid overlap with rank)
             btn.count = btn:CreateFontString(nil, "OVERLAY")
-            btn.count:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 2)
+            btn.count:SetPoint("CENTER", btn, "CENTER", 0, 0)
             btn.count:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
             btn.count:SetTextColor(1, 1, 1)
             btn.count:SetShadowOffset(1, -1)
             btn.count:SetShadowColor(0, 0, 0, 1)
 
+            -- Rank overlay (top-left)
+            btn.rank = btn:CreateFontString(nil, "OVERLAY")
+            btn.rank:SetPoint("TOPLEFT", btn, "TOPLEFT", 2, -2)
+            btn.rank:SetFont("Fonts\\FRIZQT__.TTF", 10, "OUTLINE")
+            btn.rank:SetTextColor(1, 1, 1)
+            btn.rank:SetShadowOffset(1, -1)
+            btn.rank:SetShadowColor(0, 0, 0, 1)
+
+            -- Value text (bottom)
+            btn.value = btn:CreateFontString(nil, "OVERLAY")
+            btn.value:SetPoint("BOTTOM", btn, "BOTTOM", 0, 2)
+            btn.value:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
+            btn.value:SetTextColor(1, 0.82, 0)
+            btn.value:SetShadowOffset(1, -1)
+            btn.value:SetShadowColor(0, 0, 0, 1)
+
             btn:RegisterForClicks("AnyUp")
 
             btn:SetScript("OnEnter", function(selfBtn)
-                if not selfBtn.itemID then
+                if not selfBtn.entry then
                     return
                 end
-                GameTooltip:SetOwner(selfBtn, "ANCHOR_RIGHT")
-                GameTooltip:SetItemByID(selfBtn.itemID)
-                GameTooltip:Show()
+                local itemID = type(selfBtn.entry) == "table" and selfBtn.entry.itemID or selfBtn.entry
+                if itemID then
+                    GameTooltip:SetOwner(selfBtn, "ANCHOR_RIGHT")
+                    GameTooltip:SetItemByID(itemID)
+                    GameTooltip:Show()
+                end
             end)
 
             btn:SetScript("OnLeave", function()
@@ -338,8 +369,8 @@ function addon:UpdateTrackedBar()
             end)
 
             btn:SetScript("OnMouseUp", function(selfBtn, mouseButton)
-                if mouseButton == "RightButton" and IsShiftKeyDown() and selfBtn.itemID then
-                    addon:RemoveTrackedItem(selfBtn.itemID)
+                if mouseButton == "RightButton" and IsShiftKeyDown() and selfBtn.entry then
+                    addon:RemoveTrackedItem(selfBtn.entry)
                 end
             end)
 
@@ -357,22 +388,78 @@ function addon:UpdateTrackedBar()
     f:SetSize(totalWidth, buttonSize + padding * 2)
 
     local prev = f.addButton  -- Start positioning after the add button
-    for i, itemID in ipairs(tracked) do
+    for i, entry in ipairs(tracked) do
         local btn = f.buttons[i]
-        btn.itemID = itemID
+        btn.entry = entry
 
         btn:ClearAllPoints()
         btn:SetPoint("LEFT", prev, "RIGHT", spacing, 0)
         prev = btn
 
+        -- Parse entry (can be itemID or {itemID, rank})
+        local itemID, rank
+        if type(entry) == "table" then
+            itemID = entry.itemID
+            rank = entry.rank or 0
+        else
+            itemID = entry
+            rank = 0
+        end
+
+        -- Set icon
         local icon = addon.API.GetItemIcon(itemID)
         btn.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
 
-        local count = 0
-        if addon.trackedCounts and addon.trackedCounts[itemID] then
-            count = addon.trackedCounts[itemID]
+        -- Get count using Inventory helper
+        local count = addon.Inventory and addon.Inventory:GetCountForTrackedEntry(entry) or 0
+
+        -- Format and set count text (top-right)
+        local countText = addon.Inventory and addon.Inventory:FormatCount(count) or tostring(count)
+        btn.count:SetText(countText)
+
+        -- Set rank overlay (top-left)
+        if rank > 0 and C_Texture and C_Texture.GetCraftingReagentQualityChatIcon then
+            local rankIcon = C_Texture.GetCraftingReagentQualityChatIcon(rank)
+            btn.rank:SetText(rankIcon or "")
+        else
+            btn.rank:SetText("")
         end
-        btn.count:SetText(count > 0 and tostring(count) or "")
+
+        -- Set value overlay (bottom)
+        if db.showTrackedItemValue and count > 0 then
+            -- Try to get an itemLink for better TSM price resolution
+            local itemLink = nil
+            if rank > 0 then
+                -- For ranked items, try to construct or find a link with rank
+                -- This is approximate - real itemLink from bags would be better, but harder to find
+                itemLink = select(2, GetItemInfo(itemID))
+            else
+                -- For unranked items, get the base itemLink
+                itemLink = select(2, GetItemInfo(itemID))
+            end
+
+            local unitPrice = addon.Inventory and addon.Inventory:GetUnitPrice(itemLink, itemID)
+            if unitPrice and unitPrice > 0 then
+                local totalValue = unitPrice * count
+                local goldValue = math.floor(totalValue / 10000)
+                local goldIcon = "|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:-4:0|t"
+                local silverIcon = "|TInterface\\MoneyFrame\\UI-SilverIcon:0:0:-4:0|t"
+                local valueText
+                if goldValue >= 1000 then
+                    valueText = string.format("%.1fk%s", goldValue / 1000, goldIcon)
+                elseif goldValue > 0 then
+                    valueText = string.format("%d%s", goldValue, goldIcon)
+                else
+                    local silverValue = math.floor((totalValue % 10000) / 100)
+                    valueText = string.format("%d%s", silverValue, silverIcon)
+                end
+                btn.value:SetText(valueText)
+            else
+                btn.value:SetText("N/A")
+            end
+        else
+            btn.value:SetText("")
+        end
 
         btn:Show()
     end
@@ -384,31 +471,55 @@ end
 
 function addon:AddTrackedItem(input)
     if not input or input == "" then
-        print("Goblin Toolbox: usage /gtb add [item link or currency name]")
+        print("Goblin Toolbox: usage /gtb add [item link]")
         return
     end
 
     -- First try as an item
     local itemID
+    local itemLink = input
+
     if tonumber(input) then
         itemID = tonumber(input)
+        itemLink = nil
     else
         itemID = select(1, GetItemInfoInstant(input))
     end
 
     -- If we found an item, add it to item tracker
     if itemID then
+        -- Detect rank if available
+        local rank = addon.Inventory and addon.Inventory:GetReagentRank(itemLink, itemID) or nil
+
+        -- Create entry
+        local entry
+        if rank and rank > 0 then
+            entry = { itemID = itemID, rank = rank }
+        else
+            entry = { itemID = itemID, rank = 0 }
+        end
+
+        -- Check if already tracking this exact entry
         local list = self.db.profile.trackedItems
-        for _, id in ipairs(list) do
-            if id == itemID then
-                print("Goblin Toolbox: already tracking that item.")
+        for _, existingEntry in ipairs(list) do
+            local existingItemID, existingRank
+            if type(existingEntry) == "table" then
+                existingItemID = existingEntry.itemID
+                existingRank = existingEntry.rank or 0
+            else
+                existingItemID = existingEntry
+                existingRank = 0
+            end
+
+            if existingItemID == itemID and existingRank == (rank or 0) then
+                print("Goblin Toolbox: already tracking that item" .. (rank and " (Rank " .. rank .. ")" or "") .. ".")
                 self:UpdateTrackedBar()
                 return
             end
         end
 
-        table.insert(list, itemID)
-        print("Goblin Toolbox: tracking item", itemID)
+        table.insert(list, entry)
+        print("Goblin Toolbox: tracking item " .. itemID .. (rank and " (Rank " .. rank .. ")" or ""))
         self:UpdateTrackedBar()
         return
     end
@@ -417,15 +528,35 @@ function addon:AddTrackedItem(input)
     self:AddTrackedCurrency(input)
 end
 
-function addon:RemoveTrackedItem(itemID)
-    if not itemID then
+function addon:RemoveTrackedItem(entry)
+    if not entry then
         return
     end
+
+    -- Parse the entry to remove
+    local targetItemID, targetRank
+    if type(entry) == "table" then
+        targetItemID = entry.itemID
+        targetRank = entry.rank or 0
+    else
+        targetItemID = entry
+        targetRank = 0
+    end
+
     local list = self.db.profile.trackedItems
-    for i, id in ipairs(list) do
-        if id == itemID then
+    for i, existingEntry in ipairs(list) do
+        local existingItemID, existingRank
+        if type(existingEntry) == "table" then
+            existingItemID = existingEntry.itemID
+            existingRank = existingEntry.rank or 0
+        else
+            existingItemID = existingEntry
+            existingRank = 0
+        end
+
+        if existingItemID == targetItemID and existingRank == targetRank then
             table.remove(list, i)
-            print("Goblin Toolbox: stopped tracking item", itemID)
+            print("Goblin Toolbox: stopped tracking item " .. targetItemID .. (targetRank > 0 and " (Rank " .. targetRank .. ")" or ""))
             break
         end
     end

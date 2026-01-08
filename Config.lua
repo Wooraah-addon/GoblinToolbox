@@ -599,6 +599,17 @@ local function CreateConfigFrame()
 
     f.currencyCB = CreateCheckbox(scrollChild, "Currency Tracker Bar", INDENT, y)
     trackersSection:AddChild(f.currencyCB)
+    y = y - ITEM_HEIGHT
+
+    f.showTrackedItemValueCB = CreateCheckbox(scrollChild, "Show tracked item value", INDENT, y)
+    f.showTrackedItemValueCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Show Tracked Item Value", 1, 1, 1)
+        GameTooltip:AddLine("Displays an estimated gold value under each tracked item. Requires a supported pricing addon.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.showTrackedItemValueCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    trackersSection:AddChild(f.showTrackedItemValueCB)
     y = y - ITEM_HEIGHT - SECTION_GAP
 
     -----------------------------------------------------------------------
@@ -915,6 +926,7 @@ local function CreateConfigFrame()
         -- Tracker bars
         f.trackerCB:SetChecked(db.showTracker ~= false)
         f.currencyCB:SetChecked(db.showCurrencyTracker ~= false)
+        f.showTrackedItemValueCB:SetChecked(db.showTrackedItemValue ~= false)
 
         -- Tooltip IDs
         db.tooltipIDs = db.tooltipIDs or {}
@@ -1048,6 +1060,7 @@ local function CreateConfigFrame()
         -- Tracker bars
         db.showTracker          = f.trackerCB:GetChecked()
         db.showCurrencyTracker  = f.currencyCB:GetChecked()
+        db.showTrackedItemValue = f.showTrackedItemValueCB:GetChecked()
 
         -- Tooltip IDs
         db.tooltipIDs = db.tooltipIDs or {}
@@ -1071,6 +1084,7 @@ local function CreateConfigFrame()
         addon:QueueBagValueRecalc()
         addon:UpdateAllSections()
         addon:UpdateUtilityBar()
+        addon:UpdateTrackedBar()
         addon:UpdateVisibility()
     end
 
@@ -1091,6 +1105,7 @@ local function CreateConfigFrame()
     HookCheckbox(f.sessionPersistCB)
     HookCheckbox(f.trackerCB)
     HookCheckbox(f.currencyCB)
+    HookCheckbox(f.showTrackedItemValueCB)
     HookCheckbox(f.tooltipEnabledCB)
 
     f.opacityContainer.slider:SetScript("OnValueChanged", function(self, value)
@@ -1237,6 +1252,7 @@ function addon:ResetAllSettings()
         trackedItems        = {},
         showTracker         = true,
         showCurrencyTracker = true,
+        showTrackedItemValue = true,
 
         utilityButtons = {
             logout            = false,

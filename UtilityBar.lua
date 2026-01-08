@@ -1169,6 +1169,7 @@ function addon:CreateUtilityBar()
     self.utilityBar = f
 
     f:SetSize(200, 34)
+    f:SetFrameStrata("MEDIUM")  -- Same as Blizzard action bars, won't block quest dialogs
     f:SetClampedToScreen(true)
     f:SetMovable(true)
     f:EnableMouse(true)

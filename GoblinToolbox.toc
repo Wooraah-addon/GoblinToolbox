@@ -2,7 +2,7 @@
 ## Title: Goblin Toolbox
 ## Notes: A gold making HUD for goblins
 ## Author: Wooraah
-## Version: 0.4.0
+## Version: 0.5.1
 ## SavedVariables: GoblinToolboxDB
 ## License: GPL-3.0
 

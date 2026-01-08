@@ -54,6 +54,43 @@ function Inventory:GetBagSlots()
 end
 
 -----------------------------------------------------------------------
+-- Reagent rank detection (Blizzard API only)
+-----------------------------------------------------------------------
+
+function Inventory:GetReagentRank(itemLink, itemID)
+    -- Try to get rank from C_TradeSkillUI API (works for crafting reagents)
+    if C_TradeSkillUI and C_TradeSkillUI.GetItemReagentQualityByItemInfo then
+        local rank = nil
+        if itemLink then
+            rank = C_TradeSkillUI.GetItemReagentQualityByItemInfo(itemLink)
+        end
+        if not rank and itemID then
+            rank = C_TradeSkillUI.GetItemReagentQualityByItemInfo(itemID)
+        end
+        return rank  -- Returns 1, 2, or 3 for quality tiers, or nil if not a reagent
+    end
+    return nil
+end
+
+-----------------------------------------------------------------------
+-- Number formatting helper
+-----------------------------------------------------------------------
+
+function Inventory:FormatCount(count)
+    if not count or count == 0 then
+        return "0"
+    end
+
+    if count >= 1000000 then
+        return string.format("%.2fm", count / 1000000)
+    elseif count >= 1000 then
+        return string.format("%.1fk", count / 1000)
+    else
+        return tostring(count)
+    end
+end
+
+-----------------------------------------------------------------------
 -- TSM price source handling
 -----------------------------------------------------------------------
 
@@ -109,13 +146,60 @@ function Inventory:GetItemPrice(itemLink)
     return price
 end
 
+function Inventory:GetUnitPrice(itemLink, itemID)
+    -- Get unit price from TSM (no vendor fallback)
+    -- Returns nil if TSM not available or price is 0/unknown
+    if not itemLink and not itemID then
+        return nil
+    end
+
+    if TSM_API and TSM_API.GetCustomPriceValue then
+        local sourceLabel = self:ResolveTSMLabel()
+        local itemString = itemLink
+
+        -- If we have an itemLink, convert it to TSM format
+        if itemLink and TSM_API.ToItemString then
+            local ok, s = pcall(TSM_API.ToItemString, itemLink)
+            if ok and s then
+                itemString = s
+            end
+        -- If no itemLink but we have itemID, try converting itemID to itemString
+        elseif not itemLink and itemID then
+            -- Try to get itemLink from itemID, then convert
+            local name, link = GetItemInfo(itemID)
+            if link then
+                if TSM_API.ToItemString then
+                    local ok, s = pcall(TSM_API.ToItemString, link)
+                    if ok and s then
+                        itemString = s
+                    else
+                        itemString = link
+                    end
+                else
+                    itemString = link
+                end
+            else
+                -- Fallback: try using "i:" prefix format that TSM understands
+                itemString = "i:" .. tostring(itemID)
+            end
+        end
+
+        local ok, value = pcall(TSM_API.GetCustomPriceValue, sourceLabel, itemString)
+        if ok and value and value > 0 then
+            return value
+        end
+    end
+
+    return nil
+end
+
 -----------------------------------------------------------------------
 -- Bag scanning and value calculation
 -----------------------------------------------------------------------
 
 local bagValuePending = false
 
-local function ScanBag(bag, countByID, totalValue)
+local function ScanBag(bag, countByID, countByKey, totalValue)
     local numSlots = C_Container.GetContainerNumSlots(bag)
     if not numSlots or numSlots <= 0 then
         return totalValue
@@ -128,7 +212,20 @@ local function ScanBag(bag, countByID, totalValue)
             local info = C_Container.GetContainerItemInfo(bag, slot)
             local count = (info and info.stackCount) or 1
 
+            -- Track by base itemID (for rank 0 / unranked items)
             countByID[itemID] = (countByID[itemID] or 0) + count
+
+            -- Track by itemID:rank key (for rank-aware tracking)
+            local rank = Inventory:GetReagentRank(itemLink, itemID)
+            if rank and rank > 0 then
+                -- Ranked item: track by itemID:rank
+                local key = tostring(itemID) .. ":" .. tostring(rank)
+                countByKey[key] = (countByKey[key] or 0) + count
+            else
+                -- Unranked item: track by itemID:0
+                local key = tostring(itemID) .. ":0"
+                countByKey[key] = (countByKey[key] or 0) + count
+            end
 
             if itemLink then
                 local price = Inventory:GetItemPrice(itemLink)
@@ -146,6 +243,7 @@ function Inventory:RecalculateBagValue()
     if not C_Container then
         addon.state.bagValue = 0
         addon.trackedCounts = {}
+        addon.trackedCountsByKey = {}
         self:Update()
         addon:UpdateTrackedBar()
         return
@@ -153,17 +251,19 @@ function Inventory:RecalculateBagValue()
 
     local total = 0
     local countByID = {}
+    local countByKey = {}
 
     for bag = 0, NUM_BAG_SLOTS do
-        total = ScanBag(bag, countByID, total)
+        total = ScanBag(bag, countByID, countByKey, total)
     end
 
     if Enum and Enum.BagIndex and Enum.BagIndex.ReagentBag then
-        total = ScanBag(Enum.BagIndex.ReagentBag, countByID, total)
+        total = ScanBag(Enum.BagIndex.ReagentBag, countByID, countByKey, total)
     end
 
     addon.state.bagValue = total
     addon.trackedCounts = countByID
+    addon.trackedCountsByKey = countByKey
 
     self:Update()
     addon:UpdateTrackedBar()
@@ -299,6 +399,40 @@ function Inventory:Update()
             sec.lines[3]:SetText("")
         end
     end
+end
+
+-----------------------------------------------------------------------
+-- Helper to get count for a tracked entry
+-----------------------------------------------------------------------
+
+function Inventory:GetCountForTrackedEntry(entry)
+    -- entry can be a simple itemID (number) or a structured {itemID, rank} table
+    local itemID, rank
+
+    if type(entry) == "table" then
+        itemID = entry.itemID
+        rank = entry.rank or 0
+    else
+        itemID = entry
+        rank = 0
+    end
+
+    if not itemID then
+        return 0
+    end
+
+    -- Ensure tables exist
+    addon.trackedCounts = addon.trackedCounts or {}
+    addon.trackedCountsByKey = addon.trackedCountsByKey or {}
+
+    -- If rank > 0, use rank-specific count
+    if rank > 0 then
+        local key = tostring(itemID) .. ":" .. tostring(rank)
+        return addon.trackedCountsByKey[key] or 0
+    end
+
+    -- Otherwise use base itemID count (aggregates all ranks)
+    return addon.trackedCounts[itemID] or 0
 end
 
 -----------------------------------------------------------------------

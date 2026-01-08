@@ -120,6 +120,7 @@ local DEFAULTS = {
 
         showTracker     = true,
         showCurrencyTracker = true,
+        showTrackedItemValue = true,  -- Display gold value overlay on tracked items
 
         -- Tooltip IDs settings (all off by default)
         tooltipIDs = {
@@ -220,6 +221,7 @@ addon.token = {
 }
 
 addon.trackedCounts  = {}
+addon.trackedCountsByKey = {}
 addon.trackerButtons = {}
 addon.utilityButtons = {}
 

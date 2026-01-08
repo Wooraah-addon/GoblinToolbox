@@ -12,7 +12,7 @@ local function CreateDragHandle(parent)
     local handle = CreateFrame("Button", nil, parent)
     handle:SetSize(10, 10)  -- Visual size
     handle:SetPoint("TOPLEFT", parent, "TOPLEFT", 2, -2)
-    handle:SetFrameLevel(parent:GetFrameLevel() + 5)
+    handle:SetFrameLevel(1000)  -- Very high level to appear above Blizzard action bars
 
     -- Expand hitbox slightly beyond visual (easier to grab, but not obtrusive)
     handle:SetHitRectInsets(-2, -2, -2, -2)
@@ -96,6 +96,9 @@ local function CreateDragHandle(parent)
     
     -- Update visibility based on lock state
     handle.UpdateVisibility = function(self)
+        -- Always ensure mouse is enabled
+        self:EnableMouse(true)
+
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             -- Locked: visible but subdued (you can see it's there)
             self:SetAlpha(0.5)
@@ -124,6 +127,7 @@ function addon:CreateCurrencyFrame()
     self.currencyFrame = f
 
     f:SetSize(260, 34)
+    f:SetFrameStrata("MEDIUM")  -- Same as Blizzard action bars
     f:SetClampedToScreen(true)
     f:SetMovable(true)
     f:EnableMouse(true)
