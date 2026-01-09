@@ -587,18 +587,14 @@ local function CreateConfigFrame()
     y = y - f.utilModule.totalHeight - SECTION_GAP
 
     -----------------------------------------------------------------------
-    -- Section 4: Tracker Bars
+    -- Section 4: Item Tracker Bar
     -----------------------------------------------------------------------
 
-    local trackersSection = CreateSectionHeader(scrollChild, "trackers", "Tracker Bars", y)
+    local itemTrackerSection = CreateSectionHeader(scrollChild, "itemtracker", "Item Tracker Bar", y)
     y = y - 26
 
-    f.trackerCB = CreateCheckbox(scrollChild, "Item Tracker Bar", INDENT, y)
-    trackersSection:AddChild(f.trackerCB)
-    y = y - ITEM_HEIGHT
-
-    f.currencyCB = CreateCheckbox(scrollChild, "Currency Tracker Bar", INDENT, y)
-    trackersSection:AddChild(f.currencyCB)
+    f.trackerCB = CreateCheckbox(scrollChild, "Enable Item Tracker Bar", INDENT, y)
+    itemTrackerSection:AddChild(f.trackerCB)
     y = y - ITEM_HEIGHT
 
     f.showTrackedItemValueCB = CreateCheckbox(scrollChild, "Show tracked item value", INDENT, y)
@@ -609,11 +605,73 @@ local function CreateConfigFrame()
         GameTooltip:Show()
     end)
     f.showTrackedItemValueCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    trackersSection:AddChild(f.showTrackedItemValueCB)
+    itemTrackerSection:AddChild(f.showTrackedItemValueCB)
+    y = y - ITEM_HEIGHT - 8
+
+    -- Subsection: Items to include in Tracker Totals (horizontal layout like Utility Bar)
+    local trackerSourcesLabel = scrollChild:CreateFontString(nil, "OVERLAY")
+    trackerSourcesLabel:SetPoint("TOPLEFT", INDENT, y)
+    trackerSourcesLabel:SetFontObject(OPT_BODY_FONT)
+    trackerSourcesLabel:SetText("Items to include in Tracker Totals:")
+    itemTrackerSection:AddChild(trackerSourcesLabel)
+    y = y - 24
+
+    -- Create horizontal row of checkboxes (matching Utility Bar style)
+    local trackerSourceRow = CreateHorizontalCheckboxRow(scrollChild, INDENT + 24, y, 360)
+
+    f.trackerIncludeInventoryCB = trackerSourceRow:AddCheckbox("inventory", "Player Bags", 110)
+    f.trackerIncludeInventoryCB:SetScript("OnClick", function() Apply() end)
+    f.trackerIncludeInventoryCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Include Player Bags", 1, 1, 1)
+        GameTooltip:AddLine("Counts items in your character's bags (normal + reagent).", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("This is updated in real-time as you loot/move items.", 0.6, 0.6, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.trackerIncludeInventoryCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    f.trackerIncludePlayerBankCB = trackerSourceRow:AddCheckbox("playerbank", "Player Bank", 110)
+    f.trackerIncludePlayerBankCB:SetScript("OnClick", function() Apply() end)
+    f.trackerIncludePlayerBankCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Include Player Bank", 1, 1, 1)
+        GameTooltip:AddLine("Counts items in your character's personal bank (character-specific).", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("Bank contents are scanned when you visit a banker and cached until your next visit.", 0.6, 0.6, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.trackerIncludePlayerBankCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    f.trackerIncludeWarbandBankCB = trackerSourceRow:AddCheckbox("warbandbank", "Warband Bank", 125)
+    f.trackerIncludeWarbandBankCB:SetScript("OnClick", function() Apply() end)
+    f.trackerIncludeWarbandBankCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Include Warband Bank", 1, 1, 1)
+        GameTooltip:AddLine("Counts items in your account-wide warband bank.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("Bank contents are scanned when you visit a banker and cached until your next visit.", 0.6, 0.6, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.trackerIncludeWarbandBankCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Add row containers to section
+    for _, rowContainer in ipairs(trackerSourceRow:GetAllContainers()) do
+        itemTrackerSection:AddChild(rowContainer)
+    end
+
+    y = y - trackerSourceRow:GetHeight() - SECTION_GAP
+
+    -----------------------------------------------------------------------
+    -- Section 5: Currency Tracker Bar
+    -----------------------------------------------------------------------
+
+    local currencyTrackerSection = CreateSectionHeader(scrollChild, "currencytracker", "Currency Tracker Bar", y)
+    y = y - 26
+
+    f.currencyCB = CreateCheckbox(scrollChild, "Enable Currency Tracker Bar", INDENT, y)
+    currencyTrackerSection:AddChild(f.currencyCB)
     y = y - ITEM_HEIGHT - SECTION_GAP
 
     -----------------------------------------------------------------------
-    -- Section 5: Gold & Economy Options
+    -- Section 6: Gold & Economy Options
     -----------------------------------------------------------------------
 
     local goldOptsSection = CreateSectionHeader(scrollChild, "goldoptions", "Gold & Economy Options", y)
@@ -647,11 +705,32 @@ local function CreateConfigFrame()
     goldOptsSection:AddChild(f.customEdit)
     y = y - 28
 
-    f.sessionPersistCB = CreateCheckbox(scrollChild, "Keep session data on logout/reload", INDENT, y)
+    local viewModeLabel = scrollChild:CreateFontString(nil, "OVERLAY")
+    viewModeLabel:SetPoint("TOPLEFT", INDENT, y)
+    viewModeLabel:SetFontObject(OPT_BODY_FONT)
+    viewModeLabel:SetText("Gold tracking view:")
+    goldOptsSection:AddChild(viewModeLabel)
+    y = y - 18
+
+    f.goldViewDropdown = CreateFrame("Frame", "GoblinToolboxGoldViewDropdown", scrollChild, "UIDropDownMenuTemplate")
+    f.goldViewDropdown:SetPoint("TOPLEFT", INDENT - 16, y)
+    UIDropDownMenu_SetWidth(f.goldViewDropdown, 180)
+    f.goldViewDropdown:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Gold Tracking View", 1, 1, 1)
+        GameTooltip:AddLine("Simple: Compact session display with time and net gold.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("Detailed: Adds start/current gold and earned/spent breakdown.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.goldViewDropdown:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    goldOptsSection:AddChild(f.goldViewDropdown)
+    y = y - 32
+
+    f.sessionPersistCB = CreateCheckbox(scrollChild, "Keep session data on logout", INDENT, y)
     f.sessionPersistCB:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Keep Session Data", 1, 1, 1)
-        GameTooltip:AddLine("When enabled, session gold tracking persists across logout/reload. When disabled, session resets each time you log in.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("When enabled, session gold tracking persists across logout. When disabled, session resets each time you log in.", 0.8, 0.8, 0.8, true)
         GameTooltip:Show()
     end)
     f.sessionPersistCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -659,7 +738,7 @@ local function CreateConfigFrame()
     y = y - ITEM_HEIGHT - SECTION_GAP
 
     -----------------------------------------------------------------------
-    -- Section 6: Tooltip IDs
+    -- Section 7: Tooltip IDs
     -----------------------------------------------------------------------
 
     local tooltipSection = CreateSectionHeader(scrollChild, "tooltipids", "Tooltip IDs", y)
@@ -690,7 +769,7 @@ local function CreateConfigFrame()
     y = y - tooltipTypesRow:GetHeight() - SECTION_GAP
 
     -----------------------------------------------------------------------
-    -- Section 7: Behavior
+    -- Section 8: Behavior
     -----------------------------------------------------------------------
 
     local behaviorSection = CreateSectionHeader(scrollChild, "behavior", "Behavior", y)
@@ -792,6 +871,32 @@ local function CreateConfigFrame()
     end)
 
     -----------------------------------------------------------------------
+    -- Gold View Dropdown init
+    -----------------------------------------------------------------------
+
+    local goldViewModes = {
+        { value = "simple", text = "Simple" },
+        { value = "detailed", text = "Detailed" },
+    }
+
+    UIDropDownMenu_Initialize(f.goldViewDropdown, function(self, level)
+        local current = addon.db.profile.goldViewMode or "simple"
+        for _, entry in ipairs(goldViewModes) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = entry.text
+            info.arg1 = entry.value
+            info.func = function(_, value)
+                addon.db.profile.goldViewMode = value
+                UIDropDownMenu_SetText(f.goldViewDropdown, entry.text)
+                addon:UpdateGoldSection()
+                addon:SafeLayoutHUD()
+            end
+            info.checked = (current == entry.value)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    -----------------------------------------------------------------------
     -- Refresh
     -----------------------------------------------------------------------
 
@@ -833,6 +938,10 @@ local function CreateConfigFrame()
             end
         end
         UIDropDownMenu_SetText(f.tsmDropdown, srcText)
+
+        local viewMode = db.goldViewMode or "simple"
+        local viewModeText = viewMode == "detailed" and "Detailed" or "Simple"
+        UIDropDownMenu_SetText(f.goldViewDropdown, viewModeText)
 
         -- Module checkboxes
         f.charModule.mainCB:SetChecked(db.modules.Character ~= false)
@@ -927,6 +1036,11 @@ local function CreateConfigFrame()
         f.trackerCB:SetChecked(db.showTracker ~= false)
         f.currencyCB:SetChecked(db.showCurrencyTracker ~= false)
         f.showTrackedItemValueCB:SetChecked(db.showTrackedItemValue ~= false)
+
+        -- Tracker source toggles
+        f.trackerIncludeInventoryCB:SetChecked(db.trackerIncludeInventory ~= false)
+        f.trackerIncludePlayerBankCB:SetChecked(db.trackerIncludePlayerBank == true)
+        f.trackerIncludeWarbandBankCB:SetChecked(db.trackerIncludeWarbandBank == true)
 
         -- Tooltip IDs
         db.tooltipIDs = db.tooltipIDs or {}
@@ -1062,6 +1176,11 @@ local function CreateConfigFrame()
         db.showCurrencyTracker  = f.currencyCB:GetChecked()
         db.showTrackedItemValue = f.showTrackedItemValueCB:GetChecked()
 
+        -- Tracker source toggles
+        db.trackerIncludeInventory    = f.trackerIncludeInventoryCB:GetChecked()
+        db.trackerIncludePlayerBank   = f.trackerIncludePlayerBankCB:GetChecked()
+        db.trackerIncludeWarbandBank  = f.trackerIncludeWarbandBankCB:GetChecked()
+
         -- Tooltip IDs
         db.tooltipIDs = db.tooltipIDs or {}
         db.tooltipIDs.enabled = f.tooltipEnabledCB:GetChecked()
@@ -1106,6 +1225,7 @@ local function CreateConfigFrame()
     HookCheckbox(f.trackerCB)
     HookCheckbox(f.currencyCB)
     HookCheckbox(f.showTrackedItemValueCB)
+    -- Tracker source checkboxes already have OnClick handlers set
     HookCheckbox(f.tooltipEnabledCB)
 
     f.opacityContainer.slider:SetScript("OnValueChanged", function(self, value)
@@ -1221,6 +1341,7 @@ function addon:ResetAllSettings()
         backgroundOpacity   = 0.30,
         preferWarbandBankOnOpen = false,
         sessionPersistOnLogout = false,
+        goldViewMode        = "simple",
 
         modules = {
             Character   = true,
@@ -1253,6 +1374,9 @@ function addon:ResetAllSettings()
         showTracker         = true,
         showCurrencyTracker = true,
         showTrackedItemValue = true,
+        trackerIncludeInventory = true,
+        trackerIncludePlayerBank = false,
+        trackerIncludeWarbandBank = false,
 
         utilityButtons = {
             logout            = false,
@@ -1275,6 +1399,7 @@ function addon:ResetAllSettings()
         hudWidth = nil,
 
         trackedCurrencies = {},
+        sessionState = {},
     }
 
     self.db.characters = characters

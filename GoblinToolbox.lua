@@ -110,7 +110,10 @@ local EventHandlers = {
             addon.HUD.UpdateLockTexture()
         end
 
-        addon:ResetSession()
+        -- Restore session state if persistence is enabled, otherwise reset
+        if not addon:LoadSessionState() then
+            addon:ResetSession()
+        end
         addon:StartSessionTicker()
         addon:StartTokenTicker()
         
@@ -159,6 +162,12 @@ local EventHandlers = {
 
     PLAYER_LOGOUT = function()
         addon:SaveUtilityBarPositionOnLogout()
+        addon:SaveSessionState()
+    end,
+
+    PLAYER_LEAVING_WORLD = function()
+        -- Save session state on any logout/reload/zone change
+        addon:SaveSessionState()
     end,
 
     PLAYER_MONEY = function()
@@ -175,6 +184,23 @@ local EventHandlers = {
 
     BAG_UPDATE_DELAYED = function()
         addon:QueueBagValueRecalc()
+
+        -- If bank is open, refresh bank scans
+        if addon._bankIsOpen and addon.Inventory then
+            -- Player bank scan (always accessible at banker)
+            if addon.Inventory.QueuePlayerBankScan then
+                addon.Inventory:QueuePlayerBankScan()
+            end
+
+            -- Warband bank scan (if accessible)
+            if C_Bank and C_Bank.CanUseBank and Enum.BankType then
+                if C_Bank.CanUseBank(Enum.BankType.Account) then
+                    if addon.Inventory.QueueWarbandScan then
+                        addon.Inventory:QueueWarbandScan()
+                    end
+                end
+            end
+        end
     end,
 
     GUILDBANK_UPDATE_MONEY = function()
@@ -187,16 +213,35 @@ local EventHandlers = {
         if Enum and Enum.PlayerInteractionType
            and interactionType == Enum.PlayerInteractionType.Banker then
             addon:ResetBankAutoSwitchState()
+            addon._bankIsOpen = true  -- Track bank open state
+
             C_Timer.After(0.05, function()
                 addon:TryAutoSwitchToWarbandBank()
             end)
-            
+
             -- Update warband bank gold cache when opening banker
             C_Timer.After(0.2, function()
                 addon:GetWarbandBankGold()  -- This will update cache if we have access
                 addon:UpdateGoldSection()
                 addon:SafeLayoutHUD()
             end)
+
+            -- Trigger bank item scans (player bank + warband bank)
+            if addon.Inventory then
+                -- Player bank scan (always accessible at banker)
+                if addon.Inventory.QueuePlayerBankScan then
+                    C_Timer.After(0.5, function()
+                        addon.Inventory:QueuePlayerBankScan()
+                    end)
+                end
+
+                -- Warband bank scan (if accessible)
+                if addon.Inventory.QueueWarbandScan then
+                    C_Timer.After(0.6, function()
+                        addon.Inventory:QueueWarbandScan()
+                    end)
+                end
+            end
         end
 
         if Enum and Enum.PlayerInteractionType
@@ -213,6 +258,7 @@ local EventHandlers = {
         if Enum and Enum.PlayerInteractionType
            and interactionType == Enum.PlayerInteractionType.Banker then
             addon:ResetBankAutoSwitchState()
+            addon._bankIsOpen = false  -- Track bank closed state
         end
     end,
 
@@ -285,6 +331,7 @@ end)
 -- Register all events
 EventFrame:RegisterEvent("PLAYER_LOGIN")
 EventFrame:RegisterEvent("PLAYER_LOGOUT")
+EventFrame:RegisterEvent("PLAYER_LEAVING_WORLD")
 EventFrame:RegisterEvent("PLAYER_MONEY")
 EventFrame:RegisterEvent("ACCOUNT_MONEY")
 EventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
@@ -342,6 +389,10 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
 
     elseif cmd == "reset" then
         addon:ResetSession()
+        -- Clear persisted session state
+        if addon.db and addon.db.profile then
+            addon.db.profile.sessionState = {}
+        end
         addon:UpdateGoldSection()
         addon:SafeLayoutHUD()
         print("Goblin Toolbox: session reset.")

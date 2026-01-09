@@ -21,7 +21,7 @@ addon.CONST = {
     TITLEBAR_HEIGHT = 22,
     
     -- Token tracking
-    TOKEN_TREND_THRESHOLD = 10000 * 10000,  -- 10,000g in copper
+    TOKEN_TREND_THRESHOLD = 2500 * 10000,  -- 2,500g in copper (lowered for more responsive trend)
     TOKEN_HISTORY_SIZE = 20,
     TOKEN_POLL_INTERVAL = 300,  -- seconds
     
@@ -84,6 +84,7 @@ local DEFAULTS = {
         backgroundOpacity = 0.30,
         preferWarbandBankOnOpen = false,
         sessionPersistOnLogout = false,
+        goldViewMode     = "simple",  -- "simple" or "detailed"
 
         modules = {
             Character   = true,
@@ -121,6 +122,11 @@ local DEFAULTS = {
         showTracker     = true,
         showCurrencyTracker = true,
         showTrackedItemValue = true,  -- Display gold value overlay on tracked items
+
+        -- Item tracker source toggles
+        trackerIncludeInventory    = true,   -- Include bag items in tracker (default on)
+        trackerIncludePlayerBank   = false,  -- Include player bank in tracker (default off)
+        trackerIncludeWarbandBank  = false,  -- Include warband bank in tracker (default off)
 
         -- Tooltip IDs settings (all off by default)
         tooltipIDs = {
@@ -172,6 +178,13 @@ local DEFAULTS = {
         currencyYOfs     = nil,
 
         trackedCurrencies = {},
+
+        -- Player bank cache (character-specific)
+        playerBankItemCountsByKey = {},  -- Cache of player bank item counts (itemID:rank -> count)
+        playerBankItemsLastUpdate = 0,   -- Timestamp of last player bank scan
+
+        -- Session persistence (used when sessionPersistOnLogout is enabled)
+        sessionState = {},
     },
 
     characters = {},
@@ -179,6 +192,8 @@ local DEFAULTS = {
     warband    = {
         gold        = 0,
         lastUpdate  = 0,
+        itemCountsByKey = {},  -- Cache of warband bank item counts (itemID:rank -> count)
+        itemsLastUpdate = 0,   -- Timestamp of last warband bank scan
     },
 }
 
@@ -212,6 +227,10 @@ addon.state = {
     pauseStartTime   = nil,
     pausedDuration   = 0,
     bagValue         = 0,
+    -- Earned/Spent tracking for Detailed view
+    sessionEarned    = 0,
+    sessionSpent     = 0,
+    lastMoney        = nil,
 }
 
 addon.token = {
@@ -263,23 +282,23 @@ function addon:GetWarbandBankGold()
     return 0
 end
 
--- For secure frames (Utility Bar), never call Show/Hide in combat.
+-- For secure frames (Utility Bar), never call Show/Hide or EnableMouse in combat.
 function addon:SetSecureFrameVisible(frame, wantVisible)
     if not frame then
         return
     end
 
     if InCombatLockdown() then
+        -- During combat, only change alpha (can't call EnableMouse/Show/Hide on secure frames)
         if wantVisible then
             frame:SetAlpha(1)
-            frame:EnableMouse(true)
         else
             frame:SetAlpha(0)
-            frame:EnableMouse(false)
         end
         return
     end
 
+    -- Out of combat, we can safely modify secure frame state
     if wantVisible then
         frame:SetAlpha(1)
         frame:EnableMouse(true)

@@ -257,6 +257,58 @@ local function CreateSection(frame, key, headerText, numLines)
 
         section.UpdatePauseButtonTexture = UpdatePauseButtonTexture
         UpdatePauseButtonTexture()
+
+        -- Create invisible tooltip button for token line
+        section.tokenTooltipBtn = CreateFrame("Button", nil, frame)
+        section.tokenTooltipBtn:SetSize(1, 1)  -- Will be resized in layout
+        section.tokenTooltipBtn:Hide()
+        section.tokenTooltipBtn:EnableMouse(true)
+
+        section.tokenTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("WoW Token Price", 1, 1, 1)
+
+            local tokenPrice = addon.token and addon.token.lastPrice or 0
+            local lastUpdated = addon.token and addon.token.lastUpdated or 0
+
+            if tokenPrice > 0 then
+                GameTooltip:AddLine(string.format("Current: %s", addon:FormatMoney(tokenPrice)), 1, 1, 1)
+
+                if lastUpdated > 0 then
+                    local ago = time() - lastUpdated
+                    local agoMin = math.floor(ago / 60)
+                    if agoMin < 1 then
+                        GameTooltip:AddLine("Updated: just now", 0.8, 0.8, 0.8)
+                    elseif agoMin < 60 then
+                        GameTooltip:AddLine(string.format("Updated: %dm ago", agoMin), 0.8, 0.8, 0.8)
+                    else
+                        GameTooltip:AddLine(string.format("Updated: %dh %dm ago", math.floor(agoMin / 60), agoMin % 60), 0.8, 0.8, 0.8)
+                    end
+                end
+
+                local Gold = addon:GetModule("Gold")
+                if Gold then
+                    local trend = Gold:GetTokenTrend()
+                    if trend == "up" then
+                        GameTooltip:AddLine("|cff00ff00▲ Price trending up|r", 1, 1, 1)
+                    elseif trend == "down" then
+                        GameTooltip:AddLine("|cffff4444▼ Price trending down|r", 1, 1, 1)
+                    else
+                        GameTooltip:AddLine("Price stable", 0.8, 0.8, 0.8)
+                    end
+                end
+
+                GameTooltip:AddLine(" ", 1, 1, 1)
+                GameTooltip:AddLine("Trend compares avg of last 3 vs previous 3 token updates.", 0.6, 0.6, 0.6, true)
+            else
+                GameTooltip:AddLine("Price not available", 0.8, 0.8, 0.8)
+            end
+
+            GameTooltip:Show()
+        end)
+        section.tokenTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
     end
 
     if key == "Inventory" then
@@ -434,7 +486,7 @@ local function CreateHUD()
 
     -- Character now has 2 lines (Line 2 = Shard + Move Speed)
     CreateSection(frame, "Character",   "Character",            2)
-    CreateSection(frame, "Gold",        "Gold & Economy",       3)
+    CreateSection(frame, "Gold",        "Gold & Economy",       4)
     CreateSection(frame, "Inventory",   "Inventory & Currency", 3)
 
     addon:UpdateBackground()
@@ -562,6 +614,9 @@ function addon:LayoutHUD()
                     section.sessionResetBtn:Hide()
                     section.sessionPauseBtn:Hide()
                 end
+                if key == "Gold" and section.tokenTooltipBtn then
+                    section.tokenTooltipBtn:Hide()
+                end
                 if key == "Inventory" and section.bagSlotsTooltipBtn then
                     section.bagSlotsTooltipBtn:Hide()
                 end
@@ -615,6 +670,19 @@ function addon:LayoutHUD()
                             end
                         end
 
+                        -- Position Gold token tooltip button (Line 3 in Simple, Line 4 in Detailed)
+                        if key == "Gold" and section.tokenTooltipBtn then
+                            local elem = db.elements or {}
+                            local isDetailed = (db.goldViewMode == "detailed")
+                            local tokenLine = isDetailed and 4 or 3
+                            if i == tokenLine and elem.goldToken ~= false then
+                                section.tokenTooltipBtn:ClearAllPoints()
+                                section.tokenTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.tokenTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.tokenTooltipBtn:Show()
+                            end
+                        end
+
                         local lineSpacing = 2
                         -- Add extra spacing for Inventory section
                         if key == "Inventory" then
@@ -648,6 +716,9 @@ function addon:LayoutHUD()
             if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
                 section.sessionResetBtn:Hide()
                 section.sessionPauseBtn:Hide()
+            end
+            if key == "Gold" and section.tokenTooltipBtn then
+                section.tokenTooltipBtn:Hide()
             end
             if key == "Inventory" and section.bagSlotsTooltipBtn then
                 section.bagSlotsTooltipBtn:Hide()
