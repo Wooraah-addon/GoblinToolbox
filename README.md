@@ -146,6 +146,7 @@
   5) Limiting the functionality of Goblin Toolbox should allow it to remain relatively lightweight, foccused on gold tracking, and "at-a-glance", complementing rather than replacing dedicated addons for things like crafting, concentration, profession treasures and cooldowns etc.
      
 Therefore the following proposed features are currently on hold/deffered or out of scope
+
   - **Profession concentration tracking**:  
     - Concentration values are character-specific and would require significant UI space
     - Most concentration tracking is better handled by dedicated profession addons
@@ -154,6 +155,12 @@ Therefore the following proposed features are currently on hold/deffered or out 
   - **Profession skill level display**: Not currently planned
     - Already well-covered by Blizzard's default profession UI
     - Limited value for gold-making compared to other metrics
+   
+  ### Non English Language Support
+   - No plans currently in place for non English client support
+
+  ### Support for other versions of WoW
+   - No plans to support other wow versions (Classic, Remix etc)
 
   ### Sales Tracking
   - **Detailed sales history**: While a "Sales tracker" is in the roadmap, comprehensive sales analytics are intentionally limited
