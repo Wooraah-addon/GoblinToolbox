@@ -8,7 +8,7 @@
 
   ## Overview
 
-  Goblin Toolbox provides gold-focused players ("goblins") with at-a-glance information about their gold, inventory, and common utility actions. It aims to be lightweight, modular, and visually integrated with Blizzard's default UI.
+  Goblin Toolbox provides gold-maers in retail WoW with at-a-glance information about their gold, inventory, and common utility actions. It aims to be lightweight, modular, and visually integrated with Blizzard's default UI.
 
   With WeakAuras support being removed in the Midnight expansion, Goblin Toolbox consolidates many small quality-of-life gold tracking functions into a single, clean HUD.
 
