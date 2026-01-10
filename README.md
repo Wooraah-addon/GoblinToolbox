@@ -130,11 +130,46 @@
   - ✅ Rank-aware item tracker with value overlay (v0.5.1)
   - ✅ Token price trend detection (v0.5.2)
 
-  **Planned Features:**
+  **Future Planned Features:**
   - Profession concentration tracking (paused)
   - Sales tracker
   - Auctionator/Oribos Exchange price source support
   - Additional utility bar customization
+
+  ## Currently Out of Scope
+
+  The following features have been **deferred or explicitly excluded** from active development:
+
+  ### Profession Features (Paused)
+
+  Various Profession Related Features have been proposed, but are currently deferred, as:
+  1) Professions and crafting are neither my area of expertise or my passion
+  2) Support for professions across multiple expanions is complex
+  3) Professions status is very much in flux for Midnight at the time of writing
+  4) Dedicated addons that are better placed (and probably better coded) should emerge to serve these needs.
+  5) Limiting the functionality of Goblin Toolbox should allow it to remain relatively lightweight, foccused on gold tracking, and "at-a-glance", complementing rather than replacing dedicated addons for things like crafting, concentration, profession treasures and cooldowns etc.
+     
+Therefore the following proposed features are currently on hold/deffered or out of scope
+  - **Profession concentration tracking**:  
+    - Concentration values are character-specific and would require significant UI space
+    - Most concentration tracking is better handled by dedicated profession addons
+    - May be reconsidered if a compact, elegant implementation is found
+
+  - **Profession skill level display**: Not currently planned
+    - Already well-covered by Blizzard's default profession UI
+    - Limited value for gold-making compared to other metrics
+
+  ### Sales Tracking
+  - **Detailed sales history**: While a "Sales tracker" is in the roadmap, comprehensive sales analytics are intentionally limited
+    - Full sales tracking with history, trends, and analytics overlaps heavily with TSM's functionality     
+    - Goblin Toolbox focuses on *session-based* and *real-time* information rather than long-term analytics 
+    - If implemented, will be lightweight (e.g., "Sold: X items for Yg this session")
+
+  ### Features Explicitly Out of Scope
+  - **Auction House management**: TSM, Auctionator, and other dedicated AH addons handle this comprehensively
+  - **Crafting queues and materials tracking**: Better served by profession-focused addons
+  - **Mail management beyond quick access**: Use dedicated mail addons for bulk operations
+  - **Inventory management**: We track value and counts, not organization/sorting
 
   ## Known Issues
 
@@ -147,9 +182,7 @@
   Contributions are welcome! Please feel free to submit issues or pull requests.
 
   **Development:**
-  - See [CLAUDE.md](CLAUDE.md) for development context and patterns
-  - Follow existing code style and conventions
-  - Test thoroughly before submitting PRs
+  - Development of this addon was was assisted greatly by both ChatGPT and Claude Code for development context and patterns, I'm not a professional coder, so apologies if performance is not optimal, I'm learning as I go.
 
   ## License
 
@@ -171,4 +204,4 @@
 
   ## Acknowledgments
 
-  Thanks to my team of beta testers for their invaluable feedback and bug reports.
+  Thanks to my team of beta testers for their feature suggestions, feedback and bug reports. These include Manthieus, SlickRock, Liqorice, negue, Yohanan, chosen2choose, Amazul Askira, Cirvis, Týýr, Aylin, Goldzen_tv, Quixxan, Bomanski, Kristian, ElonCS, bakoto, Warshal, special thanks also to Indopan for your guidance regarding CLaude Code.
