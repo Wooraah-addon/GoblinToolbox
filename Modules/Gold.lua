@@ -15,6 +15,11 @@ function Gold:UpdateCharacterCache()
     local db = addon.db
     db.characters[key] = db.characters[key] or {}
     db.characters[key].gold = GetMoney()
+
+    -- Also cache posted auction data per character
+    local s = addon.state
+    db.characters[key].postedAuctionValueCopper = s.postedAuctionValueCopper or 0
+    db.characters[key].postedAuctionCount = s.postedAuctionCount or 0
 end
 
 -----------------------------------------------------------------------
@@ -139,9 +144,8 @@ function Gold:SaveSessionState()
         lastLogoutTime = time(),
     }
 
-    -- Save posted auction data separately (not session-based)
-    db.postedAuctionValueCopper = s.postedAuctionValueCopper or 0
-    db.postedAuctionCount = s.postedAuctionCount or 0
+    -- Posted auction data is saved per-character via UpdateCharacterCache()
+    -- (called separately, not part of session state)
 end
 
 function Gold:LoadSessionState()
@@ -196,15 +200,21 @@ function Gold:LoadSessionState()
 end
 
 function Gold:InitializePostedAuctions()
-    -- Load posted auction data from saved variables
-    local db = addon.db and addon.db.profile
+    -- Load posted auction data from character-specific saved variables
+    local db = addon.db
     if not db then
         return
     end
 
+    local key = addon:GetCharacterKey()
+    local charData = db.characters and db.characters[key]
+    if not charData then
+        return
+    end
+
     local s = addon.state
-    s.postedAuctionValueCopper = db.postedAuctionValueCopper or 0
-    s.postedAuctionCount = db.postedAuctionCount or 0
+    s.postedAuctionValueCopper = charData.postedAuctionValueCopper or 0
+    s.postedAuctionCount = charData.postedAuctionCount or 0
 end
 
 function Gold:GetSessionStats()
@@ -738,11 +748,13 @@ function Gold:RecomputePostedTotalsFromOwned()
     s.postedAuctionCount = totalCount
     s.postedAuctionValueCopper = totalValue
 
-    -- Persist to saved variables
-    local db = addon.db and addon.db.profile
-    if db then
-        db.postedAuctionCount = totalCount
-        db.postedAuctionValueCopper = totalValue
+    -- Persist to character-specific saved variables
+    local db = addon.db
+    if db and db.characters then
+        local key = addon:GetCharacterKey()
+        db.characters[key] = db.characters[key] or {}
+        db.characters[key].postedAuctionCount = totalCount
+        db.characters[key].postedAuctionValueCopper = totalValue
     end
 
     -- Update display
