@@ -12,12 +12,6 @@
 
   With WeakAuras support being removed in the Midnight expansion, Goblin Toolbox consolidates many small quality-of-life gold tracking functions into a single, clean HUD.
 
-  ## Recent Updates (v0.6.0)
-
-  - **Account Labels**: Add custom account-wide identifiers (e.g., [WOW1]) next to character names
-  - **HUD Tooltips**: Hover tooltips added for Shard ID, Session tracking, Warbank access, and all tracked values
-  - **Enhanced Usability**: Clear explanations of features directly in the HUD
-
   ## Features
 
   ### Character & Server Module
@@ -121,7 +115,7 @@
 
   See [Current_Development_status.txt](Current_Development_status.txt) for detailed feature status and active development tasks.
 
-  **Recently Completed:**
+  **Recent Updates:**
   - ✅ Posted auctions tracking (v0.5.2)
   - ✅ Looted item value tracking with GPH (v0.5.2)
   - ✅ Session persistence on logout (v0.5.2)
