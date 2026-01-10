@@ -125,10 +125,12 @@
   - ✅ Token price trend detection (v0.5.2)
 
   **Future Planned Features:**
-  - Profession concentration tracking (paused)
-  - Sales tracker
   - Auctionator/Oribos Exchange price source support
-  - Additional utility bar customization
+  - Additional utility bar customizations
+  - The option to Auto-pause session on AFK
+  - Configuration defaults for different use cases e.g. "Essentials", "Farmer", "Flipper"
+  - Saving of GoblinToolbox profiles (inlcuding import/export and character specific profiles rather than current account wide config)
+  - XP Tracking functionality
 
   ## Currently Out of Scope
 
@@ -170,6 +172,7 @@ Therefore the following proposed features are currently on hold/deffered or out 
   - Shard ID may show "Unknown" until you interact with an NPC (by design - detection requires NPC GUID)    
   - Guild bank gold requires visiting the guild bank to update (cached afterward)
   - Posted auctions only update when AH window is opened (Blizzard API limitation)
+  - Although the menu option exists for support of custom TSM prices, the functionality is not yet working
 
   ## Contributing
 
