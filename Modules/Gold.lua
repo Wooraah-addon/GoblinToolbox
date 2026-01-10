@@ -693,6 +693,34 @@ function Gold:RequestOwnedAuctionsRefresh(reason)
     end)
 end
 
+-- Commodity status cache for performance
+Gold._commodityCache = Gold._commodityCache or {}
+
+local function IsCommodity(itemKey)
+    if not itemKey or not itemKey.itemID then
+        return false
+    end
+
+    local itemID = itemKey.itemID
+
+    -- Check cache first
+    if Gold._commodityCache[itemID] ~= nil then
+        return Gold._commodityCache[itemID]
+    end
+
+    -- Query and cache result
+    local isCommodity = false
+    if C_AuctionHouse and C_AuctionHouse.GetItemKeyInfo then
+        local itemKeyInfo = C_AuctionHouse.GetItemKeyInfo(itemKey)
+        if itemKeyInfo then
+            isCommodity = itemKeyInfo.isCommodity or false
+        end
+    end
+
+    Gold._commodityCache[itemID] = isCommodity
+    return isCommodity
+end
+
 function Gold:RecomputePostedTotalsFromOwned()
     -- Recompute count and total value from currently owned auctions
     -- This is the source of truth, called when OWNED_AUCTIONS_UPDATED fires
@@ -715,8 +743,16 @@ function Gold:RecomputePostedTotalsFromOwned()
                 if auctionInfo.status == Enum.AuctionStatus.Active then
                     totalCount = totalCount + 1
 
-                    -- Use buyoutAmount if present, otherwise bidAmount
-                    local value = auctionInfo.buyoutAmount or auctionInfo.bidAmount or 0
+                    -- Use buyoutAmount if present, otherwise bidAmount (unit price for commodities)
+                    local price = auctionInfo.buyoutAmount or auctionInfo.bidAmount or 0
+                    local qty = auctionInfo.quantity or 1
+
+                    -- For commodities, price is per-unit, so multiply by quantity
+                    local value = price
+                    if IsCommodity(auctionInfo.itemKey) then
+                        value = price * qty
+                    end
+
                     totalValue = totalValue + value
                 end
             end
@@ -734,8 +770,16 @@ function Gold:RecomputePostedTotalsFromOwned()
             if auctionInfo.status == Enum.AuctionStatus.Active then
                 totalCount = totalCount + 1
 
-                -- Use buyoutAmount if present, otherwise bidAmount
-                local value = auctionInfo.buyoutAmount or auctionInfo.bidAmount or 0
+                -- Use buyoutAmount if present, otherwise bidAmount (unit price for commodities)
+                local price = auctionInfo.buyoutAmount or auctionInfo.bidAmount or 0
+                local qty = auctionInfo.quantity or 1
+
+                -- For commodities, price is per-unit, so multiply by quantity
+                local value = price
+                if IsCommodity(auctionInfo.itemKey) then
+                    value = price * qty
+                end
+
                 totalValue = totalValue + value
             end
 
