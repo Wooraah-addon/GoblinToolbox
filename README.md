@@ -162,17 +162,16 @@ Therefore the following proposed features are currently on hold/deffered or out 
   ### Support for other versions of WoW
    - No plans to support other wow versions (Classic, Remix etc)
 
-  ### Sales Tracking
+  ### Detaled Sales Ledgers
   - **Detailed sales history**: While a "Sales tracker" is in the roadmap, comprehensive sales analytics are intentionally limited
-    - Full sales tracking with history, trends, and analytics overlaps heavily with TSM's functionality     
+    - Full sales tracking with history, trends, and analytics overlaps with that of better placed addons such as TSM and Journalator     
     - Goblin Toolbox focuses on *session-based* and *real-time* information rather than long-term analytics 
-    - If implemented, will be lightweight (e.g., "Sold: X items for Yg this session")
 
   ### Features Explicitly Out of Scope
   - **Auction House management**: TSM, Auctionator, and other dedicated AH addons handle this comprehensively
   - **Crafting queues and materials tracking**: Better served by profession-focused addons
   - **Mail management beyond quick access**: Use dedicated mail addons for bulk operations
-  - **Inventory management**: We track value and counts, not organization/sorting
+  - **Inventory management**: GTB tracks value and counts, not organization/sorting
 
   ## Known Issues
 
