@@ -114,6 +114,12 @@ local EventHandlers = {
         if not addon:LoadSessionState() then
             addon:ResetSession()
         end
+
+        -- Initialize posted auction data (not session-based)
+        if addon.Gold and addon.Gold.InitializePostedAuctions then
+            addon.Gold:InitializePostedAuctions()
+        end
+
         addon:StartSessionTicker()
         addon:StartTokenTicker()
         
@@ -155,6 +161,20 @@ local EventHandlers = {
         local db = addon.db.profile
         if not db.point then
             addon:ResetAllPositions()
+        end
+
+        -- Hook auction posting functions for session tracking
+        if C_AuctionHouse and addon.Gold then
+            if C_AuctionHouse.PostCommodity then
+                hooksecurefunc(C_AuctionHouse, "PostCommodity", function(...)
+                    addon.Gold:HandleAuctionPost(true, ...)
+                end)
+            end
+            if C_AuctionHouse.PostItem then
+                hooksecurefunc(C_AuctionHouse, "PostItem", function(...)
+                    addon.Gold:HandleAuctionPost(false, ...)
+                end)
+            end
         end
 
         print("Goblin Toolbox loaded. Type /gtb for options.")
@@ -252,6 +272,8 @@ local EventHandlers = {
                 addon:SafeLayoutHUD()
             end)
         end
+
+        -- Note: Auctioneer handled by AUCTION_HOUSE_SHOW event instead
     end,
 
     PLAYER_INTERACTION_MANAGER_FRAME_HIDE = function(interactionType)
@@ -302,6 +324,45 @@ local EventHandlers = {
             addon:SafeLayoutHUD()
         end
     end,
+
+    CHAT_MSG_LOOT = function(message)
+        if addon.Gold and addon.Gold.HandleLootMessage then
+            addon.Gold:HandleLootMessage(message)
+        end
+    end,
+
+    AUCTION_HOUSE_SHOW = function()
+        -- Set AH state and request initial owned auctions refresh
+        if addon.Gold then
+            addon.Gold._atAuctionHouse = true
+            addon.Gold:RequestOwnedAuctionsRefresh("show")
+        end
+    end,
+
+    AUCTION_HOUSE_CLOSED = function()
+        -- Clear AH state and cancel any pending timers
+        if addon.Gold then
+            addon.Gold._atAuctionHouse = false
+            addon.Gold._ownedAuctionsRefreshPending = false
+            if addon.Gold._ownedAuctionsRefreshTimer then
+                addon.Gold._ownedAuctionsRefreshTimer:Cancel()
+                addon.Gold._ownedAuctionsRefreshTimer = nil
+            end
+            -- Also cancel posted UI refresh timer
+            addon.Gold._postedUIRefreshPending = false
+            if addon.Gold._postedUIRefreshTimer then
+                addon.Gold._postedUIRefreshTimer:Cancel()
+                addon.Gold._postedUIRefreshTimer = nil
+            end
+        end
+    end,
+
+    OWNED_AUCTIONS_UPDATED = function()
+        -- Recompute totals from authoritative owned auctions data
+        if addon.Gold and addon.Gold.RecomputePostedTotalsFromOwned then
+            addon.Gold:RecomputePostedTotalsFromOwned()
+        end
+    end,
 }
 
 -- Cooldown-related events share one handler
@@ -345,6 +406,10 @@ EventFrame:RegisterEvent("ZONE_CHANGED")
 EventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 EventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 EventFrame:RegisterEvent("TOKEN_MARKET_PRICE_UPDATED")
+EventFrame:RegisterEvent("CHAT_MSG_LOOT")
+EventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
+EventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED")
+EventFrame:RegisterEvent("OWNED_AUCTIONS_UPDATED")
 
 -- Cooldown events
 local cooldownEvents = {

@@ -193,6 +193,19 @@ function Character:Update()
         end
     end
 
+    -- Add account label to the right of name/realm on same line
+    if elem.charAccountLabel ~= false and addon.db.global and addon.db.global.accountLabel then
+        local label = addon.db.global.accountLabel
+        -- Only show if label is non-empty after trimming
+        if label and label:trim() ~= "" then
+            if line1 ~= "" then
+                line1 = line1 .. " [" .. label .. "]"
+            else
+                line1 = "[" .. label .. "]"
+            end
+        end
+    end
+
     sec.lines[1]:SetText(line1)
 
     -------------------------------------------------------------------

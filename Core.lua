@@ -100,6 +100,7 @@ local DEFAULTS = {
             charClassIcon = true,
             charName      = true,
             charRealm     = true,
+            charAccountLabel = false,  -- Off by default (account label under name)
             charShardID   = false,  -- Off by default (can be noisy)
             charMovespeed = false,  -- Off by default (updates frequently)
             -- Gold & Economy elements
@@ -108,6 +109,8 @@ local DEFAULTS = {
             goldGuild     = true,
             goldSession   = true,
             goldToken     = true,
+            goldLootedValue = true,      -- Looted item value per session (enabled by default)
+            goldPostedAuctions = false,  -- Posted auction tracking (disabled by default)
             -- Inventory elements
             invBagSlots   = true,
             invBagValue   = true,
@@ -185,6 +188,10 @@ local DEFAULTS = {
 
         -- Session persistence (used when sessionPersistOnLogout is enabled)
         sessionState = {},
+    },
+
+    global = {
+        accountLabel = "",  -- Account-wide label shown in Character section (e.g., "WOW1")
     },
 
     characters = {},

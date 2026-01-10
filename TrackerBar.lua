@@ -216,26 +216,50 @@ function addon:CreateTrackerFrame()
         GameTooltip:Hide()
     end)
     
-    f.addButton:SetScript("OnClick", function()
-        -- Insert chat command template
-        local editBox = ChatEdit_ChooseBoxForSend()
-        ChatEdit_ActivateChat(editBox)
-        editBox:SetText("/gtb add ")
-    end)
-    
-    -- Enable drag-and-drop on the add button too
-    f.addButton:SetScript("OnReceiveDrag", function(self)
-        local infoType, itemID, itemLink = GetCursorInfo()
-        if infoType == "item" and itemLink then
-            ClearCursor()
-            addon:AddTrackedItem(itemLink)
-        elseif infoType == "item" and itemID then
-            ClearCursor()
-            addon:AddTrackedItem(tostring(itemID))
+    f.addButton:SetScript("OnClick", function(self, button)
+        -- Check if there's an item on the cursor (drag-and-drop)
+        local cursorType, itemID, itemLink = GetCursorInfo()
+        if cursorType == "item" then
+            -- Handle drag-and-drop
+            if itemLink then
+                ClearCursor()
+                addon:AddTrackedItem(itemLink)
+            elseif itemID then
+                ClearCursor()
+                addon:AddTrackedItem(tostring(itemID))
+            end
+        else
+            -- No item on cursor, open chat with command template
+            local editBox = ChatEdit_ChooseBoxForSend()
+            ChatEdit_ActivateChat(editBox)
+            editBox:SetText("/gtb add ")
         end
     end)
-    
+
+    -- Also handle OnReceiveDrag for completeness
+    f.addButton:SetScript("OnReceiveDrag", function(self)
+        local infoType, itemID, itemLink = GetCursorInfo()
+        if infoType == "item" then
+            if itemLink then
+                ClearCursor()
+                addon:AddTrackedItem(itemLink)
+            elseif itemID then
+                ClearCursor()
+                addon:AddTrackedItem(tostring(itemID))
+            end
+        end
+    end)
+
     f.addButton:Hide()  -- Start hidden, will be shown in UpdateTrackedBar
+
+    -- Create source indicator text below the add button
+    f.sourceIndicator = f:CreateFontString(nil, "OVERLAY")
+    f.sourceIndicator:SetPoint("TOP", f.addButton, "BOTTOM", 0, 2)
+    f.sourceIndicator:SetFont("Fonts\\FRIZQT__.TTF", 7, "OUTLINE")
+    f.sourceIndicator:SetTextColor(0.7, 0.7, 0.7)
+    f.sourceIndicator:SetShadowOffset(1, -1)
+    f.sourceIndicator:SetShadowColor(0, 0, 0, 1)
+    f.sourceIndicator:Hide()  -- Start hidden, will be shown/updated in UpdateTrackedBar
 
     -- Create drag handle indicator
     f.dragHandle = CreateDragHandle(f)
@@ -295,6 +319,58 @@ function addon:UpdateTrackedBar()
     local tracked = db.trackedItems or {}
     local numTracked = #tracked
 
+    -- Update source indicator text
+    local function UpdateSourceIndicator()
+        if not f.sourceIndicator then
+            return
+        end
+
+        local includeInv = db.trackerIncludeInventory ~= false
+        local includePlayer = db.trackerIncludePlayerBank == true
+        local includeWarband = db.trackerIncludeWarbandBank == true
+
+        local text = ""
+        if includeInv and not includePlayer and not includeWarband then
+            text = "B"
+        elseif includeInv and includePlayer and not includeWarband then
+            text = "B+P"
+        elseif includeInv and not includePlayer and includeWarband then
+            text = "B+W"
+        elseif includeInv and includePlayer and includeWarband then
+            text = "B+P+W"
+        elseif not includeInv and includePlayer and not includeWarband then
+            text = "P"
+        elseif not includeInv and not includePlayer and includeWarband then
+            text = "W"
+        elseif not includeInv and includePlayer and includeWarband then
+            text = "P+W"
+        else
+            text = "NONE"
+        end
+
+        f.sourceIndicator:SetText(text)
+
+        -- Update tooltip for source indicator
+        if not f.sourceIndicator.hasTooltip then
+            f.sourceIndicator.hasTooltip = true
+            f.sourceIndicator:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetText("Item Count Sources", 1, 1, 1)
+                GameTooltip:AddLine("B = Player Bags", 0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine("P = Player Bank", 0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine("W = Warband Bank", 0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine(" ", 1, 1, 1)
+                GameTooltip:AddLine("Configure in /gtb options", 0.6, 0.6, 0.6, true)
+                GameTooltip:Show()
+            end)
+            f.sourceIndicator:SetScript("OnLeave", function()
+                GameTooltip:Hide()
+            end)
+        end
+
+        f.sourceIndicator:Show()
+    end
+
     if numTracked == 0 then
         for _, b in ipairs(f.buttons) do
             b:Hide()
@@ -302,6 +378,7 @@ function addon:UpdateTrackedBar()
         -- Show add button and resize to just fit it
         if f.addButton then
             f.addButton:Show()
+            UpdateSourceIndicator()
             local padding = addon.CONST.PADDING
             local addButtonSize = addon.CONST.BUTTON_SIZE_SMALL * 0.7
             f:SetSize(padding * 2 + addButtonSize, padding * 2 + addButtonSize)
@@ -312,6 +389,7 @@ function addon:UpdateTrackedBar()
     -- Always show add button when tracking items
     if f.addButton then
         f.addButton:Show()
+        UpdateSourceIndicator()
     end
 
     local buttonSize = addon.CONST.BUTTON_SIZE_SMALL
@@ -410,12 +488,23 @@ function addon:UpdateTrackedBar()
         local icon = addon.API.GetItemIcon(itemID)
         btn.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
 
-        -- Get count using Inventory helper
-        local count = addon.Inventory and addon.Inventory:GetCountForTrackedEntry(entry) or 0
+        -- Get count using new total count accessor
+        local key = tostring(itemID) .. ":" .. tostring(rank)
+        local count = 0
 
-        -- Format and set count text (top-right)
+        if addon.Inventory and addon.Inventory.GetTotalCountForKey then
+            count = addon.Inventory:GetTotalCountForKey(key)
+        else
+            -- Fallback to old method if new method not available
+            count = addon.Inventory and addon.Inventory:GetCountForTrackedEntry(entry) or 0
+        end
+
+        -- Format and set count text (center)
         local countText = addon.Inventory and addon.Inventory:FormatCount(count) or tostring(count)
         btn.count:SetText(countText)
+
+        -- Keep count text white (visual indicator shows what's included)
+        btn.count:SetTextColor(1, 1, 1)
 
         -- Set rank overlay (top-left)
         if rank > 0 and C_Texture and C_Texture.GetCraftingReagentQualityChatIcon then

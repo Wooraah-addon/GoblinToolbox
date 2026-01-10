@@ -523,9 +523,21 @@ local function CreateConfigFrame()
         { key = "charClassIcon", label = "Class Icon", width = 80 },
         { key = "charName", label = "Name", width = 65 },
         { key = "charRealm", label = "Realm", width = 65 },
+        { key = "charAccountLabel", label = "Account Label", width = 100 },
         { key = "charShardID", label = "Shard ID", width = 75 },
         { key = "charMovespeed", label = "MoveSpeed", width = 80 },
     }, function() Apply() end)
+
+    -- Add tooltip for Account Label
+    if f.charModule.childCheckboxes.charAccountLabel then
+        f.charModule.childCheckboxes.charAccountLabel:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Account Label", 1, 1, 1)
+            GameTooltip:AddLine("Shows a custom bracketed identifier (e.g., [WOW1]) under your character name. Saved account-wide.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        f.charModule.childCheckboxes.charAccountLabel:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
 
     -- Add tooltip for Shard ID
     if f.charModule.childCheckboxes.charShardID then
@@ -540,6 +552,37 @@ local function CreateConfigFrame()
 
     y = y - f.charModule.totalHeight - 4
 
+    -- Add input box for Account Label text
+    local accountLabelText = scrollChild:CreateFontString(nil, "OVERLAY")
+    accountLabelText:SetPoint("TOPLEFT", INDENT + 20, y)
+    accountLabelText:SetFontObject(OPT_SMALL_FONT)
+    accountLabelText:SetText("Label Text:")
+    y = y - 18
+
+    f.accountLabelEdit = CreateFrame("EditBox", nil, scrollChild, "InputBoxTemplate")
+    f.accountLabelEdit:SetPoint("TOPLEFT", INDENT + 24, y)
+    f.accountLabelEdit:SetSize(180, 20)
+    f.accountLabelEdit:SetAutoFocus(false)
+    f.accountLabelEdit:SetFontObject(OPT_BODY_FONT)
+    f.accountLabelEdit:SetMaxLetters(16)
+    f.accountLabelEdit:SetScript("OnEnterPressed", function(self)
+        self:ClearFocus()
+    end)
+    f.accountLabelEdit:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+    f.accountLabelEdit:SetScript("OnEditFocusLost", function(self)
+        local text = self:GetText() or ""
+        text = text:trim()
+        addon.db.global.accountLabel = text
+        self:SetText(text)
+        if addon.Character and addon.Character.Update then
+            addon.Character:Update()
+        end
+        addon:SafeLayoutHUD()
+    end)
+    y = y - 28
+
     -- Gold & Economy module with sub-elements
     f.goldModule = CreateModuleCheckbox(scrollChild, modulesSection, "Gold", "Gold & Economy", INDENT, y, {
         { key = "goldCharacter", label = "Char", width = 60 },
@@ -547,7 +590,32 @@ local function CreateConfigFrame()
         { key = "goldGuild", label = "Guild", width = 70 },
         { key = "goldSession", label = "Session", width = 80 },
         { key = "goldToken", label = "Token", width = 70 },
+        { key = "goldLootedValue", label = "Looted Value", width = 105 },
+        { key = "goldPostedAuctions", label = "Posted", width = 70 },
     }, function() Apply() end)
+
+    -- Add tooltip for Looted Value
+    if f.goldModule.childCheckboxes.goldLootedValue then
+        f.goldModule.childCheckboxes.goldLootedValue:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Looted Value", 1, 1, 1)
+            GameTooltip:AddLine("Tracks the estimated value of items you loot during the current session. Uses your configured pricing source when available; otherwise falls back to vendor sell price.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        f.goldModule.childCheckboxes.goldLootedValue:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
+    -- Add tooltip for Posted Auctions
+    if f.goldModule.childCheckboxes.goldPostedAuctions then
+        f.goldModule.childCheckboxes.goldPostedAuctions:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Posted Auctions", 1, 1, 1)
+            GameTooltip:AddLine("Displays the total buyout value and count of your currently active auctions. Updates when you open the auction house or post new auctions. Uses Blizzard's auction data API.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        f.goldModule.childCheckboxes.goldPostedAuctions:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
     y = y - f.goldModule.totalHeight - 4
 
     -- Inventory module with sub-elements
@@ -556,6 +624,17 @@ local function CreateConfigFrame()
         { key = "invBagSlots", label = "Bag Slots", width = 90 },
         { key = "invWarbank", label = "Warbank Access Indicator", width = 135 },
     }, function() Apply() end)
+
+    -- Add tooltip for Bag Value
+    if f.invModule.childCheckboxes.invBagValue then
+        f.invModule.childCheckboxes.invBagValue:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Bag Value", 1, 1, 1)
+            GameTooltip:AddLine("Shows the total estimated value of items in your bags. Uses TSM price source when available; falls back to vendor sell price.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        f.invModule.childCheckboxes.invBagValue:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
 
     -- Add tooltip for Warbank Access Indicator
     if f.invModule.childCheckboxes.invWarbank then
@@ -930,6 +1009,11 @@ local function CreateConfigFrame()
 
         f.customEdit:SetText(db.tsmCustomSource or "")
 
+        -- Load account label text
+        if f.accountLabelEdit and addon.db.global then
+            f.accountLabelEdit:SetText(addon.db.global.accountLabel or "")
+        end
+
         local srcText = db.tsmSource or "dbmarket"
         for _, entry in ipairs(tsmSourceList) do
             if entry.value == srcText then
@@ -962,6 +1046,9 @@ local function CreateConfigFrame()
         if f.charModule.childCheckboxes.charRealm then
             f.charModule.childCheckboxes.charRealm:SetChecked(elem.charRealm ~= false)
         end
+        if f.charModule.childCheckboxes.charAccountLabel then
+            f.charModule.childCheckboxes.charAccountLabel:SetChecked(elem.charAccountLabel ~= false)
+        end
         if f.charModule.childCheckboxes.charShardID then
             f.charModule.childCheckboxes.charShardID:SetChecked(elem.charShardID ~= false)
         end
@@ -984,6 +1071,12 @@ local function CreateConfigFrame()
         end
         if f.goldModule.childCheckboxes.goldToken then
             f.goldModule.childCheckboxes.goldToken:SetChecked(elem.goldToken ~= false)
+        end
+        if f.goldModule.childCheckboxes.goldLootedValue then
+            f.goldModule.childCheckboxes.goldLootedValue:SetChecked(elem.goldLootedValue ~= false)
+        end
+        if f.goldModule.childCheckboxes.goldPostedAuctions then
+            f.goldModule.childCheckboxes.goldPostedAuctions:SetChecked(elem.goldPostedAuctions ~= false)
         end
 
         -- Inventory sub-elements
@@ -1101,6 +1194,9 @@ local function CreateConfigFrame()
         if f.charModule.childCheckboxes.charRealm then
             elem.charRealm = f.charModule.childCheckboxes.charRealm:GetChecked()
         end
+        if f.charModule.childCheckboxes.charAccountLabel then
+            elem.charAccountLabel = f.charModule.childCheckboxes.charAccountLabel:GetChecked()
+        end
         if f.charModule.childCheckboxes.charShardID then
             elem.charShardID = f.charModule.childCheckboxes.charShardID:GetChecked()
         end
@@ -1123,6 +1219,12 @@ local function CreateConfigFrame()
         end
         if f.goldModule.childCheckboxes.goldToken then
             elem.goldToken = f.goldModule.childCheckboxes.goldToken:GetChecked()
+        end
+        if f.goldModule.childCheckboxes.goldLootedValue then
+            elem.goldLootedValue = f.goldModule.childCheckboxes.goldLootedValue:GetChecked()
+        end
+        if f.goldModule.childCheckboxes.goldPostedAuctions then
+            elem.goldPostedAuctions = f.goldModule.childCheckboxes.goldPostedAuctions:GetChecked()
         end
 
         -- Inventory sub-elements
@@ -1362,6 +1464,8 @@ function addon:ResetAllSettings()
             goldGuild     = true,
             goldSession   = true,
             goldToken     = true,
+            goldLootedValue = true,
+            goldPostedAuctions = false,
             invBagSlots   = true,
             invBagValue   = true,
             invWarbank    = true,

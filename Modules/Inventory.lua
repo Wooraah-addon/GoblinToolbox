@@ -280,6 +280,233 @@ function Inventory:QueueRecalc()
 end
 
 -----------------------------------------------------------------------
+-- Player bank scanning and cache management
+-----------------------------------------------------------------------
+
+local playerBankScanPending = false
+
+local function ScanPlayerBank()
+    -- Only scan if we have access to bank containers
+    if not C_Container then
+        return
+    end
+
+    local countByKey = {}
+    local totalItems = 0
+
+    -- Use fallback bag IDs (Enum values may be nil in some WoW versions)
+    local bankBagID = (Enum and Enum.BagIndex and Enum.BagIndex.Bank) or -1
+    local firstBankBag = (Enum and Enum.BagIndex and Enum.BagIndex.BankBag_1) or 5
+
+    -- Scan main bank container (bag -1)
+    local bag = bankBagID
+    local numSlots = C_Container.GetContainerNumSlots(bag)
+
+    if numSlots and numSlots > 0 then
+        for slot = 1, numSlots do
+            local itemID = C_Container.GetContainerItemID(bag, slot)
+            if itemID then
+                local itemLink = C_Container.GetContainerItemLink(bag, slot)
+                local info = C_Container.GetContainerItemInfo(bag, slot)
+                local count = (info and info.stackCount) or 1
+
+                -- Track by itemID:rank key (same as bag scan)
+                local rank = Inventory:GetReagentRank(itemLink, itemID)
+                local key
+                if rank and rank > 0 then
+                    key = tostring(itemID) .. ":" .. tostring(rank)
+                else
+                    key = tostring(itemID) .. ":0"
+                end
+
+                countByKey[key] = (countByKey[key] or 0) + count
+                totalItems = totalItems + 1
+            end
+        end
+    end
+
+    -- Scan bank bags (BankBag_1 through BankBag_7, typically bags 5-11)
+    for i = 0, 6 do  -- 7 bank bags
+        local bag = firstBankBag + i
+        local numSlots = C_Container.GetContainerNumSlots(bag)
+
+        if numSlots and numSlots > 0 then
+            for slot = 1, numSlots do
+                local itemID = C_Container.GetContainerItemID(bag, slot)
+                if itemID then
+                    local itemLink = C_Container.GetContainerItemLink(bag, slot)
+                    local info = C_Container.GetContainerItemInfo(bag, slot)
+                    local count = (info and info.stackCount) or 1
+
+                    -- Track by itemID:rank key (same as bag scan)
+                    local rank = Inventory:GetReagentRank(itemLink, itemID)
+                    local key
+                    if rank and rank > 0 then
+                        key = tostring(itemID) .. ":" .. tostring(rank)
+                    else
+                        key = tostring(itemID) .. ":0"
+                    end
+
+                    countByKey[key] = (countByKey[key] or 0) + count
+                    totalItems = totalItems + 1
+                end
+            end
+        end
+    end
+
+    -- Persist to cache (character-specific saved variable)
+    local db = addon.db and addon.db.profile
+    if db then
+        db.playerBankItemCountsByKey = countByKey
+        db.playerBankItemsLastUpdate = time()
+    end
+
+    playerBankScanPending = false
+end
+
+function Inventory:QueuePlayerBankScan()
+    if playerBankScanPending then
+        return
+    end
+    playerBankScanPending = true
+    -- Small delay to ensure container data is loaded
+    C_Timer.After(0.5, function()
+        ScanPlayerBank()
+        -- Update tracker bar after scan completes
+        if addon.UpdateTrackedBar then
+            addon:UpdateTrackedBar()
+        end
+    end)
+end
+
+function Inventory:GetPlayerBankCountForKey(key)
+    -- Returns cached player bank count for a given itemID:rank key
+    local db = addon.db and addon.db.profile
+    if not db or not db.playerBankItemCountsByKey then
+        return 0
+    end
+    return db.playerBankItemCountsByKey[key] or 0
+end
+
+-----------------------------------------------------------------------
+-- Warband bank scanning and cache management
+-----------------------------------------------------------------------
+
+local warbandScanPending = false
+
+local function ScanWarbandBank()
+    -- Only scan if warband bank is accessible
+    if not C_Bank or not C_Bank.CanUseBank or not Enum.BankType then
+        return
+    end
+
+    if not C_Bank.CanUseBank(Enum.BankType.Account) then
+        -- Bank not accessible, use cached counts
+        return
+    end
+
+    local countByKey = {}
+
+    -- Scan all purchased warband bank tabs
+    -- Account bank uses bag IDs starting from Enum.BagIndex.AccountBankTab_1
+    if Enum.BagIndex and Enum.BagIndex.AccountBankTab_1 then
+        for i = 0, 4 do  -- 5 tabs (0-4)
+            local bag = Enum.BagIndex.AccountBankTab_1 + i
+            local numSlots = C_Container.GetContainerNumSlots(bag)
+
+            if numSlots and numSlots > 0 then
+                for slot = 1, numSlots do
+                    local itemID = C_Container.GetContainerItemID(bag, slot)
+                    if itemID then
+                        local itemLink = C_Container.GetContainerItemLink(bag, slot)
+                        local info = C_Container.GetContainerItemInfo(bag, slot)
+                        local count = (info and info.stackCount) or 1
+
+                        -- Track by itemID:rank key (same as bag scan)
+                        local rank = Inventory:GetReagentRank(itemLink, itemID)
+                        local key
+                        if rank and rank > 0 then
+                            key = tostring(itemID) .. ":" .. tostring(rank)
+                        else
+                            key = tostring(itemID) .. ":0"
+                        end
+
+                        countByKey[key] = (countByKey[key] or 0) + count
+                    end
+                end
+            end
+        end
+    end
+
+    -- Persist to cache (account-wide saved variable)
+    local db = addon.db
+    if db and db.warband then
+        db.warband.itemCountsByKey = countByKey
+        db.warband.itemsLastUpdate = time()
+    end
+
+    warbandScanPending = false
+end
+
+function Inventory:QueueWarbandScan()
+    if warbandScanPending then
+        return
+    end
+    warbandScanPending = true
+    -- Small delay to ensure container data is loaded
+    C_Timer.After(0.5, function()
+        ScanWarbandBank()
+        -- Update tracker bar after scan completes
+        if addon.UpdateTrackedBar then
+            addon:UpdateTrackedBar()
+        end
+    end)
+end
+
+function Inventory:GetWarbandCountForKey(key)
+    -- Returns cached warband count for a given itemID:rank key
+    local db = addon.db
+    if not db or not db.warband or not db.warband.itemCountsByKey then
+        return 0
+    end
+    return db.warband.itemCountsByKey[key] or 0
+end
+
+-----------------------------------------------------------------------
+-- Total count accessor (bags + player bank + warband)
+-----------------------------------------------------------------------
+
+function Inventory:GetTotalCountForKey(key)
+    -- Get settings from profile
+    local db = addon.db and addon.db.profile
+    if not db then
+        return 0
+    end
+
+    local totalCount = 0
+
+    -- Add inventory (bags) count if enabled (default on)
+    if db.trackerIncludeInventory ~= false then
+        local bagCount = addon.trackedCountsByKey and addon.trackedCountsByKey[key] or 0
+        totalCount = totalCount + bagCount
+    end
+
+    -- Add player bank count if enabled
+    if db.trackerIncludePlayerBank == true then
+        local playerBankCount = self:GetPlayerBankCountForKey(key)
+        totalCount = totalCount + playerBankCount
+    end
+
+    -- Add warband bank count if enabled
+    if db.trackerIncludeWarbandBank == true then
+        local warbandCount = self:GetWarbandCountForKey(key)
+        totalCount = totalCount + warbandCount
+    end
+
+    return totalCount
+end
+
+-----------------------------------------------------------------------
 -- Warband access indicator
 -----------------------------------------------------------------------
 

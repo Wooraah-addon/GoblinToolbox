@@ -68,6 +68,9 @@ function Gold:ResetSession()
     s.sessionEarned = 0
     s.sessionSpent = 0
     s.lastMoney = GetMoney()
+    -- Looted value tracking
+    s.sessionLootedValueCopper = 0
+    -- Posted auction tracking is NOT reset (not session-based)
 end
 
 function Gold:TogglePauseSession()
@@ -132,8 +135,13 @@ function Gold:SaveSessionState()
         sessionEarned = s.sessionEarned or 0,
         sessionSpent = s.sessionSpent or 0,
         lastMoney = s.lastMoney,
+        sessionLootedValueCopper = s.sessionLootedValueCopper or 0,
         lastLogoutTime = time(),
     }
+
+    -- Save posted auction data separately (not session-based)
+    db.postedAuctionValueCopper = s.postedAuctionValueCopper or 0
+    db.postedAuctionCount = s.postedAuctionCount or 0
 end
 
 function Gold:LoadSessionState()
@@ -168,6 +176,9 @@ function Gold:LoadSessionState()
     s.sessionEarned = saved.sessionEarned or 0
     s.sessionSpent = saved.sessionSpent or 0
     s.lastMoney = GetMoney()  -- Reset to current gold for clean delta tracking
+    s.sessionLootedValueCopper = saved.sessionLootedValueCopper or 0
+
+    -- Posted auction data is loaded separately via InitializePostedAuctions()
 
     -- Add offline time to paused duration (treat offline as paused)
     if saved.lastLogoutTime and saved.lastLogoutTime > 0 then
@@ -182,6 +193,18 @@ function Gold:LoadSessionState()
     end
 
     return true
+end
+
+function Gold:InitializePostedAuctions()
+    -- Load posted auction data from saved variables
+    local db = addon.db and addon.db.profile
+    if not db then
+        return
+    end
+
+    local s = addon.state
+    s.postedAuctionValueCopper = db.postedAuctionValueCopper or 0
+    s.postedAuctionCount = db.postedAuctionCount or 0
 end
 
 function Gold:GetSessionStats()
@@ -308,11 +331,20 @@ local function TokenHistoryPush(priceCopper)
     local hist = t.history or {}
     t.history = hist
 
-    if hist[#hist] == priceCopper then
+    -- Time gate: only push if at least 60 seconds since last sample
+    -- This allows history to grow even when price is stable
+    local now = time()
+    local lastSampleTime = t.lastSampleTime or 0
+    local timeSinceLastSample = now - lastSampleTime
+
+    -- Skip if duplicate AND less than 60 seconds since last sample
+    if hist[#hist] == priceCopper and timeSinceLastSample < 60 then
         return
     end
 
     table.insert(hist, priceCopper)
+    t.lastSampleTime = now
+
     while #hist > addon.CONST.TOKEN_HISTORY_SIZE do
         table.remove(hist, 1)
     end
@@ -320,10 +352,35 @@ end
 
 function Gold:GetTokenTrend()
     local hist = addon.token and addon.token.history
-    if not hist or #hist < 6 then
+    if not hist or #hist < 2 then
         return "flat"
     end
 
+    local n = #hist
+    local threshold = addon.CONST.TOKEN_TREND_THRESHOLD
+
+    -- Fallback for short histories (2-5 samples): simple delta comparison
+    if n < 6 then
+        local latest = hist[n]
+        local compareIndex = math.max(1, n - 3)  -- Compare to 3 samples back (or earliest)
+        local earlier = hist[compareIndex]
+
+        if not latest or not earlier or latest <= 0 or earlier <= 0 then
+            return "flat"
+        end
+
+        local delta = latest - earlier
+
+        if delta > threshold then
+            return "up"
+        elseif delta < -threshold then
+            return "down"
+        end
+
+        return "flat"
+    end
+
+    -- Full averaging logic for 6+ samples
     local function Avg(startIndex, endIndex)
         local sum = 0
         local n = 0
@@ -338,7 +395,6 @@ function Gold:GetTokenTrend()
         return sum / n
     end
 
-    local n = #hist
     local prevAvg = Avg(n - 5, n - 3)
     local lastAvg = Avg(n - 2, n)
 
@@ -347,7 +403,6 @@ function Gold:GetTokenTrend()
     end
 
     local delta = lastAvg - prevAvg
-    local threshold = addon.CONST.TOKEN_TREND_THRESHOLD
 
     if delta > threshold then
         return "up"
@@ -406,6 +461,293 @@ function Gold:StartTokenTicker()
         end
         Gold:RequestTokenPrice()
     end)
+end
+
+-----------------------------------------------------------------------
+-- Looted item value tracking (per session)
+-----------------------------------------------------------------------
+
+-- Pending retry queue for uncached items
+local lootedValuePendingQueue = {}
+local lootedValueRetryPending = false
+
+local function RetryPendingLootedItems()
+    lootedValueRetryPending = false
+
+    if #lootedValuePendingQueue == 0 then
+        return
+    end
+
+    local stillPending = {}
+    local s = addon.state
+
+    for _, entry in ipairs(lootedValuePendingQueue) do
+        local itemLink = entry.itemLink
+        local quantity = entry.quantity
+
+        -- Try to get item info again
+        local name = GetItemInfo(itemLink)
+        if name then
+            -- Item cached now, calculate price
+            local price = 0
+            if addon.Inventory then
+                price = addon.Inventory:GetItemPrice(itemLink)
+            end
+
+            if price > 0 then
+                s.sessionLootedValueCopper = (s.sessionLootedValueCopper or 0) + (price * quantity)
+            end
+        else
+            -- Still not cached, keep in pending queue
+            table.insert(stillPending, entry)
+        end
+    end
+
+    lootedValuePendingQueue = stillPending
+
+    -- If still items pending, schedule another retry
+    if #lootedValuePendingQueue > 0 then
+        lootedValueRetryPending = true
+        C_Timer.After(0.5, RetryPendingLootedItems)
+    end
+end
+
+function Gold:HandleLootMessage(message)
+    -- Skip if session not started or paused
+    local s = addon.state
+    if not s.sessionStartTime or s.sessionPaused then
+        return
+    end
+
+    -- Parse loot message using global patterns
+    -- LOOT_ITEM_SELF = "You receive loot: %s."
+    -- LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
+
+    local itemLink, quantity
+
+    -- Try multiple pattern first
+    if LOOT_ITEM_SELF_MULTIPLE then
+        local pattern = LOOT_ITEM_SELF_MULTIPLE:gsub("%%s", "(.+)"):gsub("%%d", "(%%d+)")
+        itemLink, quantity = message:match(pattern)
+        if itemLink and quantity then
+            quantity = tonumber(quantity)
+        end
+    end
+
+    -- Try single item pattern if multiple didn't match
+    if not itemLink and LOOT_ITEM_SELF then
+        local pattern = LOOT_ITEM_SELF:gsub("%%s", "(.+)")
+        itemLink = message:match(pattern)
+        if itemLink then
+            quantity = 1
+        end
+    end
+
+    if not itemLink or not quantity then
+        return
+    end
+
+    -- Try to get item info (may not be cached yet)
+    local name = GetItemInfo(itemLink)
+    if name then
+        -- Item is cached, calculate price immediately
+        local price = 0
+        if addon.Inventory then
+            price = addon.Inventory:GetItemPrice(itemLink)
+        end
+
+        if price > 0 then
+            s.sessionLootedValueCopper = (s.sessionLootedValueCopper or 0) + (price * quantity)
+        end
+    else
+        -- Item not cached, add to pending queue
+        table.insert(lootedValuePendingQueue, {
+            itemLink = itemLink,
+            quantity = quantity
+        })
+
+        -- Start retry timer if not already running
+        if not lootedValueRetryPending then
+            lootedValueRetryPending = true
+            C_Timer.After(0.2, RetryPendingLootedItems)
+        end
+    end
+end
+
+-----------------------------------------------------------------------
+-- Posted auction tracking (not session-based, uses Blizzard owned auctions API)
+-----------------------------------------------------------------------
+
+-- State tracking
+Gold._atAuctionHouse = false
+Gold._ownedAuctionsRefreshPending = false
+Gold._ownedAuctionsRefreshTimer = nil
+Gold._postedUIRefreshPending = false
+Gold._postedUIRefreshTimer = nil
+
+function Gold:HandleAuctionPost(isCommodity, ...)
+    -- Track all auction posts regardless of session state
+    -- This provides immediate local increment (cheap), debounced UI update
+    -- Source of truth reconciliation happens on AH open/close only
+    local s = addon.state
+
+    local value = 0
+
+    if isCommodity then
+        -- C_AuctionHouse.PostCommodity(item, duration, quantity, unitPrice)
+        local item, duration, quantity, unitPrice = ...
+        if quantity and unitPrice and quantity > 0 and unitPrice > 0 then
+            value = unitPrice * quantity
+        end
+    else
+        -- C_AuctionHouse.PostItem(item, duration, quantity, bid, buyout)
+        local item, duration, quantity, bid, buyout = ...
+        -- Prefer buyout, fallback to bid
+        if buyout and buyout > 0 then
+            value = buyout
+        elseif bid and bid > 0 then
+            value = bid
+        end
+    end
+
+    if value > 0 then
+        s.postedAuctionValueCopper = (s.postedAuctionValueCopper or 0) + value
+        s.postedAuctionCount = (s.postedAuctionCount or 0) + 1
+
+        -- Debounced UI update (prevents lag during mass posting)
+        self:RequestPostedAuctionsUIRefresh()
+    end
+
+    -- NO owned-auctions refresh during posting (prevents lag)
+    -- Source of truth reconciliation happens on AH open/close only
+end
+
+function Gold:RequestPostedAuctionsUIRefresh()
+    -- Debounce HUD updates during mass posting
+    if self._postedUIRefreshPending then
+        return
+    end
+
+    self._postedUIRefreshPending = true
+
+    -- Cancel any existing timer
+    if self._postedUIRefreshTimer then
+        self._postedUIRefreshTimer:Cancel()
+    end
+
+    -- Schedule debounced refresh (0.3s delay)
+    self._postedUIRefreshTimer = C_Timer.NewTimer(0.3, function()
+        self._postedUIRefreshTimer = nil
+        self._postedUIRefreshPending = false
+
+        addon:UpdateGoldSection()
+        addon:SafeLayoutHUD()
+    end)
+end
+
+function Gold:RequestOwnedAuctionsRefresh(reason)
+    -- Only refresh while at auction house
+    if not self._atAuctionHouse then
+        return
+    end
+
+    -- Debounce: if already pending, don't schedule another
+    if self._ownedAuctionsRefreshPending then
+        return
+    end
+
+    self._ownedAuctionsRefreshPending = true
+
+    -- Cancel any existing timer
+    if self._ownedAuctionsRefreshTimer then
+        self._ownedAuctionsRefreshTimer:Cancel()
+    end
+
+    -- Schedule the query after a short delay (debounce)
+    -- Use NewTimer for proper cancellation support
+    self._ownedAuctionsRefreshTimer = C_Timer.NewTimer(1.0, function()
+        self._ownedAuctionsRefreshTimer = nil
+
+        if not self._atAuctionHouse then
+            self._ownedAuctionsRefreshPending = false
+            return
+        end
+
+        -- Query owned auctions from server
+        if C_AuctionHouse and C_AuctionHouse.QueryOwnedAuctions then
+            C_AuctionHouse.QueryOwnedAuctions({})
+        end
+
+        -- Note: _ownedAuctionsRefreshPending is cleared in RecomputePostedTotalsFromOwned
+        -- when OWNED_AUCTIONS_UPDATED fires
+    end)
+end
+
+function Gold:RecomputePostedTotalsFromOwned()
+    -- Recompute count and total value from currently owned auctions
+    -- This is the source of truth, called when OWNED_AUCTIONS_UPDATED fires
+
+    self._ownedAuctionsRefreshPending = false
+
+    if not C_AuctionHouse then
+        return
+    end
+
+    local totalCount = 0
+    local totalValue = 0
+
+    -- Try GetOwnedAuctions first (preferred)
+    if C_AuctionHouse.GetOwnedAuctions then
+        local auctions = C_AuctionHouse.GetOwnedAuctions()
+        if auctions then
+            for _, auctionInfo in ipairs(auctions) do
+                -- Only count active auctions
+                if auctionInfo.status == Enum.AuctionStatus.Active then
+                    totalCount = totalCount + 1
+
+                    -- Use buyoutAmount if present, otherwise bidAmount
+                    local value = auctionInfo.buyoutAmount or auctionInfo.bidAmount or 0
+                    totalValue = totalValue + value
+                end
+            end
+        end
+    -- Fallback to GetOwnedAuctionInfo loop
+    elseif C_AuctionHouse.GetOwnedAuctionInfo then
+        local i = 1
+        while true do
+            local auctionInfo = C_AuctionHouse.GetOwnedAuctionInfo(i)
+            if not auctionInfo then
+                break
+            end
+
+            -- Only count active auctions
+            if auctionInfo.status == Enum.AuctionStatus.Active then
+                totalCount = totalCount + 1
+
+                -- Use buyoutAmount if present, otherwise bidAmount
+                local value = auctionInfo.buyoutAmount or auctionInfo.bidAmount or 0
+                totalValue = totalValue + value
+            end
+
+            i = i + 1
+        end
+    end
+
+    -- Update state
+    local s = addon.state
+    s.postedAuctionCount = totalCount
+    s.postedAuctionValueCopper = totalValue
+
+    -- Persist to saved variables
+    local db = addon.db and addon.db.profile
+    if db then
+        db.postedAuctionCount = totalCount
+        db.postedAuctionValueCopper = totalValue
+    end
+
+    -- Update display
+    addon:UpdateGoldSection()
+    addon:SafeLayoutHUD()
 end
 
 -----------------------------------------------------------------------
@@ -495,7 +837,36 @@ function Gold:Update()
         sec.lines[1]:SetText("")
     end
 
-    -- Session tracking rendering depends on view mode
+    -- Line 2: Posted auctions (count + value)
+    if elem.goldPostedAuctions ~= false then
+        local count = s.postedAuctionCount or 0
+        local value = s.postedAuctionValueCopper or 0
+        sec.lines[2]:SetText(string.format("Posted Auctions: (%d) %s", count, addon:FormatMoney(value)))
+    else
+        sec.lines[2]:SetText("")
+    end
+
+    -- Line 3: Token
+    if elem.goldToken ~= false then
+        local tokenPrice = addon.token and addon.token.lastPrice or 0
+        if tokenPrice and tokenPrice > 0 then
+            local trend = self:GetTokenTrend()
+            local marker = ""
+            if trend == "up" then
+                marker = " |cff00ff00▲|r"
+            elseif trend == "down" then
+                marker = " |cffff4444▼|r"
+            end
+
+            sec.lines[3]:SetText(string.format("Token: %s%s", addon:FormatMoney(tokenPrice), marker))
+        else
+            sec.lines[3]:SetText("Token: n/a")
+        end
+    else
+        sec.lines[3]:SetText("")
+    end
+
+    -- Lines 4-7 depend on session and view mode
     if elem.goldSession ~= false then
         local elapsed, net, gph = self:GetSessionStats()
         local hours = math.floor(elapsed / 3600)
@@ -517,93 +888,70 @@ function Gold:Update()
             sessionTimeDisplay = string.format("%s |cff00ff00%s|r", CLOCK_ICON_GREEN, timeStr)
         end
 
+        -- Line 4: Session header (timer is displayed separately)
+        sec.lines[4]:SetText("Session")
+
+        -- Set timer display (positioned to left of buttons in HUD layout)
+        if sec.sessionTimerDisplay then
+            sec.sessionTimerDisplay:SetText(sessionTimeDisplay)
+        end
+
         if isDetailed then
             -- DETAILED MODE
-            -- Line 2: Clock + time + Start + Current + GPH
+            -- Line 5: Start + Current + GPH
             local startGold = s.sessionStartGold or 0
             local currentGold = (isPaused and s.pauseGoldSnapshot) or GetMoney()
 
-            sec.lines[2]:SetText(string.format("%s  Start: %s  Current: %s  (%s/h)",
-                sessionTimeDisplay, addon:FormatMoney(startGold), addon:FormatMoney(currentGold), addon:FormatMoney(gph)))
+            sec.lines[5]:SetText(string.format("Start: %s   Current: %s   (%s/h)",
+                addon:FormatMoney(startGold), addon:FormatMoney(currentGold), addon:FormatMoney(gph)))
 
-            -- Line 3: Earned / Spent / Net
+            -- Line 6: Earned / Spent / Net
             local earned = s.sessionEarned or 0
             local spent = s.sessionSpent or 0
             local netDisplay = FormatSignedMoney(net)
 
-            sec.lines[3]:SetText(string.format("Earned: %s  Spent: %s  Net: %s",
+            sec.lines[6]:SetText(string.format("Earned: %s    Spent: %s       Net: %s",
                 addon:FormatMoney(earned), addon:FormatMoney(spent), netDisplay))
-
-            -- Line 4: Token (in detailed mode)
-            if elem.goldToken ~= false then
-                local tokenPrice = addon.token and addon.token.lastPrice or 0
-                if tokenPrice and tokenPrice > 0 then
-                    local trend = self:GetTokenTrend()
-                    local marker = ""
-                    if trend == "up" then
-                        marker = " |cff00ff00▲|r"
-                    elseif trend == "down" then
-                        marker = " |cffff4444▼|r"
-                    end
-
-                    sec.lines[4]:SetText(string.format("Token: %s%s", addon:FormatMoney(tokenPrice), marker))
-                else
-                    sec.lines[4]:SetText("Token: n/a")
-                end
-            else
-                sec.lines[4]:SetText("")
-            end
         else
             -- SIMPLE MODE
-            -- Line 2: Clock + time + net + GPH
-            sec.lines[2]:SetText(string.format("%s  Earned: %s  (%s/h)",
-                sessionTimeDisplay, addon:FormatMoney(net), addon:FormatMoney(gph)))
+            -- Line 5: Earned + GPH
+            sec.lines[5]:SetText(string.format("Earned: %s (%s/h)",
+                addon:FormatMoney(net), addon:FormatMoney(gph)))
 
-            -- Line 3: Token (in simple mode)
-            if elem.goldToken ~= false then
-                local tokenPrice = addon.token and addon.token.lastPrice or 0
-                if tokenPrice and tokenPrice > 0 then
-                    local trend = self:GetTokenTrend()
-                    local marker = ""
-                    if trend == "up" then
-                        marker = " |cff00ff00▲|r"
-                    elseif trend == "down" then
-                        marker = " |cffff4444▼|r"
-                    end
-
-                    sec.lines[3]:SetText(string.format("Token: %s%s", addon:FormatMoney(tokenPrice), marker))
-                else
-                    sec.lines[3]:SetText("Token: n/a")
-                end
-            else
-                sec.lines[3]:SetText("")
-            end
-
-            -- Line 4: Empty in simple mode
-            sec.lines[4]:SetText("")
+            -- Line 6: Empty in simple mode
+            sec.lines[6]:SetText("")
         end
     else
         -- Session disabled
-        sec.lines[2]:SetText("")
-        sec.lines[3]:SetText("")
         sec.lines[4]:SetText("")
+        sec.lines[5]:SetText("")
+        sec.lines[6]:SetText("")
+        if sec.sessionTimerDisplay then
+            sec.sessionTimerDisplay:SetText("")
+        end
+    end
 
-        -- Still show token if enabled but session disabled
-        if elem.goldToken ~= false and not isDetailed then
-            local tokenPrice = addon.token and addon.token.lastPrice or 0
-            if tokenPrice and tokenPrice > 0 then
-                local trend = self:GetTokenTrend()
-                local marker = ""
-                if trend == "up" then
-                    marker = " |cff00ff00▲|r"
-                elseif trend == "down" then
-                    marker = " |cffff4444▼|r"
-                end
-                sec.lines[3]:SetText(string.format("Token: %s%s", addon:FormatMoney(tokenPrice), marker))
-            else
-                sec.lines[3]:SetText("Token: n/a")
+    -- Line 7: Looted value with GPH
+    if elem.goldLootedValue ~= false then
+        local lootedValue = s.sessionLootedValueCopper or 0
+        local priceSource = "vendor"
+        if TSM_API and TSM_API.GetCustomPriceValue and addon.Inventory then
+            priceSource = addon.Inventory:ResolveTSMLabel()
+        end
+
+        -- Calculate looted GPH
+        local lootedGPH = 0
+        if elem.goldSession ~= false then
+            local elapsed = self:GetSessionStats()
+            if elapsed and elapsed > 0 then
+                lootedGPH = (lootedValue * 3600) / elapsed
             end
         end
+
+        sec.lines[7]:SetText(string.format("Looted (%s): %s (%s/h)",
+            priceSource, addon:FormatMoney(lootedValue), addon:FormatMoney(lootedGPH)))
+    else
+        sec.lines[7]:SetText("")
     end
 end
 

@@ -197,6 +197,24 @@ local function CreateSection(frame, key, headerText, numLines)
         section.lines[i] = fs
     end
 
+    if key == "Character" then
+        -- Create invisible tooltip button for Shard ID line
+        section.shardTooltipBtn = CreateFrame("Button", nil, frame)
+        section.shardTooltipBtn:SetSize(1, 1)
+        section.shardTooltipBtn:Hide()
+        section.shardTooltipBtn:EnableMouse(true)
+
+        section.shardTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Shard ID", 1, 1, 1)
+            GameTooltip:AddLine("WoW splits busy zones into multiple parallel instances ('shards'). This shows which one you're on. If ShardID shows as \"Unknown\", click on an NPC to update it.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        section.shardTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+    end
+
     if key == "Gold" then
         section.sessionResetBtn = CreateFrame("Button", nil, frame)
         section.sessionResetBtn:SetSize(14, 14)
@@ -258,6 +276,12 @@ local function CreateSection(frame, key, headerText, numLines)
         section.UpdatePauseButtonTexture = UpdatePauseButtonTexture
         UpdatePauseButtonTexture()
 
+        -- Create timer display fontstring (positioned to left of pause button)
+        section.sessionTimerDisplay = frame:CreateFontString(nil, "OVERLAY")
+        section.sessionTimerDisplay:SetFontObject(addon:GetBodyFont())
+        section.sessionTimerDisplay:SetJustifyH("RIGHT")
+        section.sessionTimerDisplay:Hide()
+
         -- Create invisible tooltip button for token line
         section.tokenTooltipBtn = CreateFrame("Button", nil, frame)
         section.tokenTooltipBtn:SetSize(1, 1)  -- Will be resized in layout
@@ -309,9 +333,112 @@ local function CreateSection(frame, key, headerText, numLines)
         section.tokenTooltipBtn:SetScript("OnLeave", function()
             GameTooltip:Hide()
         end)
+
+        -- Create invisible tooltip button for Earned line
+        section.earnedTooltipBtn = CreateFrame("Button", nil, frame)
+        section.earnedTooltipBtn:SetSize(1, 1)
+        section.earnedTooltipBtn:Hide()
+        section.earnedTooltipBtn:EnableMouse(true)
+
+        section.earnedTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Session Earned", 1, 1, 1)
+            GameTooltip:AddLine("Tracks gold gained during the current session from all sources (quest rewards, vendor sales, mail, etc.). Only positive gold changes are counted.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        section.earnedTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+
+        -- Create invisible tooltip button for Looted line
+        section.lootedTooltipBtn = CreateFrame("Button", nil, frame)
+        section.lootedTooltipBtn:SetSize(1, 1)
+        section.lootedTooltipBtn:Hide()
+        section.lootedTooltipBtn:EnableMouse(true)
+
+        section.lootedTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Looted Value", 1, 1, 1)
+
+            local priceSource = "vendor"
+            if TSM_API and TSM_API.GetCustomPriceValue and addon.Inventory then
+                priceSource = addon.Inventory:ResolveTSMLabel()
+            end
+
+            if priceSource == "vendor" then
+                GameTooltip:AddLine("Tracks the estimated value of items you loot during the current session. Using vendor sell price (no TSM price source configured).", 0.8, 0.8, 0.8, true)
+            else
+                GameTooltip:AddLine(string.format("Tracks the estimated value of items you loot during the current session. Using TSM price source: %s. Falls back to vendor sell price when TSM price unavailable.", priceSource), 0.8, 0.8, 0.8, true)
+            end
+
+            GameTooltip:Show()
+        end)
+        section.lootedTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+
+        -- Create invisible tooltip button for Posted Auctions line
+        section.postedTooltipBtn = CreateFrame("Button", nil, frame)
+        section.postedTooltipBtn:SetSize(1, 1)
+        section.postedTooltipBtn:Hide()
+        section.postedTooltipBtn:EnableMouse(true)
+
+        section.postedTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Posted Auctions", 1, 1, 1)
+            GameTooltip:AddLine("Displays the total buyout value and count of your currently active auctions. Updates when you open the auction house or post new auctions. Uses Blizzard's auction data API.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        section.postedTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+
+        -- Create invisible tooltip button for Session header line
+        section.sessionHeaderTooltipBtn = CreateFrame("Button", nil, frame)
+        section.sessionHeaderTooltipBtn:SetSize(1, 1)
+        section.sessionHeaderTooltipBtn:Hide()
+        section.sessionHeaderTooltipBtn:EnableMouse(true)
+
+        section.sessionHeaderTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Session Tracking", 1, 1, 1)
+            GameTooltip:AddLine("Click the pause button to pause or resume session tracking. When paused, the icon turns red and tracking stops for both gold gains and looted item values. Configure auto-reset on logout or session persistence in the options menu.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        section.sessionHeaderTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
     end
 
     if key == "Inventory" then
+        -- Create invisible tooltip button for Bag Value line
+        section.bagValueTooltipBtn = CreateFrame("Button", nil, frame)
+        section.bagValueTooltipBtn:SetSize(1, 1)
+        section.bagValueTooltipBtn:Hide()
+        section.bagValueTooltipBtn:EnableMouse(true)
+
+        section.bagValueTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Bag Value", 1, 1, 1)
+
+            local priceSource = "vendor"
+            if TSM_API and TSM_API.GetCustomPriceValue and addon.Inventory then
+                priceSource = addon.Inventory:ResolveTSMLabel()
+            end
+
+            if priceSource == "vendor" then
+                GameTooltip:AddLine("Total estimated value of all items in your bags. Using vendor sell price (no TSM price source configured).", 0.8, 0.8, 0.8, true)
+            else
+                GameTooltip:AddLine(string.format("Total estimated value of all items in your bags. Using TSM price source: %s. Falls back to vendor sell price when TSM price unavailable.", priceSource), 0.8, 0.8, 0.8, true)
+            end
+
+            GameTooltip:Show()
+        end)
+        section.bagValueTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+
+
         -- Create invisible tooltip button for bag slots line
         section.bagSlotsTooltipBtn = CreateFrame("Button", nil, frame)
         section.bagSlotsTooltipBtn:SetSize(1, 1)  -- Will be resized in layout
@@ -324,6 +451,22 @@ local function CreateSection(frame, key, headerText, numLines)
             GameTooltip:Show()
         end)
         section.bagSlotsTooltipBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+
+        -- Create invisible tooltip button for Warbank Access indicator line
+        section.warbankTooltipBtn = CreateFrame("Button", nil, frame)
+        section.warbankTooltipBtn:SetSize(1, 1)
+        section.warbankTooltipBtn:Hide()
+        section.warbankTooltipBtn:EnableMouse(true)
+
+        section.warbankTooltipBtn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Warbank Access Indicator", 1, 1, 1)
+            GameTooltip:AddLine("The Warband Bank is shared across your Battle.net account. If you are logged in on multiple WoW clients simultaneously, this indicator will clearly show which of your clients has access to the Warband Bank.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        section.warbankTooltipBtn:SetScript("OnLeave", function()
             GameTooltip:Hide()
         end)
     end
@@ -484,9 +627,9 @@ local function CreateHUD()
 
     CreateResizeGrip(frame)
 
-    -- Character now has 2 lines (Line 2 = Shard + Move Speed)
+    -- Character now has 2 lines (Line 1 = Name + Realm + Account Label, Line 2 = Shard + Move Speed)
     CreateSection(frame, "Character",   "Character",            2)
-    CreateSection(frame, "Gold",        "Gold & Economy",       4)
+    CreateSection(frame, "Gold",        "Gold & Economy",       7)
     CreateSection(frame, "Inventory",   "Inventory & Currency", 3)
 
     addon:UpdateBackground()
@@ -555,6 +698,9 @@ function addon:LayoutHUD()
                 if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
                     section.sessionResetBtn:Hide()
                     section.sessionPauseBtn:Hide()
+                    if section.sessionTimerDisplay then
+                        section.sessionTimerDisplay:Hide()
+                    end
                 end
             end
         end
@@ -604,6 +750,9 @@ function addon:LayoutHUD()
 
             if key == "Gold" and section.sessionResetBtn then
                 section.sessionResetBtn:Hide()
+                if section.sessionTimerDisplay then
+                    section.sessionTimerDisplay:Hide()
+                end
             end
 
             if collapsed then
@@ -613,12 +762,24 @@ function addon:LayoutHUD()
                 if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
                     section.sessionResetBtn:Hide()
                     section.sessionPauseBtn:Hide()
+                    if section.sessionTimerDisplay then
+                        section.sessionTimerDisplay:Hide()
+                    end
                 end
-                if key == "Gold" and section.tokenTooltipBtn then
-                    section.tokenTooltipBtn:Hide()
+                if key == "Character" then
+                    if section.shardTooltipBtn then section.shardTooltipBtn:Hide() end
                 end
-                if key == "Inventory" and section.bagSlotsTooltipBtn then
-                    section.bagSlotsTooltipBtn:Hide()
+                if key == "Gold" then
+                    if section.postedTooltipBtn then section.postedTooltipBtn:Hide() end
+                    if section.tokenTooltipBtn then section.tokenTooltipBtn:Hide() end
+                    if section.sessionHeaderTooltipBtn then section.sessionHeaderTooltipBtn:Hide() end
+                    if section.earnedTooltipBtn then section.earnedTooltipBtn:Hide() end
+                    if section.lootedTooltipBtn then section.lootedTooltipBtn:Hide() end
+                end
+                if key == "Inventory" then
+                    if section.bagValueTooltipBtn then section.bagValueTooltipBtn:Hide() end
+                    if section.bagSlotsTooltipBtn then section.bagSlotsTooltipBtn:Hide() end
+                    if section.warbankTooltipBtn then section.warbankTooltipBtn:Hide() end
                 end
             else
                 for i, fs in ipairs(section.lines) do
@@ -627,11 +788,11 @@ function addon:LayoutHUD()
                         fs:Show()
                         fs:SetFontObject(bodyFont)
                         fs:ClearAllPoints()
-                        fs:SetPoint("TOPLEFT", frame, "TOPLEFT", db.showHeaders and 18 or 6, y)
+                        fs:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, y)
 
                         local rightPad = -6
 
-                        if key == "Gold" and i == 2 and section.sessionResetBtn and section.sessionPauseBtn then
+                        if key == "Gold" and i == 4 and section.sessionResetBtn and section.sessionPauseBtn then
                             local elem = db.elements or {}
                             local showButtons = (elem.goldSession ~= false)
 
@@ -650,36 +811,114 @@ function addon:LayoutHUD()
                                 section.sessionPauseBtn:ClearAllPoints()
                                 section.sessionPauseBtn:SetPoint("RIGHT", section.sessionResetBtn, "LEFT", -4, 0)
 
+                                -- Position timer display to the left of pause button
+                                if section.sessionTimerDisplay then
+                                    section.sessionTimerDisplay:Show()
+                                    section.sessionTimerDisplay:SetFontObject(bodyFont)
+                                    section.sessionTimerDisplay:ClearAllPoints()
+                                    section.sessionTimerDisplay:SetPoint("RIGHT", section.sessionPauseBtn, "LEFT", -6, 0)
+                                    section.sessionTimerDisplay:SetPoint("CENTER", fs, "CENTER", 0, 0)
+                                end
+
                                 local totalButtonWidth = section.sessionResetBtn:GetWidth() + section.sessionPauseBtn:GetWidth() + 4
                                 rightPad = -(6 + totalButtonWidth + 6)
                             else
                                 section.sessionResetBtn:Hide()
                                 section.sessionPauseBtn:Hide()
+                                if section.sessionTimerDisplay then
+                                    section.sessionTimerDisplay:Hide()
+                                end
                             end
                         end
 
                         fs:SetPoint("RIGHT", frame, "RIGHT", rightPad, 0)
 
-                        -- Position Inventory tooltip button over Line 2 (bag slots)
-                        if key == "Inventory" and i == 2 and section.bagSlotsTooltipBtn then
+                        -- Position Character tooltip buttons
+                        if key == "Character" then
                             local elem = db.elements or {}
-                            if elem.invBagSlots ~= false then
-                                section.bagSlotsTooltipBtn:ClearAllPoints()
-                                section.bagSlotsTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
-                                section.bagSlotsTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+
+                            -- Shard ID tooltip (Line 2, only if ShardID or MoveSpeed is shown)
+                            if i == 2 and section.shardTooltipBtn and (elem.charShardID ~= false or elem.charMovespeed ~= false) then
+                                section.shardTooltipBtn:ClearAllPoints()
+                                section.shardTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.shardTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.shardTooltipBtn:Show()
                             end
                         end
 
-                        -- Position Gold token tooltip button (Line 3 in Simple, Line 4 in Detailed)
-                        if key == "Gold" and section.tokenTooltipBtn then
+                        -- Position Inventory tooltip buttons
+                        if key == "Inventory" then
+                            local elem = db.elements or {}
+
+                            -- Bag Value tooltip (Line 1)
+                            if i == 1 and section.bagValueTooltipBtn and elem.invBagValue ~= false then
+                                section.bagValueTooltipBtn:ClearAllPoints()
+                                section.bagValueTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.bagValueTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.bagValueTooltipBtn:Show()
+                            end
+
+                            -- Bag Slots tooltip (Line 2)
+                            if i == 2 and section.bagSlotsTooltipBtn and elem.invBagSlots ~= false then
+                                section.bagSlotsTooltipBtn:ClearAllPoints()
+                                section.bagSlotsTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.bagSlotsTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.bagSlotsTooltipBtn:Show()
+                            end
+
+                            -- Warbank Access tooltip (Line 3)
+                            if i == 3 and section.warbankTooltipBtn and elem.invWarbank ~= false then
+                                section.warbankTooltipBtn:ClearAllPoints()
+                                section.warbankTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.warbankTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.warbankTooltipBtn:Show()
+                            end
+                        end
+
+                        -- Position Gold tooltip buttons
+                        if key == "Gold" then
                             local elem = db.elements or {}
                             local isDetailed = (db.goldViewMode == "detailed")
-                            local tokenLine = isDetailed and 4 or 3
-                            if i == tokenLine and elem.goldToken ~= false then
+
+                            -- Posted Auctions tooltip (Line 2 always)
+                            if i == 2 and section.postedTooltipBtn and elem.goldPostedAuctions ~= false then
+                                section.postedTooltipBtn:ClearAllPoints()
+                                section.postedTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.postedTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.postedTooltipBtn:Show()
+                            end
+
+                            -- Token tooltip (Line 3 always)
+                            if i == 3 and section.tokenTooltipBtn and elem.goldToken ~= false then
                                 section.tokenTooltipBtn:ClearAllPoints()
                                 section.tokenTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
                                 section.tokenTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
                                 section.tokenTooltipBtn:Show()
+                            end
+
+                            -- Session header tooltip (Line 4 always)
+                            if i == 4 and section.sessionHeaderTooltipBtn and elem.goldSession ~= false then
+                                section.sessionHeaderTooltipBtn:ClearAllPoints()
+                                section.sessionHeaderTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.sessionHeaderTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.sessionHeaderTooltipBtn:Show()
+                            end
+
+                            -- Earned tooltip (Line 5 in simple, Line 6 in detailed)
+                            local earnedLine = isDetailed and 6 or 5
+                            if i == earnedLine and section.earnedTooltipBtn and elem.goldSession ~= false then
+                                section.earnedTooltipBtn:ClearAllPoints()
+                                section.earnedTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.earnedTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.earnedTooltipBtn:Show()
+                            end
+
+                            -- Looted tooltip (Line 7 always)
+                            if i == 7 and section.lootedTooltipBtn and elem.goldLootedValue ~= false then
+                                section.lootedTooltipBtn:ClearAllPoints()
+                                section.lootedTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.lootedTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.lootedTooltipBtn:Show()
                             end
                         end
 
@@ -687,6 +926,10 @@ function addon:LayoutHUD()
                         -- Add extra spacing for Inventory section
                         if key == "Inventory" then
                             lineSpacing = 4
+                        end
+                        -- Add extra spacing between Token (line 3) and Session (line 4) in Gold section
+                        if key == "Gold" and i == 3 then
+                            lineSpacing = 8
                         end
 
                         y = y - fs:GetStringHeight() - lineSpacing
@@ -698,11 +941,14 @@ function addon:LayoutHUD()
 
             if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
                 local elem = db.elements or {}
-                local sessionText = section.lines[2] and section.lines[2]:GetText() or ""
+                local sessionText = section.lines[4] and section.lines[4]:GetText() or ""
                 local showButtons = (elem.goldSession ~= false) and (not collapsed) and (sessionText ~= "")
                 if not showButtons then
                     section.sessionResetBtn:Hide()
                     section.sessionPauseBtn:Hide()
+                    if section.sessionTimerDisplay then
+                        section.sessionTimerDisplay:Hide()
+                    end
                 end
             end
 
@@ -716,12 +962,24 @@ function addon:LayoutHUD()
             if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
                 section.sessionResetBtn:Hide()
                 section.sessionPauseBtn:Hide()
+                if section.sessionTimerDisplay then
+                    section.sessionTimerDisplay:Hide()
+                end
             end
-            if key == "Gold" and section.tokenTooltipBtn then
-                section.tokenTooltipBtn:Hide()
+            if key == "Character" then
+                if section.shardTooltipBtn then section.shardTooltipBtn:Hide() end
             end
-            if key == "Inventory" and section.bagSlotsTooltipBtn then
-                section.bagSlotsTooltipBtn:Hide()
+            if key == "Gold" then
+                if section.postedTooltipBtn then section.postedTooltipBtn:Hide() end
+                if section.tokenTooltipBtn then section.tokenTooltipBtn:Hide() end
+                if section.sessionHeaderTooltipBtn then section.sessionHeaderTooltipBtn:Hide() end
+                if section.earnedTooltipBtn then section.earnedTooltipBtn:Hide() end
+                if section.lootedTooltipBtn then section.lootedTooltipBtn:Hide() end
+            end
+            if key == "Inventory" then
+                if section.bagValueTooltipBtn then section.bagValueTooltipBtn:Hide() end
+                if section.bagSlotsTooltipBtn then section.bagSlotsTooltipBtn:Hide() end
+                if section.warbankTooltipBtn then section.warbankTooltipBtn:Hide() end
             end
         end
     end
