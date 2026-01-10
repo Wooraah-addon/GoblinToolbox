@@ -204,4 +204,4 @@ Therefore the following proposed features are currently on hold/deffered or out 
 
   ## Acknowledgments
 
-  Thanks to my team of beta testers for their feature suggestions, feedback and bug reports. These include Manthieus, SlickRock, Liqorice, negue, Yohanan, chosen2choose, Amazul Askira, Cirvis, Týýr, Aylin, Goldzen_tv, Quixxan, Bomanski, Kristian, ElonCS, bakoto, Warshal, special thanks also to Indopan for your guidance regarding CLaude Code.
+  Thanks to my team of beta testers for their feature suggestions, feedback and bug reports. These include Manthieus, SlickRock, Liqorice, negue, Yohanan, chosen2choose, Amazul Askira, Cirvis, Týýr, Aylin, Goldzen_tv, Quixxan, Bomanski, Kristian, ElonCS, bakoto, Warshal, special thanks also to Indopan for your guidance regarding efficient AI workflows and migration of the project from ChatGPT to Claude Code.
