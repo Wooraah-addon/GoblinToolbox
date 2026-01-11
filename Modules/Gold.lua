@@ -7,6 +7,94 @@ local Gold = {}
 addon:RegisterModule("Gold", Gold)
 
 -----------------------------------------------------------------------
+-- Bank transfer intent tracking
+-----------------------------------------------------------------------
+
+-- Queue of pending money intents for transfer matching
+-- Each entry: { ts = GetTime(), amount = copper (signed), source = "guild"/"warband" }
+local pendingMoneyIntents = {}
+
+-- Debug logging toggle (stored in saved variables)
+local function IsDebugEnabled()
+    return addon.db and addon.db.profile and addon.db.profile.debugTransfers
+end
+
+local function LogTransfer(msg)
+    if IsDebugEnabled() then
+        print("|cff00ff00[GTB Transfer]|r " .. msg)
+    end
+end
+
+-- Add a transfer intent to the queue
+local function EnqueueTransferIntent(amount, source)
+    local intent = {
+        ts = GetTime(),
+        amount = amount,  -- Signed: negative for deposits, positive for withdrawals
+        source = source,  -- "guild" or "warband"
+    }
+    table.insert(pendingMoneyIntents, intent)
+    LogTransfer(string.format("Queued %s intent: %+d copper", source, amount))
+end
+
+-- Expire old intents (older than 2 seconds)
+local function ExpireOldIntents()
+    local now = GetTime()
+    local i = 1
+    while i <= #pendingMoneyIntents do
+        if (now - pendingMoneyIntents[i].ts) > 2.0 then
+            LogTransfer(string.format("Expired %s intent: %+d copper (unmatched)",
+                pendingMoneyIntents[i].source, pendingMoneyIntents[i].amount))
+            table.remove(pendingMoneyIntents, i)
+        else
+            i = i + 1
+        end
+    end
+end
+
+-- Attempt to match and consume a transfer intent from player delta
+-- Returns: adjustedDelta, matchedAmount (or nil if no match)
+local function TryConsumeTransferIntent(playerDelta)
+    if #pendingMoneyIntents == 0 then
+        return playerDelta, nil
+    end
+
+    ExpireOldIntents()
+
+    -- Look for a matching intent
+    for i = 1, #pendingMoneyIntents do
+        local intent = pendingMoneyIntents[i]
+
+        -- Check sign matches
+        local signsMatch = (playerDelta > 0 and intent.amount > 0) or
+                          (playerDelta < 0 and intent.amount < 0) or
+                          (playerDelta == 0 and intent.amount == 0)
+
+        if signsMatch then
+            -- Check magnitude (strict match first, then allow 5% tolerance)
+            local intentMag = math.abs(intent.amount)
+            local deltaMag = math.abs(playerDelta)
+            local tolerance = math.max(10000, intentMag * 0.05)  -- 1g or 5%, whichever is larger
+
+            if deltaMag >= intentMag and deltaMag <= (intentMag + tolerance) then
+                -- Match found!
+                local matchedAmount = intent.amount
+                LogTransfer(string.format("Matched %s transfer: intent=%+d, delta=%+d",
+                    intent.source, intent.amount, playerDelta))
+
+                -- Remove this intent from queue
+                table.remove(pendingMoneyIntents, i)
+
+                -- Return adjusted delta (subtract matched portion)
+                return playerDelta - matchedAmount, matchedAmount
+            end
+        end
+    end
+
+    -- No match found
+    return playerDelta, nil
+end
+
+-----------------------------------------------------------------------
 -- Character gold cache
 -----------------------------------------------------------------------
 
@@ -75,6 +163,8 @@ function Gold:ResetSession()
     s.lastMoney = GetMoney()
     -- Looted value tracking
     s.sessionLootedValueCopper = 0
+    -- Transfer offset tracking (bank deposits/withdrawals)
+    s.sessionTransferOffset = 0
     -- Posted auction tracking is NOT reset (not session-based)
 end
 
@@ -115,6 +205,9 @@ end
 
 function Gold:SaveSessionState()
     if not addon.db or not addon.db.profile then
+        if IsDebugEnabled() then
+            print("|cffff4444[GTB Session]|r Save failed: no db")
+        end
         return
     end
 
@@ -125,12 +218,20 @@ function Gold:SaveSessionState()
     if not db.sessionPersistOnLogout then
         -- Clear any existing saved state if persistence is disabled
         db.sessionState = {}
+        if IsDebugEnabled() then
+            print("|cffff4444[GTB Session]|r Save skipped: persistence disabled")
+        end
         return
     end
 
+    if IsDebugEnabled() then
+        print("|cff00ff00[GTB Session]|r Saving session state")
+    end
+
     -- Save session state to SavedVariables (character-specific)
+    -- Use cached characterKey (realm not available during logout events)
     db.sessionState = {
-        characterKey = addon:GetCharacterKey(),
+        characterKey = s.characterKey or addon:GetCharacterKey(),
         sessionStartGold = s.sessionStartGold,
         sessionStartTime = s.sessionStartTime,
         sessionPaused = s.sessionPaused,
@@ -141,6 +242,7 @@ function Gold:SaveSessionState()
         sessionSpent = s.sessionSpent or 0,
         lastMoney = s.lastMoney,
         sessionLootedValueCopper = s.sessionLootedValueCopper or 0,
+        sessionTransferOffset = s.sessionTransferOffset or 0,
         lastLogoutTime = time(),
     }
 
@@ -150,6 +252,9 @@ end
 
 function Gold:LoadSessionState()
     if not addon.db or not addon.db.profile then
+        if IsDebugEnabled() then
+            print("|cffff4444[GTB Session]|r Load failed: no db")
+        end
         return false
     end
 
@@ -157,14 +262,31 @@ function Gold:LoadSessionState()
     local saved = db.sessionState
 
     -- Only restore if persistence is enabled and saved state exists
-    if not db.sessionPersistOnLogout or not saved or not saved.sessionStartTime then
+    if not db.sessionPersistOnLogout then
+        if IsDebugEnabled() then
+            print("|cffff4444[GTB Session]|r Load skipped: persistence disabled")
+        end
+        return false
+    end
+
+    if not saved or not saved.sessionStartTime then
+        if IsDebugEnabled() then
+            print("|cffff4444[GTB Session]|r Load failed: no saved state or no start time")
+        end
         return false
     end
 
     -- Only restore if saved state is for THIS character
     local currentCharKey = addon:GetCharacterKey()
     if saved.characterKey and saved.characterKey ~= currentCharKey then
+        if IsDebugEnabled() then
+            print("|cffff4444[GTB Session]|r Load failed: wrong character (saved: " .. tostring(saved.characterKey) .. ", current: " .. tostring(currentCharKey) .. ")")
+        end
         return false
+    end
+
+    if IsDebugEnabled() then
+        print("|cff00ff00[GTB Session]|r Loading session state")
     end
 
     local now = time()
@@ -181,6 +303,7 @@ function Gold:LoadSessionState()
     s.sessionSpent = saved.sessionSpent or 0
     s.lastMoney = GetMoney()  -- Reset to current gold for clean delta tracking
     s.sessionLootedValueCopper = saved.sessionLootedValueCopper or 0
+    s.sessionTransferOffset = saved.sessionTransferOffset or 0
 
     -- Posted auction data is loaded separately via InitializePostedAuctions()
 
@@ -194,6 +317,10 @@ function Gold:LoadSessionState()
     if s.sessionPaused then
         s.pauseStartTime = now
         s.pauseGoldSnapshot = GetMoney()
+    end
+
+    if IsDebugEnabled() then
+        print("|cff00ff00[GTB Session]|r Session state loaded successfully")
     end
 
     return true
@@ -238,7 +365,10 @@ function Gold:GetSessionStats()
 
     -- Use frozen gold snapshot while paused, current gold otherwise
     local currentGold = (s.sessionPaused and s.pauseGoldSnapshot) or GetMoney()
-    local net = currentGold - s.sessionStartGold
+    local rawNet = currentGold - s.sessionStartGold
+
+    -- Adjust net by subtracting transfer offset (neutralizes bank deposits/withdrawals)
+    local net = rawNet - (s.sessionTransferOffset or 0)
     local gph = net * 3600 / elapsed
 
     return elapsed, net, gph
@@ -275,21 +405,38 @@ local function UpdateEarnedSpent()
 
     local delta = currentMoney - s.lastMoney
 
+    -- Try to match and consume a bank transfer intent
+    local adjustedDelta, matchedTransfer = TryConsumeTransferIntent(delta)
+
+    if matchedTransfer then
+        -- This delta (or part of it) was a bank transfer
+        -- Update transfer offset to neutralize it from Net calculation
+        s.sessionTransferOffset = (s.sessionTransferOffset or 0) + matchedTransfer
+        LogTransfer(string.format("Transfer offset updated: %+d (total: %+d)",
+            matchedTransfer, s.sessionTransferOffset))
+    end
+
     -- Guard against unreasonably large deltas (likely from login race condition)
-    -- Skip deltas larger than 100,000 gold in a single tick
+    -- Apply this check AFTER transfer matching so large transfers don't get skipped
     local maxDelta = 100000 * 10000  -- 100k gold in copper
-    if math.abs(delta) > maxDelta then
+    if math.abs(adjustedDelta) > maxDelta then
         s.lastMoney = currentMoney
         return
     end
 
-    if delta > 0 then
-        s.sessionEarned = (s.sessionEarned or 0) + delta
-    elseif delta < 0 then
-        s.sessionSpent = (s.sessionSpent or 0) + math.abs(delta)
+    -- Apply the adjusted delta to Earned/Spent
+    if adjustedDelta > 0 then
+        s.sessionEarned = (s.sessionEarned or 0) + adjustedDelta
+    elseif adjustedDelta < 0 then
+        s.sessionSpent = (s.sessionSpent or 0) + math.abs(adjustedDelta)
     end
 
     s.lastMoney = currentMoney
+end
+
+-- Public wrapper for immediate updates (called from PLAYER_MONEY event)
+function Gold:UpdateEarnedSpentImmediate()
+    UpdateEarnedSpent()
 end
 
 function Gold:StartSessionTicker()
@@ -819,6 +966,18 @@ local function FormatSignedMoney(amount)
     end
 end
 
+-- Format money with color coding and minus sign for negatives
+-- Green if positive, red with "-" if negative, white if zero
+local function FormatColoredMoney(amount)
+    if amount > 0 then
+        return "|cff00ff00" .. addon:FormatMoney(amount) .. "|r"
+    elseif amount < 0 then
+        return "|cffff4444-" .. addon:FormatMoney(math.abs(amount)) .. "|r"
+    else
+        return addon:FormatMoney(amount)  -- white/default for zero
+    end
+end
+
 -- Clock/timer icons (textures with color tinting)
 local CLOCK_ICON_GREEN = "|TInterface\\COMMON\\mini-hourglass:0:0:0:0:16:16:0:16:0:16:0:255:0|t"
 local CLOCK_ICON_RED = "|TInterface\\COMMON\\mini-hourglass:0:0:0:0:16:16:0:16:0:16:255:0:0|t"
@@ -959,7 +1118,7 @@ function Gold:Update()
             local currentGold = (isPaused and s.pauseGoldSnapshot) or GetMoney()
 
             sec.lines[5]:SetText(string.format("Start: %s   Current: %s   (%s/h)",
-                addon:FormatMoney(startGold), addon:FormatMoney(currentGold), addon:FormatMoney(gph)))
+                addon:FormatMoney(startGold), addon:FormatMoney(currentGold), FormatColoredMoney(gph)))
 
             -- Line 6: Earned / Spent / Net
             local earned = s.sessionEarned or 0
@@ -972,7 +1131,7 @@ function Gold:Update()
             -- SIMPLE MODE
             -- Line 5: Earned + GPH
             sec.lines[5]:SetText(string.format("Earned: %s (%s/h)",
-                addon:FormatMoney(net), addon:FormatMoney(gph)))
+                FormatColoredMoney(net), FormatColoredMoney(gph)))
 
             -- Line 6: Empty in simple mode
             sec.lines[6]:SetText("")
@@ -1050,6 +1209,86 @@ end
 
 function addon:LoadSessionState()
     return Gold:LoadSessionState()
+end
+
+-----------------------------------------------------------------------
+-- Debug command
+-----------------------------------------------------------------------
+
+function Gold:ToggleTransferDebug()
+    if not addon.db or not addon.db.profile then
+        return false
+    end
+    addon.db.profile.debugTransfers = not addon.db.profile.debugTransfers
+    return addon.db.profile.debugTransfers
+end
+
+-----------------------------------------------------------------------
+-- Bank transfer hooks setup
+-----------------------------------------------------------------------
+
+function Gold:SetupTransferHooks()
+    -- Hook unified bank API (covers Warband and Guild if routed through it)
+    if C_Bank and C_Bank.DepositMoney then
+        hooksecurefunc(C_Bank, "DepositMoney", function(bankType, amount)
+            if not amount or amount <= 0 then
+                return
+            end
+
+            -- Check if this is a guild or warband bank deposit
+            local source = nil
+            if bankType == Enum.BankType.Account or bankType == 2 then
+                source = "warband"
+            elseif bankType == Enum.BankType.Guild or bankType == 1 then
+                source = "guild"
+            end
+
+            if source then
+                -- Deposit: player loses gold, so intent delta is negative
+                EnqueueTransferIntent(-amount, source)
+            end
+        end)
+    end
+
+    if C_Bank and C_Bank.WithdrawMoney then
+        hooksecurefunc(C_Bank, "WithdrawMoney", function(bankType, amount)
+            if not amount or amount <= 0 then
+                return
+            end
+
+            -- Check if this is a guild or warband bank withdrawal
+            local source = nil
+            if bankType == Enum.BankType.Account or bankType == 2 then
+                source = "warband"
+            elseif bankType == Enum.BankType.Guild or bankType == 1 then
+                source = "guild"
+            end
+
+            if source then
+                -- Withdrawal: player gains gold, so intent delta is positive
+                EnqueueTransferIntent(amount, source)
+            end
+        end)
+    end
+
+    -- Hook legacy guild bank functions (belt-and-braces)
+    if DepositGuildBankMoney then
+        hooksecurefunc("DepositGuildBankMoney", function(amount)
+            if amount and amount > 0 then
+                -- Deposit: player loses gold, so intent delta is negative
+                EnqueueTransferIntent(-amount, "guild")
+            end
+        end)
+    end
+
+    if WithdrawGuildBankMoney then
+        hooksecurefunc("WithdrawGuildBankMoney", function(amount)
+            if amount and amount > 0 then
+                -- Withdrawal: player gains gold, so intent delta is positive
+                EnqueueTransferIntent(amount, "guild")
+            end
+        end)
+    end
 end
 
 -- Expose for event handlers

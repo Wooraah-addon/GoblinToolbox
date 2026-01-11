@@ -85,6 +85,7 @@ local DEFAULTS = {
         preferWarbandBankOnOpen = false,
         sessionPersistOnLogout = false,
         goldViewMode     = "simple",  -- "simple" or "detailed"
+        debugTransfers   = false,  -- Debug logging for bank transfers and session persistence
 
         modules = {
             Character   = true,
@@ -238,6 +239,7 @@ addon.state = {
     sessionEarned    = 0,
     sessionSpent     = 0,
     lastMoney        = nil,
+    characterKey     = nil,  -- Cached at login (realm not available during logout)
 }
 
 addon.token = {

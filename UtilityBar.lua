@@ -746,6 +746,48 @@ local function GetUtilityIcon(def, resolvedItemID)
 end
 
 -----------------------------------------------------------------------
+-- Secure attribute guards
+-----------------------------------------------------------------------
+
+-- Disables secure actions for non-left buttons and modifier combinations.
+-- MUST use false (not nil) to prevent fallback to the generic type attribute.
+local function ApplySecureAttributeGuards(btn)
+    if InCombatLockdown() then
+        return
+    end
+
+    -- Disable non-left mouse buttons
+    btn:SetAttribute("type2", false)      -- Right button
+    btn:SetAttribute("type3", false)      -- Middle button
+    btn:SetAttribute("type4", false)      -- Extra button 1
+    btn:SetAttribute("type5", false)      -- Extra button 2
+
+    -- Disable Shift + all buttons
+    btn:SetAttribute("shift-type", false)
+    btn:SetAttribute("shift-type1", false) -- Shift+Left
+    btn:SetAttribute("shift-type2", false) -- Shift+Right (critical for removal)
+    btn:SetAttribute("shift-type3", false) -- Shift+Middle
+    btn:SetAttribute("shift-type4", false)
+    btn:SetAttribute("shift-type5", false)
+
+    -- Disable Ctrl + all buttons
+    btn:SetAttribute("ctrl-type", false)
+    btn:SetAttribute("ctrl-type1", false)  -- Ctrl+Left
+    btn:SetAttribute("ctrl-type2", false)  -- Ctrl+Right
+    btn:SetAttribute("ctrl-type3", false)  -- Ctrl+Middle
+    btn:SetAttribute("ctrl-type4", false)
+    btn:SetAttribute("ctrl-type5", false)
+
+    -- Disable Alt + all buttons
+    btn:SetAttribute("alt-type", false)
+    btn:SetAttribute("alt-type1", false)   -- Alt+Left
+    btn:SetAttribute("alt-type2", false)   -- Alt+Right
+    btn:SetAttribute("alt-type3", false)   -- Alt+Middle
+    btn:SetAttribute("alt-type4", false)
+    btn:SetAttribute("alt-type5", false)
+end
+
+-----------------------------------------------------------------------
 -- Button creation
 -----------------------------------------------------------------------
 
@@ -777,6 +819,9 @@ local function CreateUtilityButton(parent, index, size)
         btn:SetAttribute("pressAndHoldAction", true)
     end
 
+    -- Apply initial secure attribute guards
+    ApplySecureAttributeGuards(btn)
+
     btn:SetScript("OnEnter", function(selfBtn)
         local title = selfBtn.tooltipTitle or selfBtn.tooltip
         if not title then
@@ -806,6 +851,12 @@ local function CreateUtilityButton(parent, index, size)
 
     btn:SetScript("OnMouseUp", function(selfBtn, mouseButton)
         if mouseButton == "RightButton" and IsShiftKeyDown() and selfBtn.utilityKey then
+            -- Prevent secure frame modification during combat
+            if InCombatLockdown() then
+                print("|cff00ff00Goblin Toolbox:|r Cannot modify Utility Bar during combat")
+                return
+            end
+
             if addon.db and addon.db.profile and addon.db.profile.utilityButtons then
                 addon.db.profile.utilityButtons[selfBtn.utilityKey] = false
 
@@ -1119,6 +1170,9 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
     else
         btn.tooltip = tip
     end
+
+    -- Apply secure attribute guards to prevent accidental activation with modifiers/non-left-clicks
+    ApplySecureAttributeGuards(btn)
 
     UpdateUtilityButtonCooldown(btn)
 end

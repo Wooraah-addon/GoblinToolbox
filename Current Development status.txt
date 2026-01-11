@@ -23,7 +23,7 @@ Current Realm Name	COMPLETE	n/a
 Has warband access (Yes/no)	COMPLETE	n/a
 Current movement speed (a la monkeyspeed) - for use when you're wearing a speed set. Have had a request to change this to 3 decimal places display if possible, to investigate.	COMPLETE	n/a
 Display Shard ID after server name. And add option to show/hide in menu	COMPLETE	n/a
-Add a custom label that is saved in the account state, a label to identify which Account this is (e.g. WOW1) - menu option off by default	INCOMPLETE	LOW
+Add a custom label that is saved in the account state, a label to identify which Account this is (e.g. WOW1) - menu option off by default	COMPLETE	n/a
 Add Class Spec Icon	INCOMPLETE	LOW
 XP Tracking functionality - Lower Priority - and also perhaps separate module	INCOMPLETE	LOW
 When displayed, make chacter and server copy to the clipboard (to make it easier for people to copy that name into clipboard for invites). Format shuld be Character-Server with no spaces. 	INCOMPLETE	LOW
@@ -41,11 +41,13 @@ Char: 132,396   WB: 1,234,567  Guild: 820,000
 ⏱ 42m  Start: 123,456·  Current: 132,396·  (12,320·/h)
 Earned:14,200·  Spent:5.300·  Net: 8,000·
 Token: 255,000·  ▲"	COMPLETE	n/a
+When gold tracking is set to simple mode, change the earnt and gold per hour values to show as green if positive, red if negative (white if unchanged). Also change gold per hour in detailed mode in the same fashion.	INCOMPLETE	MEDIUM
 Add an additional indicator to show session is paused (icon and clock turn red) either due to AFK or the user pressing the pause session button. Working for manual pause, AFK pause still need implementing, accompanying message in chat works, for AFK, chat should also output a message for "Session Paused - AFK", and "Session Resumed - No longer AFK".	PARTIALLY COMPLETE	MEDIUM
 Current Token price + recent trend indicator, recent trend indicator could do with modification, tolerances are too strict now and the arrow only shows in the case of extreme swings. Indicator should also have a tooltip to show what's being shown when it's visible.	COMPLETE	n/a
 "Total Auction Value" - Posted AH Value (based on chosen TSM value source), disabled by default, requires TSM.	COMPLETE	n/a
 Number of posted auctions (based on TSM data), disabled by default, requires TSM.	COMPLETE	n/a
 Although the menu option exists, support for custom TSM price strings does not appear to be working properly, remove for now, implement at low priority at a later date.	INCOMPLETE	LOW
+When auctions sell - list the sold auction value next to posted auctions in the HUD until you loot the mailbox (then it will be counted in the earned right?)	INCOMPLETE	LOW
 		
 INVENTORY & CURRENCY		
 Free bag slots	COMPLETE	n/a
@@ -99,6 +101,150 @@ Menu option for "Session preferences" - Session persists on logout, session rese
 		
 CURRENT BUGS		
 Minor bug - if utility bar is enabled when in combat and spamming combat abilities, cooldown swirlies appear on hearthstone icons every 1 second or so (perhaps ever global cooldown?), this should not happen. ---- Hmm this seems to happen sometimes, but not always, requires further investigation. Same session but a few minutes later (after a dungeon, back in the open world, swirly effect is no longer happening in combat).	INCOMPLETE	MEDIUM
+"One user reported an issue with addon action blocked, They report that (in their words) : ""When I’m using the addon I can’t add pets to my collection, I am getting a blocked message and wow asks to disable the addon to continue the task being blocked. "" This is a message I also sometimes see periodically when running lots of addons, and it does not typically throw out a detailed error message, so is hard to diagnose. I have tried to replicate the issue on my game client, but without any luck, I can add pets to the pet journal no problem. ChatGPT gave the following advice:
+
+What your tester is describing is the classic WoW “protected action blocked” / taint symptom: some code path becomes “tainted,” and later (sometimes much later, and sometimes in a totally different UI) Blizzard blocks a protected action and shows the generic popup offering to disable an addon. The popup is not reliably specific; it can blame the wrong addon in multi-addon setups.
+
+In Goblin Toolbox’s current codebase, there are two high-probability taint triggers that can plausibly “poison” unrelated UI actions (including learning/adding pets), even if the addon never touches the Pet Journal directly.
+
+1) Warband bank auto-switch uses a simulated click on Blizzard UI
+
+Your addon programmatically clicks the Warband Bank tab/button via btn:Click() inside TryAutoSwitchToWarbandBank.
+
+Simulating clicks on Blizzard UI elements is a well-known taint risk, because many of those buttons are protected/secure (or call into protected paths). Even if it “works” sometimes, it can contaminate execution paths and later block unrelated protected actions.
+
+Why this fits your symptom pattern: the tester may only notice the issue when doing something else “protected” (like learning a pet from an item, moving pets in certain Collection UI flows, etc.). Taint persists until reload.
+
+Immediate mitigation (recommended): disable/remove the auto-switch feature (or rework it so it never calls :Click() on Blizzard frames).
+
+2) Housing teleport calls a restricted C_Housing API from addon code
+
+Your addon defines a global helper that calls C_Housing.TeleportHome(...).
+
+As of patch 12.0.0 (The War Within era), Blizzard explicitly restricted VisitHouse / TeleportHome / ReturnAfterVisitingHouse from being called by addons, and indicates they require new secure mechanisms (“secure action delegates”).
+
+So if that utility action is enabled/used by a tester, it can generate exactly the kind of blocked-action popup you’re hearing about, and can also contribute to “addon feels like it breaks random stuff” reports.
+
+Immediate mitigation (recommended): remove/disable that action until it’s implemented via Blizzard’s sanctioned secure mechanism (or drop the feature).
+
+The fastest way to confirm the real cause: collect taint.log
+
+Without a taint log, you are guessing. With the taint log, you can usually identify the specific protected function being blocked and the originating taint source.
+
+Ask the tester to do this sequence precisely (important detail: the log is overwritten on restart):
+
+In-game:
+/console taintLog 1
+
+Exit WoW completely
+
+Start WoW again, reproduce the issue (learn a pet / do the action that triggers the popup)
+
+Quit WoW
+
+Send you the file:
+World of Warcraft/_retail_/Logs/taint.log (copy it immediately before next launch)
+
+If they can also screenshot the popup (sometimes it includes the blocked function name), that helps, but the taint log is the real diagnostic artifact.
+
+Practical isolation steps you can give the tester (low effort)
+
+Re-test with only Goblin Toolbox enabled (everything else off).
+
+If it disappears, the popup blaming GTB may be misattribution or cross-addon taint propagation.
+
+If still present with only GTB:
+
+Ensure “Prefer Warband Bank on Open” is OFF (the auto-switch path).
+
+Ensure Housing Teleport utility is OFF / not used.
+
+This will quickly tell you whether either feature correlates with the problem.
+
+Guidance to feed to Claude Code (targeted, minimal-risk)
+
+GoblinToolbox.lua
+
+Remove or hard-disable the btn:Click() logic inside TryAutoSwitchToWarbandBank.
+
+If you want to preserve UX, replace with a non-invasive hint (e.g., print a one-time message “Warband Bank tab available” or highlight your own button), but do not programmatically switch Blizzard tabs.
+
+UtilityBar.lua
+
+Remove/disable the GoblinToolbox_HousingTeleport() implementation that calls C_Housing.TeleportHome.
+
+Add a comment noting the 12.0.0 restriction and that a secure-delegate-based implementation is needed."	INCOMPLETE	MEDIUM
+"Shift + Right click is the default to remove abilities from the Utility bar, but for both this also TRIGGERS the ability for most of them, which isn't so bad for abilities that have a cast time (as you can cancel by moving), but for relog and logout buttons, the action happens (even if you were trying to remove the ability). The same applies with middle click and any Left click+modifiers, can we prevent this somehow? Suggestion from ChatGPT as follows: Goal
+
+UtilityBar buttons currently execute the secure action on mouse down (RegisterForClicks(""AnyDown"")). Your remove gesture runs on mouse up (OnMouseUp). So Shift+Right-click both fires the action and then removes the icon.
+
+Fix: explicitly disable secure actions for non-left buttons and modifier combinations via secure attributes, using false (not nil) so the secure system does not fall back to the generic type.
+
+Where to change
+
+File: UtilityBar.lua
+
+Functions:
+
+CreateUtilityButton(...) (optional: apply guards once on creation)
+
+SetupUtilityButton(btn, def, resolvedItemID) (recommended: re-apply guards after setting action attributes)
+
+Implementation guidance (what to add)
+
+Add a small helper near the “Button setup” section:
+
+It should do nothing in combat (if InCombatLockdown() then return end).
+
+It should set these attributes to false:
+
+Disable non-left mouse buttons:
+
+type2=false (Right)
+
+type3=false (Middle)
+
+optionally type4=false, type5=false (extra buttons)
+
+Disable modifier variants that currently trigger actions:
+
+For each modifier: shift, ctrl, alt
+
+Disable generic modifier action: shift-type=false (and ctrl/alt equivalents)
+
+Disable modifier + button variants (most important ones):
+
+shift-type1=false (Shift+Left)
+
+shift-type2=false (Shift+Right) ← critical so it can’t fall back to type
+
+shift-type3=false (Shift+Middle)
+
+repeat for ctrl/alt
+
+Key point to Claude: use false, not nil, because nil can allow fallback to type and still execute the action.
+
+Call the helper at the end of SetupUtilityButton(), after the code that sets btn:SetAttribute(""type"", ...), spell, macrotext, item, toy, etc. This ensures every time the button is refreshed, the guards are present.
+
+Optionally also call the helper once in CreateUtilityButton() right after RegisterForClicks(""AnyDown"") / pressAndHoldAction, but the critical place is after attributes are applied in SetupUtilityButton().
+
+Expected behaviour after the change
+
+Left-click: works normally.
+
+Shift + Right-click: does not trigger the action, and still removes the icon via your existing OnMouseUp handler.
+
+Middle-click: does nothing (no accidental activation).
+
+Shift/Ctrl/Alt + Left-click: does nothing (prevents accidental /logout if a mod key is held).
+
+Optional safety (nice-to-have)
+
+In the existing OnMouseUp removal handler, consider adding:
+
+If InCombatLockdown() then show a short message like “Cannot modify Utility Bar during combat” and return.
+
+This avoids any chance of secure-frame update issues if someone tries to remove buttons mid-combat."	INCOMPLETE	MEDIUM
 		
 FIXED BUGS		
 Gold.lua: Gold:Update() was called before the Gold module’s db reference was initialized, causing a nil self.db access at line 265.	COMPLETE	n/a
@@ -107,14 +253,15 @@ The tooltips for Drag handles currently obstruct the functionality of tooltips, 
 When clicking on Pause, the timing of the session pauses, but tracking of gold does not, I'm not sure this logic is correct, when paused, if you loot gold, this should NOT be tracked.	COMPLETE	n/a
 Heathstone itcon not working in Utility bar if hearthstone is  in bags. 	COMPLETE	n/a
 When users select "Enable HUD" in the menu, the item tracker bar still does not hide (the main hud, utility bar and currency tracker bar do hide properly)	COMPLETE	n/a
+Users report that total auction value is not being tallied properly. If a user posts 100 of a commodity item, it (correctly) registers that as 1 item posted, but only displays the value of item x 1, not item x 100. 	COMPLETE	n/a
 		
 OTHER		
 Add Auctionator Price Source Support	INCOMPLETE	MEDIUM
 Code Cleanup Pass prior to release - to remove redundant code and bloat	INCOMPLETE	LOW
 Rather than having savings simply save across an account, have the ability for users to set profiles that specify HUD elements and tracked items/currencies for different characters - would also need the ability to export/import settings config (text string), to another account.	INCOMPLETE	LOW
-For gold tracking, transfers from the player to the guild bank or warband bank should not be considered as earnings/deposits. 	INCOMPLETE	MEDIUM
+For gold tracking, transfers from the player to the guild bank or warband bank should not be considered as earnings/losses for the session. 	INCOMPLETE	MEDIUM
 		
-PROFESSIONS (PHASED IMPLEMENTATION, MAJORITY DEFERRED UNTIL MIDNIGHT STABILIZES)		
+PROFESSIONS (PHASED IMPLEMENTATION, DEFERRED UNTIL MIDNIGHT STABILIZES)		
 Basic Profession Display – display learned primary professions with current skill level and click-to-open Blizzard profession UI - Probably only Midnight support onwards (at least initially)	INCOMPLETE	LOW
 Concentration Display  – optional display of current and max concentration (crafting profs only) with visual indicator for when the bar is full and counter "Time till full".	INCOMPLETE	LOW
 Contextual Profession Actions – add profession-specific actions (for example Disenchant) via Utility Bar where relevant - based on check s of what profs the player has	INCOMPLETE	LOW
@@ -130,3 +277,4 @@ Sales tracker - replicate : https://wago.io/YHKFhrUDt - Split by type (Auction H
 		
 Addon Notes		
 The addon stores a small rolling history of recent WoW Token prices and compares the average of the latest three updates with the average of the three updates before that. An up or down arrow is only shown if the difference between those averages is at least 2,500 gold; otherwise no indicator is displayed.		
+Addon only supports English client and retail version of wow at present, with no plans to add support for other game versions at present.		

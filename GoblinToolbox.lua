@@ -98,7 +98,10 @@ end
 local EventHandlers = {
     PLAYER_LOGIN = function()
         addon.db = addon:GetDB()
-        
+
+        -- Cache character key at login (realm not available during logout)
+        addon.state.characterKey = addon:GetCharacterKey()
+
         addon:InitializeHUD()
         addon:CreateTrackerFrame()
         addon:CreateCurrencyFrame()
@@ -122,7 +125,12 @@ local EventHandlers = {
 
         addon:StartSessionTicker()
         addon:StartTokenTicker()
-        
+
+        -- Setup bank transfer hooks for session tracking
+        if addon.Gold and addon.Gold.SetupTransferHooks then
+            addon.Gold:SetupTransferHooks()
+        end
+
         -- Start character speed ticker (if module loaded)
         if addon.Character and addon.Character.StartSpeedTicker then
             addon.Character:StartSpeedTicker()
@@ -192,6 +200,13 @@ local EventHandlers = {
 
     PLAYER_MONEY = function()
         addon.Gold:UpdateCharacterCache()
+
+        -- Process earned/spent deltas immediately (including bank transfer matching)
+        -- This prevents the "flash" of incorrect values before the session ticker runs
+        if addon.Gold and addon.Gold.UpdateEarnedSpentImmediate then
+            addon.Gold:UpdateEarnedSpentImmediate()
+        end
+
         addon:UpdateGoldSection()
         addon:SafeLayoutHUD()
     end,
@@ -494,6 +509,42 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
         addon:UpdateAllSections()
         print("Goblin Toolbox: headers", addon.db.profile.showHeaders and "enabled" or "disabled")
 
+    elseif cmd == "debugtransfers" then
+        if addon.Gold and addon.Gold.ToggleTransferDebug then
+            local enabled = addon.Gold:ToggleTransferDebug()
+            print("Goblin Toolbox: transfer debug logging", enabled and "enabled" or "disabled")
+        end
+
+    elseif cmd == "sessiondebug" or cmd == "debugsession" then
+        local db = addon.db and addon.db.profile
+        if not db then
+            print("Goblin Toolbox: No database found")
+            return
+        end
+
+        print("=== Session State Debug ===")
+        print("Persistence enabled:", db.sessionPersistOnLogout and "YES" or "NO")
+
+        if db.sessionState and db.sessionState.sessionStartTime then
+            print("Saved state found:")
+            print("  Character:", db.sessionState.characterKey or "none")
+            print("  Start time:", db.sessionState.sessionStartTime or "none")
+            print("  Start gold:", db.sessionState.sessionStartGold or 0)
+            print("  Earned:", db.sessionState.sessionEarned or 0)
+            print("  Spent:", db.sessionState.sessionSpent or 0)
+            print("  Transfer offset:", db.sessionState.sessionTransferOffset or 0)
+        else
+            print("No saved state found")
+        end
+
+        print("\nCurrent state:")
+        local s = addon.state
+        print("  Start time:", s.sessionStartTime or "none")
+        print("  Start gold:", s.sessionStartGold or 0)
+        print("  Earned:", s.sessionEarned or 0)
+        print("  Spent:", s.sessionSpent or 0)
+        print("  Transfer offset:", s.sessionTransferOffset or 0)
+
     else
         print("Goblin Toolbox commands:")
         print("  /gtb              - open settings window")
@@ -507,5 +558,7 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
         print("  /gtb show         - show HUD")
         print("  /gtb hide         - hide HUD")
         print("  /gtb headers      - toggle group headers")
+        print("  /gtb debugtransfers - toggle bank transfer debug logging")
+        print("  /gtb sessiondebug - show session persistence debug info")
     end
 end
