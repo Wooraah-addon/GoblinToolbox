@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-0.6.0-green)
+  ![Version](https://img.shields.io/badge/Version-0.7.0-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview
@@ -107,7 +107,7 @@
 
   ## Requirements
 
-  - World of Warcraft: The War Within (12.0) or later
+  - World of Warcraft: Midnight (12.0) or later
   - No required dependencies
   - Optional: TradeSkillMaster for advanced price data
 
