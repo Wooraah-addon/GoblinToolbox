@@ -186,7 +186,7 @@ local DEFAULTS = {
         fontSize = 13,
         backgroundOpacity = 0.30,
         -- Gold valuation settings (account-wide technical preferences)
-        tsmSource = "dbregionmarketavg",
+        tsmSource = "dbregionsaleavg",
         tsmCustomSource = "",
         schemaVersion = 1,  -- Used for tracking SavedVariables migrations
     },
