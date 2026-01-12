@@ -92,6 +92,19 @@ function addon:SafeLayoutHUD()
 end
 
 -----------------------------------------------------------------------
+-- ReloadUI hook for session persistence
+-----------------------------------------------------------------------
+
+-- Hook ReloadUI to detect reloads vs full logouts
+-- When ReloadUI() is called, we set a flag that persists through the reload
+-- On next PLAYER_LOGIN, we check this flag to know if it was a reload
+hooksecurefunc("ReloadUI", function()
+    if addon.db and addon.db.global then
+        addon.db.global.isReloading = true
+    end
+end)
+
+-----------------------------------------------------------------------
 -- Event handlers
 -----------------------------------------------------------------------
 

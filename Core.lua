@@ -64,6 +64,11 @@ addon.CONST = {
         COOKING = 185,
         FISHING = 356,
     },
+
+    -- UI Colors (r, g, b format for SetTextColor)
+    COLORS = {
+        NOTE_TEXT = {0.6, 0.8, 1.0},  -- Pale blue for character notes
+    },
 }
 
 -----------------------------------------------------------------------
@@ -243,6 +248,7 @@ function addon:GetCharacterCache()
             playerBankItemCounts = {},
             playerBankLastUpdate = 0,
             sessionState = {},
+            note = "",
         }
     end
 

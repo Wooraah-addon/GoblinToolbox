@@ -647,8 +647,8 @@ local function CreateHUD()
 
     CreateResizeGrip(frame)
 
-    -- Character now has 2 lines (Line 1 = Name + Realm + Account Label, Line 2 = Shard + Move Speed)
-    CreateSection(frame, "Character",   "Character",            2)
+    -- Character now has 3 lines (Line 1 = Name + Realm + Account Label, Line 2 = Shard + Move Speed, Line 3 = Note)
+    CreateSection(frame, "Character",   "Character",            3)
     CreateSection(frame, "Gold",        "Gold & Economy",       7)
     CreateSection(frame, "Inventory",   "Inventory & Currency", 3)
 

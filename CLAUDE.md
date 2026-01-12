@@ -54,7 +54,11 @@ Boot sequence in `GoblinToolbox.lua`:
 1. `addon.db = addon:GetDB()` (CopyDefaults into `GoblinToolboxDB`)
 2. Cache `addon.state.characterKey` at login
 3. Create UI frames: HUD, tracker bar, currency bar, utility bar
-4. Restore or reset session (`LoadSessionState()` if enabled; else `ResetSession()`)
+4. Restore or reset session:
+   - `LoadSessionState()` checks persistence setting and `isReloading` flag
+   - If persistence ON: always restore
+   - If persistence OFF: restore only on reload (flag set by `ReloadUI()` hook), reset on full logout
+   - Falls back to `ResetSession()` if restore fails
 5. Initialize posted auction data from per-character cache
 6. Start tickers (session 1s, token per constants)
 7. Register hooks (bank transfer intent, auction posting)
@@ -124,7 +128,12 @@ Use `addon:SetSecureFrameVisible(frame, visible)` instead.
 ## High-Signal Implementation Details
 
 ### Session Tracking
-- Offline time treated as paused time when persistence enabled.
+- Session state always saved on logout/reload.
+- Reload detection via `ReloadUI()` hook: sets `db.global.isReloading = true` flag.
+- On PLAYER_LOGIN, flag is checked then cleared.
+- **Persistence ON**: Session restores on both `/reload` and full logout.
+- **Persistence OFF**: Session restores on `/reload` only; resets on full logout.
+- Offline time treated as paused time when session is restored.
 - Earned/Spent derived from `GetMoney()` deltas with login race guards.
 - Bank deposits/withdrawals neutralized via intent queue + `sessionTransferOffset`.
 

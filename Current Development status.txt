@@ -13,7 +13,7 @@ Add a tooltip to the Cogwheel on the hud to read "Open Menu Settings".	COMPLETE	
 ID options for Achievement ID, Quest ID, Macro ID are not obviously useful and don't show where i'd expect, consider removing.	COMPLETE	n/a
 Add ability to modify opacity	COMPLETE	n/a
 Remove the indent to sub-group items that shows when group headers are enabled to save on HUD width (but keep the +/- icons)	COMPLETE	n/a
-Add some default visibility configurations as button options in the menu - e.g. "Default", "All Enabled", "Essentials", "Farmer", "Flipper"	INCOMPLETE	MEDIUM
+Investigate the option of adding a small "Notes" field, saved on a per character basis, where people could add their own text that would appear in the HUD, they might want to capture a small comment like "DE" if the realm character is on a German realm, or perhaps "Flipping Realm", or "Main Crafting Character", whatever they want really, saved on a per character basis, not sure of the most appropriate positioning in the HUD for this though, perhaps just above Warband Access Indicator.	INCOMPLETE	LOW
 When locking the HUD, this causes the tracker bars (when "sticky") to move up very slightly from their set positions (because when unlocked the main HUD has a small drag anchor in the bottom right, which dissapears when the frame is locked, thereby reducing its height by a few pixels). Positioning needs to remain consistent whether the frame is locked or not	INCOMPLETE	LOW
 		
 CHARACTER & SERVER		
@@ -41,13 +41,13 @@ Char: 132,396   WB: 1,234,567  Guild: 820,000
 ⏱ 42m  Start: 123,456·  Current: 132,396·  (12,320·/h)
 Earned:14,200·  Spent:5.300·  Net: 8,000·
 Token: 255,000·  ▲"	COMPLETE	n/a
-When gold tracking is set to simple mode, change the earnt and gold per hour values to show as green if positive, red if negative (white if unchanged). Also change gold per hour in detailed mode in the same fashion.	INCOMPLETE	MEDIUM
+When gold tracking is set to simple mode, change the earnt and gold per hour values to show as green if positive, red if negative (white if unchanged). Also change gold per hour in detailed mode in the same fashion.	COMPLETE	MEDIUM
 Add an additional indicator to show session is paused (icon and clock turn red) either due to AFK or the user pressing the pause session button. Working for manual pause, AFK pause still need implementing, accompanying message in chat works, for AFK, chat should also output a message for "Session Paused - AFK", and "Session Resumed - No longer AFK".	PARTIALLY COMPLETE	MEDIUM
 Current Token price + recent trend indicator, recent trend indicator could do with modification, tolerances are too strict now and the arrow only shows in the case of extreme swings. Indicator should also have a tooltip to show what's being shown when it's visible.	COMPLETE	n/a
 "Total Auction Value" - Posted AH Value (based on chosen TSM value source), disabled by default, requires TSM.	COMPLETE	n/a
 Number of posted auctions (based on TSM data), disabled by default, requires TSM.	COMPLETE	n/a
-Although the menu option exists, support for custom TSM price strings does not appear to be working properly, remove for now, implement at low priority at a later date.	INCOMPLETE	LOW
 When auctions sell - list the sold auction value next to posted auctions in the HUD until you loot the mailbox (then it will be counted in the earned right?)	INCOMPLETE	LOW
+Transfers from the player to the guild bank or warband bank are ignored when considering earnings/losses for the session (COMPLETE) - BUT want to add menu option to reenable tracking of this sort if they want to. Default should be disabled. Wording should be "Track guild/warband withdrawals or deposits in session earnings", with a tooltip explaining what enabling/disabling it does.	PARTIALLY COMPLETE	MEDIUM
 		
 INVENTORY & CURRENCY		
 Free bag slots	COMPLETE	n/a
@@ -75,6 +75,7 @@ Add Cooking Pets/spells to utility bar - Checks 1) Char has cooking 2) Prio list
 Add Portable Anvil to utility bar - Alvin (pet) > Thermal Anvil (item)	INCOMPLETE	LOW
 Lumber tracking (On/Off)	INCOMPLETE	LOW
 Instance reset button -> Create a group, listed it, and leave the group, for fast reset of instances, one action per press	INCOMPLETE	LOW
+Add button for reset dungeon (disabled by default)	INCOMPLETE	LOW
 Invite/leave buttons for easyparty?	INCOMPLETE	LOW
 		
 ITEM TRACKER BAR		
@@ -97,7 +98,6 @@ Add ability to select / deselect display of utility buttons	COMPLETE	n/a
 Subdivide menu with more options to enable/disable distinct elements	COMPLETE	n/a
 Change the title of the menu option "Warbank" under Inventory to read "Has Warbank Access"	COMPLETE	n/a
 Menu option for "Session preferences" - Session persists on logout, session resets on logout - Menu option exists, but functionality not working session resets on logout even with option ticked	COMPLETE	n/a
-		
 		
 CURRENT BUGS		
 Minor bug - if utility bar is enabled when in combat and spamming combat abilities, cooldown swirlies appear on hearthstone icons every 1 second or so (perhaps ever global cooldown?), this should not happen. ---- Hmm this seems to happen sometimes, but not always, requires further investigation. Same session but a few minutes later (after a dungeon, back in the open world, swirly effect is no longer happening in combat).	INCOMPLETE	MEDIUM
@@ -173,80 +173,10 @@ UtilityBar.lua
 
 Remove/disable the GoblinToolbox_HousingTeleport() implementation that calls C_Housing.TeleportHome.
 
-Add a comment noting the 12.0.0 restriction and that a secure-delegate-based implementation is needed."	INCOMPLETE	MEDIUM
-"Shift + Right click is the default to remove abilities from the Utility bar, but for both this also TRIGGERS the ability for most of them, which isn't so bad for abilities that have a cast time (as you can cancel by moving), but for relog and logout buttons, the action happens (even if you were trying to remove the ability). The same applies with middle click and any Left click+modifiers, can we prevent this somehow? Suggestion from ChatGPT as follows: Goal
-
-UtilityBar buttons currently execute the secure action on mouse down (RegisterForClicks(""AnyDown"")). Your remove gesture runs on mouse up (OnMouseUp). So Shift+Right-click both fires the action and then removes the icon.
-
-Fix: explicitly disable secure actions for non-left buttons and modifier combinations via secure attributes, using false (not nil) so the secure system does not fall back to the generic type.
-
-Where to change
-
-File: UtilityBar.lua
-
-Functions:
-
-CreateUtilityButton(...) (optional: apply guards once on creation)
-
-SetupUtilityButton(btn, def, resolvedItemID) (recommended: re-apply guards after setting action attributes)
-
-Implementation guidance (what to add)
-
-Add a small helper near the “Button setup” section:
-
-It should do nothing in combat (if InCombatLockdown() then return end).
-
-It should set these attributes to false:
-
-Disable non-left mouse buttons:
-
-type2=false (Right)
-
-type3=false (Middle)
-
-optionally type4=false, type5=false (extra buttons)
-
-Disable modifier variants that currently trigger actions:
-
-For each modifier: shift, ctrl, alt
-
-Disable generic modifier action: shift-type=false (and ctrl/alt equivalents)
-
-Disable modifier + button variants (most important ones):
-
-shift-type1=false (Shift+Left)
-
-shift-type2=false (Shift+Right) ← critical so it can’t fall back to type
-
-shift-type3=false (Shift+Middle)
-
-repeat for ctrl/alt
-
-Key point to Claude: use false, not nil, because nil can allow fallback to type and still execute the action.
-
-Call the helper at the end of SetupUtilityButton(), after the code that sets btn:SetAttribute(""type"", ...), spell, macrotext, item, toy, etc. This ensures every time the button is refreshed, the guards are present.
-
-Optionally also call the helper once in CreateUtilityButton() right after RegisterForClicks(""AnyDown"") / pressAndHoldAction, but the critical place is after attributes are applied in SetupUtilityButton().
-
-Expected behaviour after the change
-
-Left-click: works normally.
-
-Shift + Right-click: does not trigger the action, and still removes the icon via your existing OnMouseUp handler.
-
-Middle-click: does nothing (no accidental activation).
-
-Shift/Ctrl/Alt + Left-click: does nothing (prevents accidental /logout if a mod key is held).
-
-Optional safety (nice-to-have)
-
-In the existing OnMouseUp removal handler, consider adding:
-
-If InCombatLockdown() then show a short message like “Cannot modify Utility Bar during combat” and return.
-
-This avoids any chance of secure-frame update issues if someone tries to remove buttons mid-combat."	INCOMPLETE	MEDIUM
+Add a comment noting the 12.0.0 restriction and that a secure-delegate-based implementation is needed."	INCOMPLETE	IGNORE FOR NOW, unable to replicate, does not happen when user disables all other addons, GTB might not be root cause.
 		
 FIXED BUGS		
+Shift + Right click is the default to remove abilities from the Utility bar, but for both this also TRIGGERS the ability for most of them, which isn't so bad for abilities that have a cast time (as you can cancel by moving), but for relog and logout buttons, the action happens (even if you were trying to remove the ability). The same applies with middle click and any Left click+modifiers.	COMPLETE	n/a
 Gold.lua: Gold:Update() was called before the Gold module’s db reference was initialized, causing a nil self.db access at line 265.	COMPLETE	n/a
 Combat in instances related bug - I couldn't replicate, but hopefully fixed	COMPLETE	n/a
 The tooltips for Drag handles currently obstruct the functionality of tooltips, the bounding box of these tooltips needs to be shrunk, and position moved up and left if possible.	COMPLETE	n/a
@@ -257,9 +187,9 @@ Users report that total auction value is not being tallied properly. If a user p
 		
 OTHER		
 Add Auctionator Price Source Support	INCOMPLETE	MEDIUM
-Code Cleanup Pass prior to release - to remove redundant code and bloat	INCOMPLETE	LOW
-Rather than having savings simply save across an account, have the ability for users to set profiles that specify HUD elements and tracked items/currencies for different characters - would also need the ability to export/import settings config (text string), to another account.	INCOMPLETE	LOW
-For gold tracking, transfers from the player to the guild bank or warband bank should not be considered as earnings/losses for the session. 	INCOMPLETE	MEDIUM
+Investigate to what extent disabling particular modules improves performance (or whether related processing still occurs if options are not enabled), may be of importance to users who are focussed on addon performance.	INCOMPLETE	LOW
+Code Cleanup Pass prior to release - to remove redundant code and bloat - includes removal of any debug code for now fixed issues.	INCOMPLETE	MEDIUM
+Add the ability for users to create and save their own GTB profiles based on various presets	COMPLETE	n/a
 		
 PROFESSIONS (PHASED IMPLEMENTATION, DEFERRED UNTIL MIDNIGHT STABILIZES)		
 Basic Profession Display – display learned primary professions with current skill level and click-to-open Blizzard profession UI - Probably only Midnight support onwards (at least initially)	INCOMPLETE	LOW

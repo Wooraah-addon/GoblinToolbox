@@ -228,6 +228,31 @@ function Character:Update()
         local line2 = table.concat(parts, "   ")
         sec.lines[2]:SetText(line2)
     end
+
+    -------------------------------------------------------------------
+    -- LINE 3: Character Note (if present)
+    -------------------------------------------------------------------
+    if sec.lines[3] then
+        local charCache = addon:GetCharacterCache()
+        local note = charCache and charCache.note or ""
+
+        -- Trim whitespace
+        note = note:trim()
+
+        if note ~= "" then
+            -- Set the text with pale blue color
+            sec.lines[3]:SetText(note)
+            if addon.CONST and addon.CONST.COLORS and addon.CONST.COLORS.NOTE_TEXT then
+                local color = addon.CONST.COLORS.NOTE_TEXT
+                sec.lines[3]:SetTextColor(color[1], color[2], color[3])
+            else
+                sec.lines[3]:SetTextColor(0.6, 0.8, 1.0)  -- Fallback pale blue
+            end
+        else
+            -- Clear the line if no note
+            sec.lines[3]:SetText("")
+        end
+    end
 end
 
 -----------------------------------------------------------------------

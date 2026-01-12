@@ -131,31 +131,23 @@ local function EnsureOptionFonts()
 end
 
 -----------------------------------------------------------------------
--- Collapsible section system
+-- Section header system
 -----------------------------------------------------------------------
-
-local sectionStates = {}
 
 local function CreateSectionHeader(parent, key, title, yOffset)
     local section = {
         key = key,
-        collapsed = sectionStates[key] or false,
         children = {},
     }
 
-    local header = CreateFrame("Button", nil, parent)
+    local header = CreateFrame("Frame", nil, parent)
     header:SetSize(390, 22)
     header:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, yOffset)
     section.header = header
 
-    local toggle = header:CreateTexture(nil, "ARTWORK")
-    toggle:SetSize(12, 12)
-    toggle:SetPoint("LEFT", header, "LEFT", 0, 0)
-    section.toggle = toggle
-
     local titleText = header:CreateFontString(nil, "OVERLAY")
     titleText:SetFontObject(OPT_SECTION_FONT)
-    titleText:SetPoint("LEFT", toggle, "RIGHT", 6, 0)
+    titleText:SetPoint("LEFT", header, "LEFT", 0, 0)
     titleText:SetText(title)
     section.title = titleText
 
@@ -165,35 +157,7 @@ local function CreateSectionHeader(parent, key, title, yOffset)
     sep:SetPoint("RIGHT", header, "RIGHT", -4, 0)
     sep:SetColorTexture(0.4, 0.4, 0.4, 0.5)
 
-    local function UpdateToggle()
-        if section.collapsed then
-            toggle:SetTexture("Interface\\Buttons\\UI-PlusButton-Up")
-        else
-            toggle:SetTexture("Interface\\Buttons\\UI-MinusButton-Up")
-        end
-    end
-
-    local function UpdateChildren()
-        for _, child in ipairs(section.children) do
-            if section.collapsed then
-                child:Hide()
-            else
-                child:Show()
-            end
-        end
-    end
-
-    section.UpdateVisibility = function()
-        UpdateToggle()
-        UpdateChildren()
-    end
-
-    header:SetScript("OnClick", function()
-        section.collapsed = not section.collapsed
-        sectionStates[key] = section.collapsed
-        section.UpdateVisibility()
-    end)
-
+    -- Hover effect
     header:SetScript("OnEnter", function()
         titleText:SetTextColor(1, 0.9, 0.3)
     end)
@@ -201,13 +165,8 @@ local function CreateSectionHeader(parent, key, title, yOffset)
         titleText:SetTextColor(0.85, 0.75, 0.25)
     end)
 
-    UpdateToggle()
-
     section.AddChild = function(self, element)
         table.insert(self.children, element)
-        if self.collapsed then
-            element:Hide()
-        end
     end
 
     return section
@@ -830,6 +789,103 @@ local function CreateConfigFrame()
     end)
     y = y - 28
 
+    -- Character Note (per-character)
+    local charNoteLabelFrame = CreateFrame("Frame", nil, scrollChild)
+    charNoteLabelFrame:SetPoint("TOPLEFT", INDENT + 20, y)
+    charNoteLabelFrame:SetSize(150, 20)
+
+    local charNoteLabel = charNoteLabelFrame:CreateFontString(nil, "OVERLAY")
+    charNoteLabel:SetPoint("LEFT", 0, 0)
+    charNoteLabel:SetFontObject(OPT_BODY_FONT)
+    charNoteLabel:SetText("Character Note")
+
+    -- Add tooltip to Character Note header
+    charNoteLabelFrame:SetScript("OnEnter", function(self)
+        charNoteLabel:SetTextColor(1, 0.9, 0.3)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Character Note", 1, 1, 1)
+        GameTooltip:AddLine("Add a personal note for this character. Notes are saved per-character and display in pale blue at the bottom of the Character section in the HUD.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    charNoteLabelFrame:SetScript("OnLeave", function()
+        charNoteLabel:SetTextColor(0.9, 0.9, 0.9)
+        GameTooltip:Hide()
+    end)
+
+    y = y - 22
+
+    -- ScrollFrame wrapper for multi-line editbox
+    f.charNoteScrollFrame = CreateFrame("ScrollFrame", nil, scrollChild, "UIPanelScrollFrameTemplate")
+    f.charNoteScrollFrame:SetPoint("TOPLEFT", INDENT + 24, y)
+    f.charNoteScrollFrame:SetSize(300, 64)
+
+    -- Background for the scroll frame
+    local noteFrameBackground = CreateFrame("Frame", nil, f.charNoteScrollFrame, "BackdropTemplate")
+    noteFrameBackground:SetAllPoints()
+    noteFrameBackground:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 },
+    })
+    noteFrameBackground:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+    noteFrameBackground:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+
+    -- Multi-line editbox
+    f.charNoteEdit = CreateFrame("EditBox", nil, f.charNoteScrollFrame)
+    f.charNoteEdit:SetMultiLine(true)
+    f.charNoteEdit:SetSize(270, 200)  -- Height increased for scrolling, width adjusted for insets
+    f.charNoteEdit:SetAutoFocus(false)
+    f.charNoteEdit:SetFontObject(OPT_BODY_FONT)
+    f.charNoteEdit:SetTextColor(1, 1, 1, 1)  -- White text for visibility
+    f.charNoteEdit:SetTextInsets(6, 6, 6, 6)  -- Add padding to keep text from edges
+    f.charNoteEdit:SetMaxLetters(500)
+    f.charNoteScrollFrame:SetScrollChild(f.charNoteEdit)
+
+    f.charNoteEdit:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+
+    -- Character counter and Save button on same line
+    f.charNoteCounter = scrollChild:CreateFontString(nil, "OVERLAY")
+    f.charNoteCounter:SetPoint("TOPLEFT", INDENT + 24, y - 68)
+    f.charNoteCounter:SetFontObject(OPT_SMALL_FONT)
+
+    -- Update counter on text change
+    f.charNoteEdit:SetScript("OnTextChanged", function(self)
+        local text = self:GetText() or ""
+        local len = #text
+        local color
+        if len >= 500 then
+            color = "|cFFFF4444"  -- Red
+        elseif len >= 400 then
+            color = "|cFFFFAA44"  -- Yellow/orange
+        else
+            color = "|cFF888888"  -- Gray
+        end
+        f.charNoteCounter:SetText(color .. len .. "/500 chars|r")
+    end)
+
+    -- Save Note button
+    f.charNoteSaveBtn = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
+    f.charNoteSaveBtn:SetPoint("LEFT", f.charNoteCounter, "RIGHT", 50, 0)
+    f.charNoteSaveBtn:SetSize(80, 22)
+    f.charNoteSaveBtn:SetText("Save Note")
+    f.charNoteSaveBtn:SetScript("OnClick", function(self)
+        local text = f.charNoteEdit:GetText() or ""
+        local charCache = addon:GetCharacterCache()
+        if charCache then
+            charCache.note = text
+            if addon.Character and addon.Character.Update then
+                addon.Character:Update()
+            end
+            addon:SafeLayoutHUD()
+            print("Goblin Toolbox: Character note saved.")
+        end
+    end)
+
+    y = y - 94
+
     -- Gold & Economy module with sub-elements
     f.goldModule = CreateModuleCheckbox(scrollChild, modulesSection, "Gold", "Gold & Economy", INDENT, y, {
         { key = "goldCharacter", label = "Char", width = 60 },
@@ -917,6 +973,20 @@ local function CreateConfigFrame()
     -----------------------------------------------------------------------
 
     local itemTrackerSection = CreateSectionHeader(scrollChild, "itemtracker", "Item Tracker Bar", y)
+
+    -- Add tooltip to Item Tracker Bar section header
+    itemTrackerSection.header:SetScript("OnEnter", function()
+        itemTrackerSection.title:SetTextColor(1, 0.9, 0.3)
+        GameTooltip:SetOwner(itemTrackerSection.header, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Item Tracker Bar", 1, 1, 1)
+        GameTooltip:AddLine("Track specific items (ore, herbs, crafting materials, etc.) for this profile. Drag items onto the green + symbol or use /gtb add <item> to track. Shows item counts and total value based on your chosen price source.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    itemTrackerSection.header:SetScript("OnLeave", function()
+        itemTrackerSection.title:SetTextColor(0.85, 0.75, 0.25)
+        GameTooltip:Hide()
+    end)
+
     y = y - 26
 
     f.trackerCB = CreateCheckbox(scrollChild, "Enable Item Tracker Bar", INDENT, y)
@@ -990,6 +1060,20 @@ local function CreateConfigFrame()
     -----------------------------------------------------------------------
 
     local currencyTrackerSection = CreateSectionHeader(scrollChild, "currencytracker", "Currency Tracker Bar", y)
+
+    -- Add tooltip to Currency Tracker Bar section header
+    currencyTrackerSection.header:SetScript("OnEnter", function()
+        currencyTrackerSection.title:SetTextColor(1, 0.9, 0.3)
+        GameTooltip:SetOwner(currencyTrackerSection.header, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Currency Tracker Bar", 1, 1, 1)
+        GameTooltip:AddLine("Track specific currencies (e.g., Valorstones, Resonance Crystals, profession currencies) for this profile. Drag currencies onto the green + symbol or use /gtb add <currency> to add. Displays current balance with icons.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    currencyTrackerSection.header:SetScript("OnLeave", function()
+        currencyTrackerSection.title:SetTextColor(0.85, 0.75, 0.25)
+        GameTooltip:Hide()
+    end)
+
     y = y - 26
 
     f.currencyCB = CreateCheckbox(scrollChild, "Enable Currency Tracker Bar", INDENT, y)
@@ -1078,7 +1162,7 @@ local function CreateConfigFrame()
     f.sessionPersistCB:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Keep Session Data", 1, 1, 1)
-        GameTooltip:AddLine("When enabled, session gold tracking persists across logout. When disabled, session resets each time you log in.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("When enabled, session gold tracking persists across both /reload and logout. When disabled, session persists on /reload but resets on full logout.", 0.8, 0.8, 0.8, true)
         GameTooltip:AddLine(" ", 1, 1, 1)
         GameTooltip:AddLine("|cff00ff00Account-wide:|r This setting applies to all characters and profiles.", 0.6, 1, 0.6, true)
         GameTooltip:Show()
@@ -1092,6 +1176,20 @@ local function CreateConfigFrame()
     -----------------------------------------------------------------------
 
     local tooltipSection = CreateSectionHeader(scrollChild, "tooltipids", "Tooltip IDs", y)
+
+    -- Add tooltip to Tooltip IDs section header
+    tooltipSection.header:SetScript("OnEnter", function()
+        tooltipSection.title:SetTextColor(1, 0.9, 0.3)
+        GameTooltip:SetOwner(tooltipSection.header, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Tooltip IDs", 1, 1, 1)
+        GameTooltip:AddLine("Display internal game IDs in tooltips for items, spells, NPCs, currencies, and achievements.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    tooltipSection.header:SetScript("OnLeave", function()
+        tooltipSection.title:SetTextColor(0.85, 0.75, 0.25)
+        GameTooltip:Hide()
+    end)
+
     y = y - 26
 
     f.tooltipEnabledCB = CreateCheckbox(scrollChild, "Show IDs in tooltips (requires reload)", INDENT, y)    tooltipSection:AddChild(f.tooltipEnabledCB)
@@ -1320,6 +1418,15 @@ local function CreateConfigFrame()
             f.accountLabelEdit:SetText(addon.db.global.accountLabel or "")
         end
 
+        -- Load character note text
+        if f.charNoteEdit then
+            local charCache = addon:GetCharacterCache()
+            local note = (charCache and charCache.note) or ""
+            f.charNoteEdit:SetText(note)
+            -- Trigger counter update
+            f.charNoteEdit:GetScript("OnTextChanged")(f.charNoteEdit)
+        end
+
         local srcText = addon.db.global.tsmSource or "dbregionmarketavg"
         for _, entry in ipairs(tsmSourceList) do
             if entry.value == srcText then
@@ -1453,10 +1560,6 @@ local function CreateConfigFrame()
                     cb:SetChecked(db.tooltipIDs[idType] ~= false)
                 end
             end
-        end
-
-        for _, section in ipairs(f.sections) do
-            section.UpdateVisibility()
         end
     end
 
@@ -1770,7 +1873,6 @@ function addon:ResetAllSettings()
             invWarbank    = true,
         },
 
-        collapsed           = {},
         tsmSource           = "dbregionsaleavg",
         tsmCustomSource     = "",
         trackedItems        = {},

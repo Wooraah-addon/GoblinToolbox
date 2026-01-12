@@ -214,25 +214,14 @@ function Gold:SaveSessionState()
     local db = addon.db.profile
     local s = addon.state
 
-    -- Only save if persistence is enabled (global setting, not profile-specific)
-    if not addon.db.global.sessionPersistOnLogout then
-        -- Clear any existing saved state if persistence is disabled
-        local charCache = addon:GetCharacterCache()
-        if charCache then
-            charCache.sessionState = {}
-        end
-        if IsDebugEnabled() then
-            print("|cffff4444[GTB Session]|r Save skipped: persistence disabled")
-        end
-        return
-    end
-
     if IsDebugEnabled() then
-        print("|cff00ff00[GTB Session]|r Saving session state")
+        local persistenceStatus = addon.db.global.sessionPersistOnLogout and "enabled" or "disabled"
+        print("|cff00ff00[GTB Session]|r Saving session state (persistence: " .. persistenceStatus .. ")")
     end
 
-    -- Save session state to character-specific cache
-    -- Use cached characterKey (realm not available during logout events)
+    -- Always save session state (even when persistence is OFF)
+    -- This allows reload to continue the session, while full logout resets it
+    -- The load logic handles whether to restore based on persistence + time gap
     local charCache = addon:GetCharacterCache()
     if charCache then
         charCache.sessionState = {
@@ -266,14 +255,6 @@ function Gold:LoadSessionState()
 
     local db = addon.db.profile
 
-    -- Only restore if persistence is enabled (global setting, not profile-specific)
-    if not addon.db.global.sessionPersistOnLogout then
-        if IsDebugEnabled() then
-            print("|cffff4444[GTB Session]|r Load skipped: persistence disabled")
-        end
-        return false
-    end
-
     -- Load from character-specific cache
     local charCache = addon:GetCharacterCache()
     if not charCache or not charCache.sessionState then
@@ -297,6 +278,22 @@ function Gold:LoadSessionState()
     if saved.characterKey and saved.characterKey ~= currentCharKey then
         if IsDebugEnabled() then
             print("|cffff4444[GTB Session]|r Load failed: wrong character (saved: " .. tostring(saved.characterKey) .. ", current: " .. tostring(currentCharKey) .. ")")
+        end
+        return false
+    end
+
+    -- Check if this is a reload (flag set by ReloadUI hook) vs full logout
+    local isReload = addon.db.global.isReloading == true
+
+    -- Clear the reload flag for next time
+    addon.db.global.isReloading = false
+
+    -- Persistence logic:
+    -- - If persistence ON: always restore
+    -- - If persistence OFF: restore only on reload, not on full logout
+    if not addon.db.global.sessionPersistOnLogout and not isReload then
+        if IsDebugEnabled() then
+            print("|cffff4444[GTB Session]|r Load skipped: persistence disabled and not a reload")
         end
         return false
     end
@@ -482,9 +479,10 @@ function Gold:StartSessionTicker()
         addon:UpdateGoldSection()
         addon:SafeLayoutHUD()
 
-        -- Periodic backup save (once per minute) in case of crashes
+        -- Periodic backup save (once per minute)
+        -- Always save for reload detection, regardless of persistence setting
         local now = time()
-        if addon.db.global.sessionPersistOnLogout and (now - Gold._lastSessionSave) >= 60 then
+        if (now - Gold._lastSessionSave) >= 60 then
             addon:SaveSessionState()
             Gold._lastSessionSave = now
         end
