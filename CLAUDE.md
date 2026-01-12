@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets The War Within (12.0+) and is currently at **v0.7.0**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v0.7.0**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -22,7 +22,7 @@ Wooraah (golbintoolbox@gmail.com)
 ## Tech Stack
 
 - Lua 5.1 (WoW embedded interpreter)
-- WoW API (The War Within / 12.0+)
+- WoW API (Midnight / 12.0+)
 - SavedVariables (`GoblinToolboxDB`) for persistence
 - Optional: TSM API for price sources
 
