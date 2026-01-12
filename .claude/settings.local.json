@@ -14,7 +14,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(grep:*)",
       "Bash(git show:*)",
-      "Bash(git -C \"E:/World of Warcraft/_retail_/Interface/addons/GoblinToolbox\" status --short)"
+      "Bash(git -C \"E:/World of Warcraft/_retail_/Interface/addons/GoblinToolbox\" status --short)",
+      "Bash(git -C \"E:/World of Warcraft/_retail_/Interface/addons/GoblinToolbox\" push origin main)"
     ]
   }
 }
