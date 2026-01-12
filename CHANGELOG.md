@@ -5,6 +5,37 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-01-12
+
+### Added
+- **Character Notes**: Per-character note field with multi-line input
+  - 500 character limit with real-time counter (gray/yellow/red color coding)
+  - Notes display in pale blue at bottom of Character section
+  - "Save Note" button with confirmation message
+  - Proper text padding and scrolling for clean rendering
+  - Hover tooltip explaining note functionality
+- **Section header tooltips**: Added informative tooltips to Item Tracker Bar, Currency Tracker Bar, and Tooltip IDs sections
+
+### Changed
+- **Session persistence behavior**: Improved reload detection using ReloadUI() hook
+  - With persistence OFF: Session now continues on `/reload` but resets on full logout
+  - With persistence ON: Session continues on both `/reload` and logout (unchanged)
+  - Updated tooltip to explain new behavior
+- **Config menu UI**: Removed +/- collapse icons from section headers
+  - All sections now always visible (cleaner, simpler interface)
+  - Section headers remain with hover effects
+- **Character section**: Expanded to 3 lines to accommodate character note display
+
+### Fixed
+- Multi-line text input rendering with proper padding and scroll support
+- Character note text box now displays cleanly without text bleeding
+
+### Technical
+- Added `COLORS.NOTE_TEXT` constant for consistent note styling
+- Implemented deterministic reload detection via `ReloadUI()` hook and `isReloading` flag
+- Session state always saved for reliable reload detection
+- Updated documentation in CLAUDE.md
+
 ## [0.7.0] - 2026-01-12
 
 ### Added
