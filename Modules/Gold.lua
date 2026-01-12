@@ -214,10 +214,13 @@ function Gold:SaveSessionState()
     local db = addon.db.profile
     local s = addon.state
 
-    -- Only save if persistence is enabled
-    if not db.sessionPersistOnLogout then
+    -- Only save if persistence is enabled (global setting, not profile-specific)
+    if not addon.db.global.sessionPersistOnLogout then
         -- Clear any existing saved state if persistence is disabled
-        db.sessionState = {}
+        local charCache = addon:GetCharacterCache()
+        if charCache then
+            charCache.sessionState = {}
+        end
         if IsDebugEnabled() then
             print("|cffff4444[GTB Session]|r Save skipped: persistence disabled")
         end
@@ -228,23 +231,26 @@ function Gold:SaveSessionState()
         print("|cff00ff00[GTB Session]|r Saving session state")
     end
 
-    -- Save session state to SavedVariables (character-specific)
+    -- Save session state to character-specific cache
     -- Use cached characterKey (realm not available during logout events)
-    db.sessionState = {
-        characterKey = s.characterKey or addon:GetCharacterKey(),
-        sessionStartGold = s.sessionStartGold,
-        sessionStartTime = s.sessionStartTime,
-        sessionPaused = s.sessionPaused,
-        pauseStartTime = s.pauseStartTime,
-        pausedDuration = s.pausedDuration or 0,
-        pauseGoldSnapshot = s.pauseGoldSnapshot,
-        sessionEarned = s.sessionEarned or 0,
-        sessionSpent = s.sessionSpent or 0,
-        lastMoney = s.lastMoney,
-        sessionLootedValueCopper = s.sessionLootedValueCopper or 0,
-        sessionTransferOffset = s.sessionTransferOffset or 0,
-        lastLogoutTime = time(),
-    }
+    local charCache = addon:GetCharacterCache()
+    if charCache then
+        charCache.sessionState = {
+            characterKey = s.characterKey or addon:GetCharacterKey(),
+            sessionStartGold = s.sessionStartGold,
+            sessionStartTime = s.sessionStartTime,
+            sessionPaused = s.sessionPaused,
+            pauseStartTime = s.pauseStartTime,
+            pausedDuration = s.pausedDuration or 0,
+            pauseGoldSnapshot = s.pauseGoldSnapshot,
+            sessionEarned = s.sessionEarned or 0,
+            sessionSpent = s.sessionSpent or 0,
+            lastMoney = s.lastMoney,
+            sessionLootedValueCopper = s.sessionLootedValueCopper or 0,
+            sessionTransferOffset = s.sessionTransferOffset or 0,
+            lastLogoutTime = time(),
+        }
+    end
 
     -- Posted auction data is saved per-character via UpdateCharacterCache()
     -- (called separately, not part of session state)
@@ -259,19 +265,29 @@ function Gold:LoadSessionState()
     end
 
     local db = addon.db.profile
-    local saved = db.sessionState
 
-    -- Only restore if persistence is enabled and saved state exists
-    if not db.sessionPersistOnLogout then
+    -- Only restore if persistence is enabled (global setting, not profile-specific)
+    if not addon.db.global.sessionPersistOnLogout then
         if IsDebugEnabled() then
             print("|cffff4444[GTB Session]|r Load skipped: persistence disabled")
         end
         return false
     end
 
-    if not saved or not saved.sessionStartTime then
+    -- Load from character-specific cache
+    local charCache = addon:GetCharacterCache()
+    if not charCache or not charCache.sessionState then
         if IsDebugEnabled() then
-            print("|cffff4444[GTB Session]|r Load failed: no saved state or no start time")
+            print("|cffff4444[GTB Session]|r Load failed: no character cache or session state")
+        end
+        return false
+    end
+
+    local saved = charCache.sessionState
+
+    if not saved.sessionStartTime then
+        if IsDebugEnabled() then
+            print("|cffff4444[GTB Session]|r Load failed: no start time")
         end
         return false
     end
@@ -468,7 +484,7 @@ function Gold:StartSessionTicker()
 
         -- Periodic backup save (once per minute) in case of crashes
         local now = time()
-        if db.sessionPersistOnLogout and (now - Gold._lastSessionSave) >= 60 then
+        if addon.db.global.sessionPersistOnLogout and (now - Gold._lastSessionSave) >= 60 then
             addon:SaveSessionState()
             Gold._lastSessionSave = now
         end

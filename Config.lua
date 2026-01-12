@@ -47,6 +47,40 @@ local configFrame
 local OPT_TITLE_FONT, OPT_BODY_FONT, OPT_SECTION_FONT, OPT_SMALL_FONT
 
 -----------------------------------------------------------------------
+-- Preset button styling (green tint)
+-----------------------------------------------------------------------
+
+local function StylePresetButton(btn)
+    -- Get all texture regions
+    local regions = {btn:GetRegions()}
+
+    for _, region in ipairs(regions) do
+        if region:GetObjectType() == "Texture" then
+            local texturePath = region:GetTexture()
+
+            -- Check if it's a button texture (not the text or other decorations)
+            if texturePath and type(texturePath) == "string" then
+                local lower = texturePath:lower()
+                if lower:find("button") then
+                    -- Apply green tint to button textures
+                    region:SetVertexColor(0.25, 0.75, 0.25, 1.0)
+                end
+            elseif texturePath and type(texturePath) == "number" then
+                -- Texture is set but as atlas - tint it
+                region:SetVertexColor(0.25, 0.75, 0.25, 1.0)
+            end
+        end
+    end
+
+    -- Also set the highlight with ADD blend
+    local h = btn:GetHighlightTexture()
+    if h then
+        h:SetVertexColor(0.35, 0.90, 0.35, 0.3)
+        h:SetBlendMode("ADD")
+    end
+end
+
+-----------------------------------------------------------------------
 -- Option lists
 -----------------------------------------------------------------------
 
@@ -432,11 +466,11 @@ local function CreateConfigFrame()
     local generalSection = CreateSectionHeader(scrollChild, "general", "General", y)
     y = y - 26
 
+    -- Three checkboxes on one horizontal line
     f.enableCB = CreateCheckbox(scrollChild, "Enable HUD", INDENT, y)
     generalSection:AddChild(f.enableCB)
-    y = y - ITEM_HEIGHT
 
-    f.hideCombatCB = CreateCheckbox(scrollChild, "Hide in combat", INDENT, y)
+    f.hideCombatCB = CreateCheckbox(scrollChild, "Hide in combat", INDENT + 120, y)
     f.hideCombatCB:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Hide in Combat", 1, 1, 1)
@@ -445,9 +479,8 @@ local function CreateConfigFrame()
     end)
     f.hideCombatCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     generalSection:AddChild(f.hideCombatCB)
-    y = y - ITEM_HEIGHT
 
-    f.hideInstCB = CreateCheckbox(scrollChild, "Hide in instances / raids", INDENT, y)
+    f.hideInstCB = CreateCheckbox(scrollChild, "Hide in instances/raids", INDENT + 260, y)
     f.hideInstCB:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Hide in Instances/Raids", 1, 1, 1)
@@ -456,16 +489,31 @@ local function CreateConfigFrame()
     end)
     f.hideInstCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     generalSection:AddChild(f.hideInstCB)
+
     y = y - ITEM_HEIGHT - SECTION_GAP
 
     -----------------------------------------------------------------------
     -- Section 2: Appearance
     -----------------------------------------------------------------------
 
-    local appearanceSection = CreateSectionHeader(scrollChild, "appearance", "Appearance", y)
+    local appearanceSection = CreateSectionHeader(scrollChild, "appearance", "Appearance Settings", y)
     y = y - 26
 
-    f.headerCB = CreateCheckbox(scrollChild, "Show group headers", INDENT, y)
+    -- Add tooltip to appearance section header
+    appearanceSection.header:SetScript("OnEnter", function()
+        appearanceSection.title:SetTextColor(1, 0.9, 0.3)
+        GameTooltip:SetOwner(appearanceSection.header, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Appearance Settings", 1, 1, 1)
+        GameTooltip:AddLine("Account-wide settings - these apply globally to all characters and profiles.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    appearanceSection.header:SetScript("OnLeave", function()
+        appearanceSection.title:SetTextColor(0.85, 0.75, 0.25)
+        GameTooltip:Hide()
+    end)
+
+    -- Three checkboxes on one horizontal line
+    f.headerCB = CreateCheckbox(scrollChild, "Show headers", INDENT, y)
     f.headerCB:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Show Group Headers", 1, 1, 1)
@@ -474,9 +522,8 @@ local function CreateConfigFrame()
     end)
     f.headerCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     appearanceSection:AddChild(f.headerCB)
-    y = y - ITEM_HEIGHT
 
-    f.titlebarCB = CreateCheckbox(scrollChild, "Show title bar", INDENT, y)
+    f.titlebarCB = CreateCheckbox(scrollChild, "Show Title Bar", INDENT + 130, y)
     f.titlebarCB:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Show Title Bar", 1, 1, 1)
@@ -485,9 +532,8 @@ local function CreateConfigFrame()
     end)
     f.titlebarCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     appearanceSection:AddChild(f.titlebarCB)
-    y = y - ITEM_HEIGHT
 
-    f.bgCB = CreateCheckbox(scrollChild, "Show background", INDENT, y)
+    f.bgCB = CreateCheckbox(scrollChild, "Show Background", INDENT + 270, y)
     f.bgCB:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Show Background", 1, 1, 1)
@@ -496,22 +542,223 @@ local function CreateConfigFrame()
     end)
     f.bgCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     appearanceSection:AddChild(f.bgCB)
+
     y = y - ITEM_HEIGHT - 4
 
     f.opacityContainer = CreateSlider(scrollChild, "HUD Background Opacity", INDENT, y, 0.0, 1.0, 0.05)
     appearanceSection:AddChild(f.opacityContainer)
+    f.opacityContainer:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("HUD Background Opacity", 1, 1, 1)
+        GameTooltip:AddLine("Controls the transparency of the HUD background.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("|cff00ff00Account-wide:|r This setting applies to all characters and profiles.", 0.6, 1, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.opacityContainer:SetScript("OnLeave", function() GameTooltip:Hide() end)
     y = y - 28
 
     f.scaleContainer = CreateSlider(scrollChild, "UI Scale", INDENT, y, 0.5, 2.0, 0.05)
     appearanceSection:AddChild(f.scaleContainer)
+    f.scaleContainer:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("UI Scale", 1, 1, 1)
+        GameTooltip:AddLine("Adjusts the size of all Goblin Toolbox frames.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("|cff00ff00Account-wide:|r This setting applies to all characters and profiles.", 0.6, 1, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.scaleContainer:SetScript("OnLeave", function() GameTooltip:Hide() end)
     y = y - 28
 
     f.fontContainer = CreateSlider(scrollChild, "Font Size", INDENT, y, 10, 16, 1)
     appearanceSection:AddChild(f.fontContainer)
+    f.fontContainer:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Font Size", 1, 1, 1)
+        GameTooltip:AddLine("Adjusts the text size in the HUD.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("|cff00ff00Account-wide:|r This setting applies to all characters and profiles.", 0.6, 1, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.fontContainer:SetScript("OnLeave", function() GameTooltip:Hide() end)
     y = y - 28 - SECTION_GAP
 
     -----------------------------------------------------------------------
-    -- Section 3: Modules
+    -- Section 3: Profiles
+    -----------------------------------------------------------------------
+
+    local profileSection = CreateSectionHeader(scrollChild, "profiles", "Profiles", y)
+
+    -- Add tooltip to profile section header
+    profileSection.header:SetScript("OnEnter", function()
+        profileSection.title:SetTextColor(1, 0.9, 0.3)
+        GameTooltip:SetOwner(profileSection.header, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Profiles", 1, 1, 1)
+        GameTooltip:AddLine("Profiles control what content is displayed, tracked items, and per-character settings.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ", 1, 1, 1)
+        GameTooltip:AddLine("Appearance settings (scale, font, opacity) are account-wide and not affected by profiles.", 0.6, 1, 0.6, true)
+        GameTooltip:Show()
+    end)
+    profileSection.header:SetScript("OnLeave", function()
+        profileSection.title:SetTextColor(0.85, 0.75, 0.25)
+        GameTooltip:Hide()
+    end)
+
+    y = y - 26
+
+    -- Profile dropdown
+    local profileLabel = scrollChild:CreateFontString(nil, "OVERLAY")
+    profileLabel:SetPoint("TOPLEFT", INDENT, y)
+    profileLabel:SetFontObject(OPT_BODY_FONT)
+    profileLabel:SetText("Active Profile:")
+    profileSection:AddChild(profileLabel)
+
+    f.profileDropdown = CreateFrame("Frame", "GoblinToolboxProfileDropdown", scrollChild, "UIDropDownMenuTemplate")
+    f.profileDropdown:SetPoint("TOPLEFT", INDENT + 90, y + 3)
+    UIDropDownMenu_SetWidth(f.profileDropdown, 160)
+    profileSection:AddChild(f.profileDropdown)
+    y = y - 32
+
+    -- Profile management buttons (all on one line)
+    local buttonWidth = 55
+    local buttonSpacing = 4
+    local buttonY = y
+
+    f.newProfileBtn = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
+    f.newProfileBtn:SetSize(buttonWidth, 22)
+    f.newProfileBtn:SetPoint("TOPLEFT", INDENT, buttonY)
+    f.newProfileBtn:SetText("New")
+    profileSection:AddChild(f.newProfileBtn)
+
+    f.copyProfileBtn = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
+    f.copyProfileBtn:SetSize(buttonWidth, 22)
+    f.copyProfileBtn:SetPoint("TOPLEFT", INDENT + (buttonWidth + buttonSpacing) * 1, buttonY)
+    f.copyProfileBtn:SetText("Copy")
+    profileSection:AddChild(f.copyProfileBtn)
+
+    f.renameProfileBtn = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
+    f.renameProfileBtn:SetSize(buttonWidth + 10, 22)
+    f.renameProfileBtn:SetPoint("TOPLEFT", INDENT + (buttonWidth + buttonSpacing) * 2, buttonY)
+    f.renameProfileBtn:SetText("Rename")
+    profileSection:AddChild(f.renameProfileBtn)
+
+    f.deleteProfileBtn = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
+    f.deleteProfileBtn:SetSize(buttonWidth, 22)
+    f.deleteProfileBtn:SetPoint("TOPLEFT", INDENT + (buttonWidth + buttonSpacing) * 3 + 10, buttonY)
+    f.deleteProfileBtn:SetText("Delete")
+    profileSection:AddChild(f.deleteProfileBtn)
+
+    y = y - 28
+
+    -- Profile dropdown initialization
+    UIDropDownMenu_Initialize(f.profileDropdown, function(self, level)
+        local profiles = addon:GetProfileNames()
+        local currentProfile = addon:GetActiveProfileName()
+
+        for _, profileName in ipairs(profiles) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = profileName
+            info.arg1 = profileName
+            info.func = function(_, name)
+                addon:SwitchProfile(name)
+                UIDropDownMenu_SetText(f.profileDropdown, name)
+            end
+            info.checked = (currentProfile == profileName)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    -- Profile button handlers
+    f.newProfileBtn:SetScript("OnClick", function()
+        addon.ShowNewProfileDialog()
+    end)
+
+    f.copyProfileBtn:SetScript("OnClick", function()
+        StaticPopup_Show("GOBLINTOOLBOX_COPY_PROFILE")
+    end)
+
+    f.renameProfileBtn:SetScript("OnClick", function()
+        local currentProfile = addon:GetActiveProfileName()
+        if currentProfile == "Default" then
+            print("|cffff4444Goblin Toolbox:|r Cannot rename the Default profile")
+            return
+        end
+        StaticPopup_Show("GOBLINTOOLBOX_RENAME_PROFILE")
+    end)
+
+    f.deleteProfileBtn:SetScript("OnClick", function()
+        local currentProfile = addon:GetActiveProfileName()
+        if currentProfile == "Default" then
+            print("|cffff4444Goblin Toolbox:|r Cannot delete the Default profile")
+            return
+        end
+
+        local profileCount = 0
+        for _ in pairs(addon.db.profiles) do
+            profileCount = profileCount + 1
+        end
+        if profileCount <= 1 then
+            print("|cffff4444Goblin Toolbox:|r Cannot delete the last profile")
+            return
+        end
+
+        StaticPopup_Show("GOBLINTOOLBOX_DELETE_PROFILE", currentProfile)
+    end)
+
+    -- Copy positions subsection
+    y = y - 18
+    local copyPosLabel = scrollChild:CreateFontString(nil, "OVERLAY")
+    copyPosLabel:SetPoint("TOPLEFT", INDENT, y)
+    copyPosLabel:SetFontObject(OPT_BODY_FONT)
+    copyPosLabel:SetText("Copy frame positions from:")
+    profileSection:AddChild(copyPosLabel)
+    y = y - 22
+
+    f.copyPosDropdown = CreateFrame("Frame", "GoblinToolboxCopyPosDropdown", scrollChild, "UIDropDownMenuTemplate")
+    f.copyPosDropdown:SetPoint("TOPLEFT", INDENT - 16, y)
+    UIDropDownMenu_SetWidth(f.copyPosDropdown, 140)
+    profileSection:AddChild(f.copyPosDropdown)
+
+    local copyPosBtn = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
+    copyPosBtn:SetSize(120, 22)
+    copyPosBtn:SetPoint("LEFT", f.copyPosDropdown, "RIGHT", -10, 2)
+    copyPosBtn:SetText("Copy Positions")
+    copyPosBtn:SetScript("OnClick", function()
+        local sourceProfile = f.copyPosDropdown.selectedProfile
+        if not sourceProfile then
+            print("|cffff4444Goblin Toolbox:|r Please select a source profile first")
+            return
+        end
+
+        local currentProfile = addon:GetActiveProfileName()
+        if sourceProfile == currentProfile then
+            print("|cffff4444Goblin Toolbox:|r Cannot copy positions from the same profile")
+            return
+        end
+
+        -- Get positions from source profile
+        local sourcePositions = addon:GetProfilePositions(sourceProfile)
+        if not sourcePositions then
+            print("|cffff4444Goblin Toolbox:|r Failed to read positions from source profile")
+            return
+        end
+
+        -- Copy to current profile
+        addon:CopyPositionsToProfile(currentProfile, sourcePositions)
+
+        -- Restore positions to apply immediately
+        addon:RestoreHUDPosition()
+        addon:RestoreUtilityBarPosition()
+        addon:RestoreTrackerBarPosition()
+        addon:RestoreCurrencyBarPosition()
+
+        print("|cff00ff00Goblin Toolbox:|r Copied frame positions from '" .. sourceProfile .. "'")
+    end)
+    profileSection:AddChild(copyPosBtn)
+    f.copyPosBtn = copyPosBtn
+
+    y = y - 32
+
+    -----------------------------------------------------------------------
+    -- Section 4: Modules
     -----------------------------------------------------------------------
 
     local modulesSection = CreateSectionHeader(scrollChild, "modules", "Modules", y)
@@ -759,13 +1006,22 @@ local function CreateConfigFrame()
     local tsmLabel = scrollChild:CreateFontString(nil, "OVERLAY")
     tsmLabel:SetPoint("TOPLEFT", INDENT, y)
     tsmLabel:SetFontObject(OPT_BODY_FONT)
-    tsmLabel:SetText("Bag value source:")
+    tsmLabel:SetText("Gold value source:")
     goldOptsSection:AddChild(tsmLabel)
     y = y - 18
 
     f.tsmDropdown = CreateFrame("Frame", "GoblinToolboxTSMDropdown", scrollChild, "UIDropDownMenuTemplate")
     f.tsmDropdown:SetPoint("TOPLEFT", INDENT - 16, y)
     UIDropDownMenu_SetWidth(f.tsmDropdown, 180)
+    f.tsmDropdown:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Gold Value Source", 1, 1, 1)
+        GameTooltip:AddLine("Price source for bag value and looted item value calculations.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ", 1, 1, 1)
+        GameTooltip:AddLine("|cff00ff00Account-wide:|r This setting applies to all characters and profiles.", 0.6, 1, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.tsmDropdown:SetScript("OnLeave", function() GameTooltip:Hide() end)
     goldOptsSection:AddChild(f.tsmDropdown)
     y = y - 32
 
@@ -823,6 +1079,8 @@ local function CreateConfigFrame()
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Keep Session Data", 1, 1, 1)
         GameTooltip:AddLine("When enabled, session gold tracking persists across logout. When disabled, session resets each time you log in.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ", 1, 1, 1)
+        GameTooltip:AddLine("|cff00ff00Account-wide:|r This setting applies to all characters and profiles.", 0.6, 1, 0.6, true)
         GameTooltip:Show()
     end)
     f.sessionPersistCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -945,13 +1203,13 @@ local function CreateConfigFrame()
     -----------------------------------------------------------------------
 
     UIDropDownMenu_Initialize(f.tsmDropdown, function(self, level)
-        local current = addon.db.profile.tsmSource or "dbmarket"
+        local current = addon.db.global.tsmSource or "dbregionmarketavg"
         for _, entry in ipairs(tsmSourceList) do
             local info = UIDropDownMenu_CreateInfo()
             info.text = entry.text
             info.arg1 = entry.value
             info.func = function(_, value)
-                addon.db.profile.tsmSource = value
+                addon.db.global.tsmSource = value
                 UIDropDownMenu_SetText(f.tsmDropdown, entry.text)
                 addon:UpdateInventorySection()
                 addon:SafeLayoutHUD()
@@ -989,12 +1247,47 @@ local function CreateConfigFrame()
     end)
 
     -----------------------------------------------------------------------
+    -- Copy Positions Dropdown init
+    -----------------------------------------------------------------------
+
+    UIDropDownMenu_Initialize(f.copyPosDropdown, function(self, level)
+        local currentProfile = addon:GetActiveProfileName()
+        local profiles = addon:GetProfileNames()
+
+        for _, profileName in ipairs(profiles) do
+            -- Skip current profile
+            if profileName ~= currentProfile then
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = profileName
+                info.arg1 = profileName
+                info.func = function(_, name)
+                    f.copyPosDropdown.selectedProfile = name
+                    UIDropDownMenu_SetText(f.copyPosDropdown, name)
+                end
+                info.checked = (f.copyPosDropdown.selectedProfile == profileName)
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end
+    end)
+
+    -----------------------------------------------------------------------
     -- Refresh
     -----------------------------------------------------------------------
 
     local function Refresh()
         local db = addon.db.profile
-        
+
+        -- Update profile dropdown
+        if f.profileDropdown then
+            UIDropDownMenu_SetText(f.profileDropdown, addon:GetActiveProfileName())
+        end
+
+        -- Update copy positions dropdown (reset selection on profile change)
+        if f.copyPosDropdown then
+            f.copyPosDropdown.selectedProfile = nil
+            UIDropDownMenu_SetText(f.copyPosDropdown, "Select Profile")
+        end
+
         -- Ensure elements table exists
         db.elements = db.elements or {}
         local elem = db.elements
@@ -1006,28 +1299,28 @@ local function CreateConfigFrame()
         f.titlebarCB:SetChecked(db.showTitleBar)
         f.bgCB:SetChecked(db.showBackground)
         f.wbBankDefaultCB:SetChecked(db.preferWarbandBankOnOpen)
-        f.sessionPersistCB:SetChecked(db.sessionPersistOnLogout or false)
+        f.sessionPersistCB:SetChecked(addon.db.global.sessionPersistOnLogout or false)
 
-        local opacity = db.backgroundOpacity or 0.30
+        local opacity = addon.db.global.backgroundOpacity or 0.30
         f.opacityContainer.slider:SetValue(opacity)
         f.opacityContainer.valueText:SetText(string.format("%.0f%%", opacity * 100))
 
-        local scale = db.scale or 1.0
+        local scale = addon.db.global.scale or 1.0
         f.scaleContainer.slider:SetValue(scale)
         f.scaleContainer.valueText:SetText(string.format("%.0f%%", scale * 100))
 
-        local fontSize = db.fontSize or 13
+        local fontSize = addon.db.global.fontSize or 13
         f.fontContainer.slider:SetValue(fontSize)
         f.fontContainer.valueText:SetText(tostring(fontSize))
 
-        f.customEdit:SetText(db.tsmCustomSource or "")
+        f.customEdit:SetText(addon.db.global.tsmCustomSource or "")
 
         -- Load account label text
         if f.accountLabelEdit and addon.db.global then
             f.accountLabelEdit:SetText(addon.db.global.accountLabel or "")
         end
 
-        local srcText = db.tsmSource or "dbmarket"
+        local srcText = addon.db.global.tsmSource or "dbregionmarketavg"
         for _, entry in ipairs(tsmSourceList) do
             if entry.value == srcText then
                 srcText = entry.text
@@ -1185,8 +1478,8 @@ local function CreateConfigFrame()
         db.showTitleBar         = f.titlebarCB:GetChecked()
         db.showBackground       = f.bgCB:GetChecked()
         db.preferWarbandBankOnOpen = f.wbBankDefaultCB:GetChecked()
-        db.sessionPersistOnLogout = f.sessionPersistCB:GetChecked()
-        db.tsmCustomSource      = f.customEdit:GetText() or ""
+        addon.db.global.sessionPersistOnLogout = f.sessionPersistCB:GetChecked()
+        addon.db.global.tsmCustomSource = f.customEdit:GetText() or ""
 
         -- Modules
         db.modules.Character    = f.charModule.mainCB:GetChecked()
@@ -1346,21 +1639,21 @@ local function CreateConfigFrame()
     f.opacityContainer.slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value * 20 + 0.5) / 20
         f.opacityContainer.valueText:SetText(string.format("%.0f%%", value * 100))
-        addon.db.profile.backgroundOpacity = value
+        addon.db.global.backgroundOpacity = value
         addon:UpdateBackground()
     end)
 
     f.scaleContainer.slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value * 20 + 0.5) / 20
         f.scaleContainer.valueText:SetText(string.format("%.0f%%", value * 100))
-        addon.db.profile.scale = value
+        addon.db.global.scale = value
         addon:ApplyScale()
     end)
 
     f.fontContainer.slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value + 0.5)
         f.fontContainer.valueText:SetText(tostring(value))
-        addon.db.profile.fontSize = value
+        addon.db.global.fontSize = value
         addon:ResetFontCache()
         addon:UpdateAllSections()
         addon:SafeLayoutHUD()
@@ -1370,6 +1663,10 @@ local function CreateConfigFrame()
         self:ClearFocus()
         Apply()
     end)
+
+    -- Expose Refresh for external use (profile switching, etc.)
+    addon.Config = addon.Config or {}
+    addon.Config.Refresh = Refresh
 end
 
 -----------------------------------------------------------------------
@@ -1395,6 +1692,8 @@ function addon:ResetAllPositions()
     db.currencyXOfs = nil
     db.currencyYOfs = nil
 
+    -- Clear utility bar position (both old and new formats)
+    db.utilityBarPos = nil
     db.utilityPoint = nil
     db.utilityRelPoint = nil
     db.utilityXOfs = nil
@@ -1408,32 +1707,20 @@ function addon:ResetAllPositions()
         self.HUD.frame:SetWidth(self.CONST.HUD_WIDTH)
     end
 
-    -- Correct Order: HUD -> Utility -> Tracker -> Currency (all stacked vertically, left-aligned)
+    -- Fixed default positions (no auto-snapping)
     if self.utilityBar then
         self.utilityBar:ClearAllPoints()
-        if self.HUD and self.HUD.frame then
-            self.utilityBar:SetPoint("TOPLEFT", self.HUD.frame, "BOTTOMLEFT", 0, -8)
-        end
+        self.utilityBar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
     end
 
     if self.trackerFrame then
         self.trackerFrame:ClearAllPoints()
-        if self.utilityBar and self.utilityBar:IsShown() then
-            self.trackerFrame:SetPoint("TOPLEFT", self.utilityBar, "BOTTOMLEFT", 0, -8)
-        elseif self.HUD and self.HUD.frame then
-            self.trackerFrame:SetPoint("TOPLEFT", self.HUD.frame, "BOTTOMLEFT", 0, -8)
-        end
+        self.trackerFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -475)
     end
 
     if self.currencyFrame then
         self.currencyFrame:ClearAllPoints()
-        if self.trackerFrame and self.trackerFrame:IsShown() then
-            self.currencyFrame:SetPoint("TOPLEFT", self.trackerFrame, "BOTTOMLEFT", 0, -8)
-        elseif self.utilityBar and self.utilityBar:IsShown() then
-            self.currencyFrame:SetPoint("TOPLEFT", self.utilityBar, "BOTTOMLEFT", 0, -8)
-        elseif self.HUD and self.HUD.frame then
-            self.currencyFrame:SetPoint("TOPLEFT", self.HUD.frame, "BOTTOMLEFT", 0, -8)
-        end
+        self.currencyFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
     end
 
     self:SafeLayoutHUD()
@@ -1455,7 +1742,6 @@ function addon:ResetAllSettings()
         showBackground      = true,
         backgroundOpacity   = 0.30,
         preferWarbandBankOnOpen = false,
-        sessionPersistOnLogout = false,
         goldViewMode        = "simple",
 
         modules = {
@@ -1516,12 +1802,12 @@ function addon:ResetAllSettings()
         hudWidth = nil,
 
         trackedCurrencies = {},
-        sessionState = {},
     }
 
     self.db.characters = characters
     self.db.guilds = guilds
 
+    -- Reset current session state (in-memory only, character cache untouched)
     self.state.sessionStartGold = nil
     self.state.sessionStartTime = nil
     self.state.sessionPaused = false
@@ -1543,7 +1829,7 @@ end
 -----------------------------------------------------------------------
 
 function addon:ApplyScale()
-    local scale = self.db.profile.scale or 1.0
+    local scale = self.db.global.scale or 1.0
 
     if self.HUD and self.HUD.frame then
         self.HUD.frame:SetScale(scale)
@@ -1558,6 +1844,317 @@ function addon:ApplyScale()
         self.utilityBar:SetScale(scale)
     end
 end
+
+-----------------------------------------------------------------------
+-- Custom New Profile Dialog (with preset selection)
+-----------------------------------------------------------------------
+
+local newProfileDialog = nil
+
+local function ShowNewProfileDialog()
+    if newProfileDialog then
+        newProfileDialog:Show()
+        newProfileDialog.nameEdit:SetText("")
+        newProfileDialog.nameEdit:SetFocus()
+        newProfileDialog.selectedPreset = nil
+        newProfileDialog:UpdateButtons()
+        return
+    end
+
+    -- Create custom dialog frame
+    local f = CreateFrame("Frame", "GoblinToolboxNewProfileDialog", UIParent, "BackdropTemplate")
+    f:SetSize(400, 315)
+    f:SetPoint("CENTER")
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetFrameLevel(100)
+    f:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 16, edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 }
+    })
+    f:SetBackdropColor(0.05, 0.05, 0.05, 1)  -- Dark solid background
+    f:EnableMouse(true)
+    f:SetMovable(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", f.StartMoving)
+    f:SetScript("OnDragStop", f.StopMovingOrSizing)
+    f:Hide()
+
+    -- Title
+    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOP", 0, -20)
+    title:SetText("Create New Profile")
+
+    -- Name label and editbox
+    local nameLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    nameLabel:SetPoint("TOPLEFT", 30, -50)
+    nameLabel:SetText("Profile Name:")
+
+    local nameEdit = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+    nameEdit:SetSize(330, 30)
+    nameEdit:SetPoint("TOPLEFT", 30, -70)
+    nameEdit:SetAutoFocus(false)
+    nameEdit:SetScript("OnEnterPressed", function() f:TryCreate() end)
+    nameEdit:SetScript("OnEscapePressed", function() f:Hide() end)
+    nameEdit:SetScript("OnTextChanged", function() f:UpdateButtons() end)
+    f.nameEdit = nameEdit
+
+    -- Preset label
+    local presetLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    presetLabel:SetPoint("TOPLEFT", 30, -110)
+    presetLabel:SetText("Choose Starting Template:")
+
+    -- Preset buttons (5 buttons in a row)
+    local presets = {"Default", "Essentials", "Farmer", "Flipper", "Everything"}
+    local presetTooltips = {
+        Default = {"Balanced configuration with all main modules enabled.", "Good for general use with essential tracking features."},
+        Essentials = {"Streamlined display: Character info and core gold tracking.", "No headers, no trackers - clean and simple."},
+        Farmer = {"Optimized for raw farming: Movement speed, looted value,", "detailed gold tracking, and bag tracking enabled."},
+        Flipper = {"Optimized for AH operations: Posted auctions, token price,", "inventory tracking across bags, player bank, and warband bank."},
+        Everything = {"All modules, elements, and trackers enabled.", "Includes all utility buttons and tooltip IDs."},
+    }
+
+    f.presetButtons = {}
+    f.selectedPreset = nil
+
+    local btnWidth = 70
+    local btnSpacing = 3
+    local startX = 10
+
+    for i, presetName in ipairs(presets) do
+        local btn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+        btn:SetSize(btnWidth, 24)
+        btn:SetPoint("TOPLEFT", startX + (i-1)*(btnWidth+btnSpacing), -135)
+        btn:SetText(presetName)
+        StylePresetButton(btn)
+
+        btn.presetName = presetName
+        btn:SetScript("OnClick", function(self)
+            f.selectedPreset = self.presetName
+            f:UpdateButtons()
+        end)
+
+        btn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(self.presetName .. " Preset", 0.25, 0.75, 0.25)
+            local tooltipLines = presetTooltips[self.presetName]
+            for _, line in ipairs(tooltipLines) do
+                GameTooltip:AddLine(line, 0.8, 0.8, 0.8, true)
+            end
+            GameTooltip:Show()
+        end)
+        btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        f.presetButtons[presetName] = btn
+    end
+
+    -- Copy positions checkbox
+    local copyPosCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+    copyPosCheck:SetPoint("TOPLEFT", 30, -170)
+    copyPosCheck:SetSize(24, 24)
+    copyPosCheck:SetChecked(true)  -- Default to checked
+    f.copyPositionsCheck = copyPosCheck
+
+    local copyPosLabel = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    copyPosLabel:SetPoint("LEFT", copyPosCheck, "RIGHT", 5, 0)
+    copyPosLabel:SetText("Copy frame positions from current profile")
+    copyPosLabel:SetTextColor(0.8, 0.8, 0.8)
+
+    copyPosCheck:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Copy Frame Positions", 1, 1, 1)
+        GameTooltip:AddLine("If checked, the new profile will inherit the current frame positions (HUD, Utility, Tracker, Currency bars).", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ", 1, 1, 1)
+        GameTooltip:AddLine("If unchecked, frames will use default positions for the selected preset.", 0.6, 0.6, 0.6, true)
+        GameTooltip:Show()
+    end)
+    copyPosCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Create button
+    local createBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    createBtn:SetSize(100, 24)
+    createBtn:SetPoint("BOTTOM", -55, 20)
+    createBtn:SetText("Create")
+    createBtn:SetScript("OnClick", function() f:TryCreate() end)
+    f.createBtn = createBtn
+
+    -- Cancel button
+    local cancelBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    cancelBtn:SetSize(100, 24)
+    cancelBtn:SetPoint("BOTTOM", 55, 20)
+    cancelBtn:SetText("Cancel")
+    cancelBtn:SetScript("OnClick", function() f:Hide() end)
+
+    -- Update button states based on selection
+    function f:UpdateButtons()
+        local hasName = self.nameEdit:GetText():trim() ~= ""
+        local hasPreset = self.selectedPreset ~= nil
+        self.createBtn:SetEnabled(hasName and hasPreset)
+
+        -- Highlight selected preset
+        for presetName, btn in pairs(self.presetButtons) do
+            if presetName == self.selectedPreset then
+                btn:LockHighlight()
+            else
+                btn:UnlockHighlight()
+            end
+        end
+    end
+
+    -- Try to create profile
+    function f:TryCreate()
+        local name = self.nameEdit:GetText():trim()
+        local preset = self.selectedPreset
+        local copyPositions = self.copyPositionsCheck:GetChecked()
+
+        if name == "" or not preset then
+            return
+        end
+
+        -- Save current positions if we need to copy them
+        local savedPositions = nil
+        if copyPositions then
+            savedPositions = addon:GetCurrentProfilePositions()
+        end
+
+        local success, result = addon:CreateProfileFromPreset(preset, name)
+        if success then
+            -- Copy positions to new profile if requested
+            if copyPositions and savedPositions then
+                addon:CopyPositionsToProfile(result, savedPositions)
+            end
+
+            addon:ApplyProfileAndRefresh("Created profile '" .. result .. "' from " .. preset .. " preset")
+            self:Hide()
+        else
+            print("|cffff4444Goblin Toolbox:|r " .. result)
+        end
+    end
+
+    f:UpdateButtons()
+    newProfileDialog = f
+    f:Show()
+    nameEdit:SetFocus()
+end
+
+addon.ShowNewProfileDialog = ShowNewProfileDialog
+
+-----------------------------------------------------------------------
+-- StaticPopup dialogs for profile management
+-----------------------------------------------------------------------
+
+StaticPopupDialogs["GOBLINTOOLBOX_NEW_PROFILE"] = {
+    text = "Enter a name for the new profile:",
+    button1 = "Create",
+    button2 = "Cancel",
+    hasEditBox = true,
+    OnShow = function(self)
+        self.EditBox:SetText("")
+        self.EditBox:SetFocus()
+    end,
+    OnAccept = function(self)
+        local name = self.EditBox:GetText()
+        local success, result = addon:CreateProfile(name)
+        if success then
+            addon:ApplyProfileAndRefresh("Created and switched to profile '" .. result .. "'")
+        else
+            print("|cffff4444Goblin Toolbox:|r " .. result)
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+StaticPopupDialogs["GOBLINTOOLBOX_COPY_PROFILE"] = {
+    text = "Enter a name for the profile copy:",
+    button1 = "Copy",
+    button2 = "Cancel",
+    hasEditBox = true,
+    OnShow = function(self)
+        local currentProfile = addon:GetActiveProfileName()
+        self.EditBox:SetText(currentProfile .. " Copy")
+        self.EditBox:HighlightText()
+        self.EditBox:SetFocus()
+    end,
+    OnAccept = function(self)
+        local name = self.EditBox:GetText()
+        local success, result = addon:CreateProfile(name)
+        if success then
+            addon:ApplyProfileAndRefresh("Created and switched to profile '" .. result .. "'")
+        else
+            print("|cffff4444Goblin Toolbox:|r " .. result)
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+StaticPopupDialogs["GOBLINTOOLBOX_RENAME_PROFILE"] = {
+    text = "Enter new name for the profile:",
+    button1 = "Rename",
+    button2 = "Cancel",
+    hasEditBox = true,
+    OnShow = function(self)
+        local currentProfile = addon:GetActiveProfileName()
+        self.EditBox:SetText(currentProfile)
+        self.EditBox:HighlightText()
+        self.EditBox:SetFocus()
+    end,
+    OnAccept = function(self)
+        local oldName = addon:GetActiveProfileName()
+        local newName = self.EditBox:GetText()
+        local success, result = addon:RenameProfile(oldName, newName)
+        if success then
+            addon:ApplyProfileAndRefresh("Renamed profile to '" .. result .. "'")
+        else
+            print("|cffff4444Goblin Toolbox:|r " .. result)
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+StaticPopupDialogs["GOBLINTOOLBOX_DELETE_PROFILE"] = {
+    text = "Delete profile '%s'?\n\nThis cannot be undone.",
+    button1 = "Delete",
+    button2 = "Cancel",
+    OnAccept = function(self)
+        local profileName = addon:GetActiveProfileName()
+        local success, result = addon:DeleteProfile(profileName)
+        if success then
+            addon:ApplyProfileAndRefresh("Deleted profile '" .. profileName .. "' and switched to Default")
+        else
+            print("|cffff4444Goblin Toolbox:|r " .. result)
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+StaticPopupDialogs["GOBLINTOOLBOX_APPLY_PRESET"] = {
+    text = "Apply preset '%s' to the current profile?\n\nThis will overwrite multiple settings.",
+    button1 = "Apply",
+    button2 = "Cancel",
+    OnAccept = function(self)
+        local presetName = self.data
+        if presetName then
+            addon:ApplyPreset(presetName)
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
 
 -----------------------------------------------------------------------
 -- Open config

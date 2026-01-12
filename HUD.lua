@@ -33,7 +33,7 @@ local MIN_HEIGHT = 60  -- Will be overridden by content
 
 local function ApplyScaleAndPosition(frame)
     local db = addon.db.profile
-    frame:SetScale(db.scale or 1.0)
+    frame:SetScale(addon.db.global.scale or 1.0)
 
     -- Apply saved width if available
     local width = db.hudWidth or addon.CONST.HUD_WIDTH
@@ -61,6 +61,26 @@ end
 local function SaveFrameWidth(frame)
     local db = addon.db.profile
     db.hudWidth = frame:GetWidth()
+end
+
+function addon:RestoreHUDPosition()
+    local frame = self.HUD and self.HUD.frame
+    if not frame then return end
+
+    local db = self.db.profile
+    if db.point and db.relPoint and db.xOfs and db.yOfs then
+        frame:ClearAllPoints()
+        frame:SetPoint(db.point, UIParent, db.relPoint, db.xOfs, db.yOfs)
+    else
+        -- No saved position, use default
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -120)
+    end
+
+    -- Also restore width if available
+    if db.hudWidth then
+        frame:SetWidth(db.hudWidth)
+    end
 end
 
 local function StartDragging(frame)
@@ -643,7 +663,7 @@ end
 
 function addon:UpdateBackground()
     local show = self.db.profile.showBackground
-    local opacity = self.db.profile.backgroundOpacity or 0.30
+    local opacity = self.db.global.backgroundOpacity or 0.30
     local alpha = show and opacity or 0.0
 
     if HUD.frame then

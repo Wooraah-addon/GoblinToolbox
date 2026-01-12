@@ -161,19 +161,12 @@ function addon:CreateCurrencyFrame()
     })
     f:SetBackdropBorderColor(0.35, 0.3, 0.2, 1)  -- Yellow-grey tint for currency tracker bar
 
-    -- FIXED: Default anchor should be below Tracker (if exists), else below Utility or HUD
-    -- Order: HUD -> Utility -> Tracker -> Currency
+    -- Default position: fixed position below tracker bar default area (no auto-snapping)
     local db = addon.db.profile
     if db.currencyPoint and db.currencyRelPoint and db.currencyXOfs and db.currencyYOfs then
         f:SetPoint(db.currencyPoint, UIParent, db.currencyRelPoint, db.currencyXOfs, db.currencyYOfs)
-    elseif self.trackerFrame and self.trackerFrame:IsShown() then
-        f:SetPoint("TOPLEFT", self.trackerFrame, "BOTTOMLEFT", 0, -8)
-    elseif self.utilityBar and self.utilityBar:IsShown() then
-        f:SetPoint("TOPLEFT", self.utilityBar, "BOTTOMLEFT", 0, -8)
-    elseif addon.HUD and addon.HUD.frame then
-        f:SetPoint("TOPLEFT", addon.HUD.frame, "BOTTOMLEFT", 0, -8)
     else
-        f:SetPoint("CENTER", UIParent, "CENTER", 0, -60)
+        f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
     end
 
     f.buttons = {}
@@ -218,6 +211,21 @@ function addon:CreateCurrencyFrame()
 
     self:UpdateBackground()
     self:UpdateCurrencyBar()
+end
+
+function addon:RestoreCurrencyBarPosition()
+    local f = self.currencyFrame
+    if not f then return end
+
+    local db = self.db.profile
+    if db.currencyPoint and db.currencyRelPoint and db.currencyXOfs and db.currencyYOfs then
+        f:ClearAllPoints()
+        f:SetPoint(db.currencyPoint, UIParent, db.currencyRelPoint, db.currencyXOfs, db.currencyYOfs)
+    else
+        -- No saved position, use fixed default (no auto-snapping)
+        f:ClearAllPoints()
+        f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
+    end
 end
 
 -----------------------------------------------------------------------

@@ -95,19 +95,18 @@ end
 -----------------------------------------------------------------------
 
 function Inventory:ResolveTSMLabel()
-    local db = addon.db and addon.db.profile
-    if not db then
-        return "dbmarket"
+    if not addon.db or not addon.db.global then
+        return "dbregionmarketavg"
     end
 
-    local src = db.tsmSource or "dbmarket"
+    local src = addon.db.global.tsmSource or "dbregionmarketavg"
 
     if src == "custom" then
-        local custom = (db.tsmCustomSource or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        local custom = (addon.db.global.tsmCustomSource or ""):gsub("^%s+", ""):gsub("%s+$", "")
         if custom ~= "" then
             return custom
         end
-        return "dbmarket"
+        return "dbregionmarketavg"
     end
 
     return src
@@ -355,10 +354,10 @@ local function ScanPlayerBank()
     end
 
     -- Persist to cache (character-specific saved variable)
-    local db = addon.db and addon.db.profile
-    if db then
-        db.playerBankItemCountsByKey = countByKey
-        db.playerBankItemsLastUpdate = time()
+    local charCache = addon:GetCharacterCache()
+    if charCache then
+        charCache.playerBankItemCounts = countByKey
+        charCache.playerBankLastUpdate = time()
     end
 
     playerBankScanPending = false
@@ -381,11 +380,11 @@ end
 
 function Inventory:GetPlayerBankCountForKey(key)
     -- Returns cached player bank count for a given itemID:rank key
-    local db = addon.db and addon.db.profile
-    if not db or not db.playerBankItemCountsByKey then
+    local charCache = addon:GetCharacterCache()
+    if not charCache or not charCache.playerBankItemCounts then
         return 0
     end
-    return db.playerBankItemCountsByKey[key] or 0
+    return charCache.playerBankItemCounts[key] or 0
 end
 
 -----------------------------------------------------------------------

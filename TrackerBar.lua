@@ -161,17 +161,12 @@ function addon:CreateTrackerFrame()
     })
     f:SetBackdropBorderColor(0.2, 0.3, 0.2, 1)  -- Green-grey tint for item tracker bar
 
-    -- FIXED: Default anchor should be below Utility Bar (if exists), else below HUD
-    -- Order: HUD -> Utility -> Tracker -> Currency
+    -- Default position: fixed position below utility bar default area (no auto-snapping)
     local db = addon.db.profile
     if db.trackerPoint and db.trackerRelPoint and db.trackerXOfs and db.trackerYOfs then
         f:SetPoint(db.trackerPoint, UIParent, db.trackerRelPoint, db.trackerXOfs, db.trackerYOfs)
-    elseif self.utilityBar and self.utilityBar:IsShown() then
-        f:SetPoint("TOPLEFT", self.utilityBar, "BOTTOMLEFT", 0, -8)
-    elseif addon.HUD and addon.HUD.frame then
-        f:SetPoint("TOPLEFT", addon.HUD.frame, "BOTTOMLEFT", 0, -8)
     else
-        f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -475)
     end
 
     f.buttons = {}
@@ -266,6 +261,21 @@ function addon:CreateTrackerFrame()
 
     self:UpdateBackground()
     self:UpdateTrackedBar()
+end
+
+function addon:RestoreTrackerBarPosition()
+    local f = self.trackerFrame
+    if not f then return end
+
+    local db = self.db.profile
+    if db.trackerPoint and db.trackerRelPoint and db.trackerXOfs and db.trackerYOfs then
+        f:ClearAllPoints()
+        f:SetPoint(db.trackerPoint, UIParent, db.trackerRelPoint, db.trackerXOfs, db.trackerYOfs)
+    else
+        -- No saved position, use fixed default (no auto-snapping)
+        f:ClearAllPoints()
+        f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -475)
+    end
 end
 
 -----------------------------------------------------------------------

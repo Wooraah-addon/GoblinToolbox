@@ -102,6 +102,12 @@ local EventHandlers = {
         -- Cache character key at login (realm not available during logout)
         addon.state.characterKey = addon:GetCharacterKey()
 
+        -- Run SavedVariables migrations
+        addon:MigrateSavedVariables()
+
+        -- Set up profile system and assign active profile
+        addon:EnsureProfileSystem()
+
         addon:InitializeHUD()
         addon:CreateTrackerFrame()
         addon:CreateCurrencyFrame()
@@ -509,6 +515,41 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
         addon:UpdateAllSections()
         print("Goblin Toolbox: headers", addon.db.profile.showHeaders and "enabled" or "disabled")
 
+    elseif cmd == "profiles" or cmd == "profile" then
+        print("|cff00ff00=== Goblin Toolbox Profile System ===|r")
+        print("Schema Version:", addon.db.global.schemaVersion or 0)
+        print("Active Profile:", addon:GetActiveProfileName())
+
+        print("\nAvailable Profiles:")
+        local profiles = addon:GetProfileNames()
+        if #profiles > 0 then
+            for _, name in ipairs(profiles) do
+                local marker = (name == addon:GetActiveProfileName()) and " |cff00ff00(active)|r" or ""
+                print("  - " .. name .. marker)
+            end
+        else
+            print("  (none)")
+        end
+
+        print("\nCharacter Assignments:")
+        if addon.db.profileKeys then
+            local count = 0
+            for charKey, profileName in pairs(addon.db.profileKeys) do
+                print("  " .. charKey .. " -> " .. profileName)
+                count = count + 1
+            end
+            if count == 0 then
+                print("  (none)")
+            end
+        else
+            print("  (no profileKeys table)")
+        end
+
+        print("\nPresets Available:")
+        for _, presetName in ipairs(addon:GetPresetNames()) do
+            print("  - " .. presetName)
+        end
+
     elseif cmd == "debugtransfers" then
         if addon.Gold and addon.Gold.ToggleTransferDebug then
             local enabled = addon.Gold:ToggleTransferDebug()
@@ -523,16 +564,17 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
         end
 
         print("=== Session State Debug ===")
-        print("Persistence enabled:", db.sessionPersistOnLogout and "YES" or "NO")
+        print("Persistence enabled:", addon.db.global.sessionPersistOnLogout and "YES" or "NO")
 
-        if db.sessionState and db.sessionState.sessionStartTime then
+        local charCache = addon:GetCharacterCache()
+        if charCache and charCache.sessionState and charCache.sessionState.sessionStartTime then
             print("Saved state found:")
-            print("  Character:", db.sessionState.characterKey or "none")
-            print("  Start time:", db.sessionState.sessionStartTime or "none")
-            print("  Start gold:", db.sessionState.sessionStartGold or 0)
-            print("  Earned:", db.sessionState.sessionEarned or 0)
-            print("  Spent:", db.sessionState.sessionSpent or 0)
-            print("  Transfer offset:", db.sessionState.sessionTransferOffset or 0)
+            print("  Character:", charCache.sessionState.characterKey or "none")
+            print("  Start time:", charCache.sessionState.sessionStartTime or "none")
+            print("  Start gold:", charCache.sessionState.sessionStartGold or 0)
+            print("  Earned:", charCache.sessionState.sessionEarned or 0)
+            print("  Spent:", charCache.sessionState.sessionSpent or 0)
+            print("  Transfer offset:", charCache.sessionState.sessionTransferOffset or 0)
         else
             print("No saved state found")
         end
@@ -544,6 +586,10 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
         print("  Earned:", s.sessionEarned or 0)
         print("  Spent:", s.sessionSpent or 0)
         print("  Transfer offset:", s.sessionTransferOffset or 0)
+
+    elseif cmd == "wipe" then
+        -- Admin/testing command: completely wipe all saved data
+        StaticPopup_Show("GOBLINTOOLBOX_WIPE_ALL")
 
     else
         print("Goblin Toolbox commands:")
@@ -562,3 +608,23 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
         print("  /gtb sessiondebug - show session persistence debug info")
     end
 end
+
+-----------------------------------------------------------------------
+-- StaticPopup for /gtb wipe command
+-----------------------------------------------------------------------
+
+StaticPopupDialogs["GOBLINTOOLBOX_WIPE_ALL"] = {
+    text = "|cffff4444WARNING:|r This will completely wipe ALL Goblin Toolbox data!\n\nThis includes:\n- All profiles\n- All settings\n- Character gold history\n- Guild gold history\n- Warband gold data\n- All tracked items and currencies\n- Session data\n\n|cffff8800This CANNOT be undone!|r\n\nThe UI will reload after wiping.",
+    button1 = "WIPE EVERYTHING",
+    button2 = "Cancel",
+    OnAccept = function()
+        -- Nuclear option: completely wipe all saved variables
+        GoblinToolboxDB = nil
+        -- Force UI reload to reinitialize from scratch
+        ReloadUI()
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}

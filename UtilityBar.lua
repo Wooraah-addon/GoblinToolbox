@@ -1210,6 +1210,22 @@ local function Utility_DeferredApply()
     end
 end
 
+function addon:RestoreUtilityBarPosition()
+    local bar = self.utilityBar
+    if not bar then return end
+
+    local db = self.db.profile
+    local pos = db.utilityBarPos
+    if pos and pos.point and pos.relPoint and pos.x and pos.y then
+        bar:ClearAllPoints()
+        bar:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
+    else
+        -- No saved position, use fixed default (no auto-snapping)
+        bar:ClearAllPoints()
+        bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
+    end
+end
+
 -----------------------------------------------------------------------
 -- Utility bar creation
 -----------------------------------------------------------------------
@@ -1250,11 +1266,8 @@ function addon:CreateUtilityBar()
     })
     f:SetBackdropBorderColor(0.2, 0.25, 0.35, 1)
 
-    if addon.HUD and addon.HUD.frame then
-        f:SetPoint("TOPLEFT", addon.HUD.frame, "BOTTOMLEFT", 0, -8)
-    else
-        f:SetPoint("CENTER", UIParent, "CENTER", 0, -120)
-    end
+    -- Default position: fixed position below HUD default area (no auto-snapping)
+    f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
 
     Utility_DeferredApply()
 
