@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets The War Within (12.0+) and is currently at **v0.6.3**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets The War Within (12.0+) and is currently at **v0.7.0**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -210,6 +210,19 @@ See `Current Development status.txt` for detailed tracking of feature completion
 - Prefer small commits with clear intent (e.g., `fix: nil guard bag scan`, `feat: add warband gold line`).
 - For releases: tag `vX.Y.Z`. Keep release notes short and user-facing.
 - If CurseForge packaging present, keep metadata updated.
+
+### Release Workflow (IMPORTANT)
+
+When the user says "push and commit to git" or "commit this as vX.Y.Z", you MUST:
+
+1. **Update CHANGELOG.md** - Add or update the version section with comprehensive Added/Changed/Fixed entries
+2. **Update version references** - Ensure TOC file and CLAUDE.md reflect the new version
+3. **Commit changes** - Stage all modified files and commit with descriptive message
+4. **Push to remote** - `git push origin main`
+5. **Create and push tag** - `git tag -a vX.Y.Z -m "Release vX.Y.Z - Brief description"` then `git push origin vX.Y.Z`
+6. **Provide release link** - Give the user a clickable hyperlink to the GitHub release page: `https://github.com/Wooraah-addon/GoblinToolbox/releases/tag/vX.Y.Z`
+
+This ensures complete release documentation and makes it easy for users to access the published version.
 
 ## Testing Checklist
 
