@@ -5,16 +5,22 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7.0] - 2025-01-12
+## [0.7.0] - 2026-01-12
 
 ### Added
-- **Position copy functionality**: New profile dialog now includes "Copy frame positions from current profile" checkbox (checked by default)
-- **Profile management**: Added "Copy frame positions from:" section to copy positions between existing profiles
+- **Multi-profile system**: Complete profile management framework with creation, switching, copying, renaming, and deletion
+  - Profile creation dialog with name input and position copy checkbox (checked by default)
+  - Profile switching via dropdown menu with instant apply
+  - Copy frame positions between existing profiles
+  - Rename and delete profile functionality with safety confirmations
+  - Profile presets: Default, Minimal, Market, and Gather configurations
+  - Per-profile storage for content settings (modules, elements, tracked items/currencies)
+  - Per-profile frame positions (HUD, Utility Bar, Tracker Bar, Currency Bar)
 - **Admin command**: Added `/gtb wipe` command for complete data wipe (hidden, for testing/troubleshooting)
 
 ### Changed
-- **Per-profile frame positions**: All frame positions (HUD, Utility, Tracker, Currency) now save per-profile instead of globally
-- **TSM price source**: Moved to global scope - no longer affected by profile switching (Migration 5)
+- **Architecture**: Migrated from single-profile to multi-profile SavedVariables structure (Migration 5)
+- **TSM price source**: Moved to global scope - no longer affected by profile switching
 - **Default visibility**: "Hide in combat" and "Hide in instances/raids" now OFF by default for new installations
 - **UI layout optimization**:
   - General section: Condensed 3 checkboxes onto single horizontal line
@@ -30,33 +36,178 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Position inheritance**: Presets no longer interfere with frame positioning - positions copy independently
 - **Bar overlap issue**: Fixed utility/tracker bars moving when HUD height changes
 
-## [0.3.2] - 2025-01-XX
+## [0.6.3] - 2026-01-11
 
 ### Added
-- Character & Server module with race/class icons, realm name
-- Shard ID detection via combat log monitoring
-- Movement speed display with real-time updates
-- Gold & Economy module with character, warband, and guild gold tracking
-- Session tracking: elapsed time, gold earned, gold per hour
-- WoW Token price display with trend indicator (up/down arrows)
-- Inventory module with normal and reagent bag slot counts
-- Bag value calculation with TSM integration
-- Warband bank access indicator
-- Item Tracker bar with drag-and-drop support
-- Currency Tracker bar
-- Utility Bar with secure action buttons
-- Mobile Banking, Mailbox, Warband Bank quick access
-- Hearthstone button with automatic toy detection
-- Dalaran and Garrison Hearthstone buttons
-- Tooltip ID display feature (items, spells, NPCs, currencies, etc.)
-- Comprehensive options panel via `/gtb` command
-- Hide in combat / hide in instances options
-- Movable, resizable, lockable HUD frames
-- Hardware LED-style drag handles for auxiliary bars
+- **Bank transfer exclusion system**: Guild and warband bank deposits/withdrawals no longer affect session gold tracking
+  - Uses intent hooks on C_Bank API for accurate transfer detection
+  - Transfer offset tracked separately and excluded from Net/Earned/Spent calculations
+- **Session gold color coding**: Earned and gold/hr values now show green (positive) or red (negative)
+- **Debug commands**: Added `/gtb debugtransfers` and `/gtb sessiondebug` for troubleshooting
+- **TSM tooltip**: Added informative tooltip to custom TSM price string field
+
+### Fixed
+- **Utility Bar modifier click**: Fixed buttons triggering on Shift+Right-click when removing items
+  - Added combat lockdown check for removal safety
+- **Session persistence**: Character key now cached at login (realm unavailable during logout)
+  - Session data now properly persists across logout/login
+
+## [0.6.2] - 2026-01-10
+
+### Fixed
+- **Commodity auction values**: Posted auction total value now calculated correctly for commodity items
+  - Blizzard API returns unit price for commodities, not total stack price
+  - Now correctly multiplies price by quantity for commodities (e.g., 100 ore at 50g each = 5,000g)
+  - Added IsCommodity() helper with itemID caching for performance
+  - Equipment auctions continue to use price only (unchanged)
+
+## [0.6.1] - 2026-01-10
+
+### Fixed
+- **Posted auction data**: Now properly cached per-character instead of shared across characters
+  - Posted auction totals were being stored in db.profile (shared), causing Character 2's data to overwrite Character 1's
+  - Now correctly stores in db.characters[key] for character-specific tracking
+  - Each character maintains independent posted auction counts and values
+
+## [0.6.0] - 2026-01-10
+
+### Added
+- **Account Label**: Optional account-wide label displayed next to character name
+  - Configurable in Character options with 16 character limit
+  - Stored globally, displayed when enabled per-character
+  - Shows as [LABEL] next to name-realm on same line
+- **HUD Tooltips**: Added informative tooltips for key elements
+  - Shard ID: Explains sharding with NPC targeting hint
+  - Session Header: Details pause/resume, tracking behavior, persistence options
+  - Warbank Access: Explains multi-client access indicator
+  - Posted Auctions: Auction tracking details and update frequency
+  - Earned/Looted/Bag Value: Price source info with vendor fallback notes
+
+### Changed
+- **Character section restructure**: Account label on line 1, Shard/Speed on line 2
+- **Config menu**: Added account label input box with trim/validation
+
+### Fixed
+- Fixed Config.lua error with account label positioning
+- Fixed Character module line number references
+
+## [0.5.2] - 2026-01-09
+
+### Added
+- **Session persistence**: Session data now reliably persists across logout/reload
+  - Added PLAYER_LEAVING_WORLD event handler for reliable saves
+  - Added periodic backup saves (every 60 seconds)
+  - Session data is character-specific
+- **Gold tracking view modes**: Simple/Detailed view toggle in options
+  - Detailed view shows Start/Current gold and Earned/Spent breakdown
+  - Clock icon replaces "Session" text (green=running, red=paused)
+- **Token tooltip**: Added tooltip explaining WoW Token trend calculation
+
+### Changed
+- **Token trend sensitivity**: Reduced threshold from 10,000g to 2,500g for more responsive arrows
+- **Grammar**: Changed "Earnt" to "Earned" for consistency
+
+### Fixed
+- Fixed combat taint error (EnableMouse on secure frames)
+- Fixed pause time calculation not accounting for previous pauses
+- Added guards against GetMoney() race conditions during login
+
+## [0.5.1] - 2026-01-08
+
+### Added
+- **Rank-aware item tracking**: Track items by rank (e.g., Bismuth Rank 1, 2, 3 as separate entries)
+  - Display rank diamond overlay (top-left) using Blizzard APIs
+  - Show item count with abbreviation (1.2k, 12.3k, 1.23m)
+  - Optional gold value display (bottom) with TSM integration
+  - Drag & drop auto-detects item rank from link
+  - Support for both ranked and unranked items
+
+### Changed
+- **Item count positioning**: Repositioned to center of icon to avoid rank overlap
+- **Value display**: Added gold/silver icons with tight spacing
+- **Frame strata**: Set tracker/currency/utility bars to MEDIUM strata
+- **Drag handle z-order**: Raised frame level to appear above Blizzard action bars
+
+### Fixed
+- Fixed position reset on character login (only reset on true first run)
+- Fixed drag handle clickability when behind Blizzard action bars
+- Fixed combat taint error with frame visibility toggling
+- Fixed add button drag-and-drop for item tracking
+
+## [0.4.1] - 2026-01-06
+
+### Added
+- **Reload button**: Added to utility bar (disabled by default)
+- **Reload UI button**: Added to config menu bottom for convenience
+- **Background opacity slider**: Control HUD background opacity (0-100%)
+- **Tooltips**: Added to settings cogwheel and 9+ menu options
+
+### Changed
+- **Movement speed precision**: Now shows 3 decimal places for accuracy
+- **Slider layout**: Reorganized to inline layout for compact menu
+- **Instance hiding tooltip**: Updated to mention delves
+
+### Fixed
+- Fixed tracker bars not respecting "Enable HUD" setting
+- Fixed tracker bars not hiding in combat/instances when hide options enabled
+
+### Removed
+- Removed non-functional Tooltip ID options (Achievement, Quest, Talent)
+
+## [0.4.0] - 2026-01-05
+
+### Added
+- **Utility Bar expansion**: New mount and teleport buttons
+  - AH/Vendor mount support (Brutosaur, Packmaster, Yak, Mammoth)
+  - Housing Teleport button with cooldown display
+  - Logout button (disabled by default)
+  - Mount buttons now use Mount Journal API for locale-safe operation
+
+### Fixed
+- Fixed hearthstone icon not working when physical hearthstone in bags
+- Fixed ADDON_ACTION_BLOCKED error during combat/instance entry
+- Improved combat lockdown handling for secure frames
+
+### Technical
+- Housing teleport uses async event pattern for reliability
+
+## [0.3.3] - 2025-12-21
+
+### Fixed
+- **Gold module**: Added nil guard for addon.db in Gold:Update() to prevent crash during initialization
+- **Session pause**: Now correctly freezes gold tracking - uses gold snapshot when paused
+- **Session resume**: Baseline adjusts on resume to exclude gold changes during pause
+- **Combat taint**: Added SafeLayoutHUD wrapper to prevent ADDON_ACTION_BLOCKED taint errors
+  - Deferred layout updates when in combat, applied after PLAYER_REGEN_ENABLED
+- **Drag handle hitbox**: Reduced from 22x22 to 14x14 pixels to prevent tooltip obstruction
+- **Mobile Banking availability**: Corrected guild reputation check using C_Reputation API instead of incorrect GetGuildInfo usage
+
+## [0.3.2] - 2025-12-19
+
+### Added
+- **Character & Server module**: Race/class icons, realm name, shard ID detection via combat log monitoring, movement speed display with real-time updates
+- **Gold & Economy module**: Character, warband, and guild gold tracking
+  - Session tracking: elapsed time, gold earned, gold per hour
+  - WoW Token price display with trend indicator (up/down arrows)
+  - Posted auctions tracking with TSM integration
+- **Inventory module**: Normal and reagent bag slot counts, bag value calculation with TSM integration, warband bank access indicator
+- **Item Tracker bar**: Drag-and-drop support for tracking items across characters
+- **Currency Tracker bar**: Track multiple currencies with icon display
+- **Utility Bar**: Secure action buttons for quick access
+  - Mobile Banking, Mailbox, Warband Bank
+  - Hearthstone button with automatic toy detection
+  - Dalaran and Garrison Hearthstone buttons
+- **Tooltip ID display**: Show IDs for items, spells, NPCs, currencies, etc.
+- **Options panel**: Comprehensive configuration via `/gtb` command
+  - Hide in combat / hide in instances options
+  - Module and element toggles
+  - TSM price source configuration
+- **Movable frames**: HUD and auxiliary bars with hardware LED-style drag handles
+- **Frame controls**: Resizable, lockable HUD frames
 
 ### Notes
+- Initial public release
 - Professions module currently paused pending Midnight API stabilization
-- Some features marked incomplete in development status
 
 ## [Unreleased]
 
@@ -66,7 +217,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sales tracker (AH/Trade/Crafting Orders)
 - Cooking fire utility button
 - Portable anvil utility button
-- Housing teleport button
 - Auctionator price source support
-- Gold spent tracking (session)
 - Extended time period tracking (day/week/month)
