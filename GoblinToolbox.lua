@@ -125,6 +125,7 @@ local EventHandlers = {
         addon:CreateTrackerFrame()
         addon:CreateCurrencyFrame()
         addon:CreateUtilityBar()
+        addon:ApplyScale()  -- Apply saved scale to all frames
         addon:UpdateBackground()
         addon:UpdateTitleBar()
 
@@ -397,6 +398,36 @@ local EventHandlers = {
             addon.Gold:RecomputePostedTotalsFromOwned()
         end
     end,
+
+    PLAYER_FLAGS_CHANGED = function(unit)
+        -- Only care about player's AFK status
+        if unit ~= "player" then
+            return
+        end
+
+        -- Check if AFK auto-pause is enabled
+        if not addon.db or not addon.db.global or not addon.db.global.afkAutoPause then
+            return
+        end
+
+        local isAFK = UnitIsAFK("player")
+
+        if isAFK then
+            -- Player went AFK - auto-pause session
+            if addon.Gold and addon.Gold.PauseSessionForAFK then
+                addon.Gold:PauseSessionForAFK()
+                addon:UpdateGoldSection()
+                addon:SafeLayoutHUD()
+            end
+        else
+            -- Player returned from AFK - auto-resume session
+            if addon.Gold and addon.Gold.ResumeSessionFromAFK then
+                addon.Gold:ResumeSessionFromAFK()
+                addon:UpdateGoldSection()
+                addon:SafeLayoutHUD()
+            end
+        end
+    end,
 }
 
 -- Cooldown-related events share one handler
@@ -444,6 +475,7 @@ EventFrame:RegisterEvent("CHAT_MSG_LOOT")
 EventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")
 EventFrame:RegisterEvent("AUCTION_HOUSE_CLOSED")
 EventFrame:RegisterEvent("OWNED_AUCTIONS_UPDATED")
+EventFrame:RegisterEvent("PLAYER_FLAGS_CHANGED")
 
 -- Cooldown events
 local cooldownEvents = {

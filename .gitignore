@@ -39,3 +39,4 @@ dist/
 *.temp
 tmpclaude-*
 .claude/
+CLAUDE.md

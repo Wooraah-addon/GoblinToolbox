@@ -884,6 +884,24 @@ local function CreateConfigFrame()
         end
     end)
 
+    -- Clear Note button
+    f.charNoteClearBtn = CreateFrame("Button", nil, scrollChild, "UIPanelButtonTemplate")
+    f.charNoteClearBtn:SetPoint("LEFT", f.charNoteSaveBtn, "RIGHT", 6, 0)
+    f.charNoteClearBtn:SetSize(80, 22)
+    f.charNoteClearBtn:SetText("Clear Note")
+    f.charNoteClearBtn:SetScript("OnClick", function(self)
+        f.charNoteEdit:SetText("")
+        local charCache = addon:GetCharacterCache()
+        if charCache then
+            charCache.note = ""
+            if addon.Character and addon.Character.Update then
+                addon.Character:Update()
+            end
+            addon:SafeLayoutHUD()
+            print("Goblin Toolbox: Character note cleared.")
+        end
+    end)
+
     y = y - 94
 
     -- Gold & Economy module with sub-elements
@@ -1169,6 +1187,19 @@ local function CreateConfigFrame()
     end)
     f.sessionPersistCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     goldOptsSection:AddChild(f.sessionPersistCB)
+    y = y - ITEM_HEIGHT
+
+    f.afkAutoPauseCB = CreateCheckbox(scrollChild, "Auto-pause session when AFK", INDENT, y)
+    f.afkAutoPauseCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Auto-Pause on AFK", 1, 1, 1)
+        GameTooltip:AddLine("Pauses session timer when AFK, resumes when you return. Prevents idle time from affecting gold/hour.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(" ", 1, 1, 1)
+        GameTooltip:AddLine("|cff00ff00Account-wide:|r Applies to all characters.", 0.6, 1, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.afkAutoPauseCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    goldOptsSection:AddChild(f.afkAutoPauseCB)
     y = y - ITEM_HEIGHT - SECTION_GAP
 
     -----------------------------------------------------------------------
@@ -1398,6 +1429,7 @@ local function CreateConfigFrame()
         f.bgCB:SetChecked(db.showBackground)
         f.wbBankDefaultCB:SetChecked(db.preferWarbandBankOnOpen)
         f.sessionPersistCB:SetChecked(addon.db.global.sessionPersistOnLogout or false)
+        f.afkAutoPauseCB:SetChecked(addon.db.global.afkAutoPause ~= false)  -- Default true
 
         local opacity = addon.db.global.backgroundOpacity or 0.30
         f.opacityContainer.slider:SetValue(opacity)
@@ -1582,6 +1614,7 @@ local function CreateConfigFrame()
         db.showBackground       = f.bgCB:GetChecked()
         db.preferWarbandBankOnOpen = f.wbBankDefaultCB:GetChecked()
         addon.db.global.sessionPersistOnLogout = f.sessionPersistCB:GetChecked()
+        addon.db.global.afkAutoPause = f.afkAutoPauseCB:GetChecked()
         addon.db.global.tsmCustomSource = f.customEdit:GetText() or ""
 
         -- Modules
@@ -1733,6 +1766,7 @@ local function CreateConfigFrame()
     HookCheckbox(f.bgCB)
     HookCheckbox(f.wbBankDefaultCB)
     HookCheckbox(f.sessionPersistCB)
+    HookCheckbox(f.afkAutoPauseCB)
     HookCheckbox(f.trackerCB)
     HookCheckbox(f.currencyCB)
     HookCheckbox(f.showTrackedItemValueCB)

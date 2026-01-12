@@ -948,7 +948,19 @@ local function UpdateUtilityButtonCooldown(btn)
     end
 
     local start, duration, enabled = GetCooldownForUtilityButton(btn)
-    local valid = (enabled == 1 and start > 0 and duration and duration > 1.5)
+
+    -- Filter out short cooldowns during combat for hearthstone-type items
+    -- (prevents spurious GCD swirlies from appearing on hearthstone icons)
+    local def = btn.utilDef
+    local minDuration = 1.5
+    if InCombatLockdown() and def.kind == "item" then
+        local isHearthstoneType = (def.key == "hearthstone" or def.key == "dalaranHS" or def.key == "garrisonHS")
+        if isHearthstoneType then
+            minDuration = 3.0  -- Require at least 3s cooldown during combat to filter out GCD noise
+        end
+    end
+
+    local valid = (enabled == 1 and start > 0 and duration and duration > minDuration)
 
     if valid then
         if btn._lastStart ~= start or btn._lastDuration ~= duration then

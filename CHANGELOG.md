@@ -5,6 +5,30 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-01-12
+
+### Added
+- **AFK auto-pause**: Session timer automatically pauses when you go AFK and resumes when you return
+  - Enabled by default as account-wide setting
+  - Displays "Paused AFK" indicator in red next to hourglass icon during AFK pause
+  - Chat messages: "Session paused - AFK" and "Session resumed - No longer AFK"
+  - Works with both manual `/afk` command and automatic AFK detection
+  - Independent of manual pause - manual pause remains active after clearing AFK
+- **Clear Note button**: Added "Clear Note" button next to "Save Note" in Character section for quick note removal
+
+### Fixed
+- **Utility Bar scale**: Fixed bug where Utility Bar would reset to scale 1.0 on `/reload` when custom UI scale was set
+  - Utility Bar, Tracker Bar, and Currency Bar now correctly apply saved scale on startup
+- **Hearthstone cooldown display**: Fixed spurious GCD cooldown animations appearing on hearthstone icons during combat
+  - Filtered out short cooldowns (<3s) for hearthstone items during combat to eliminate GCD artifacts
+
+### Technical
+- Added `ApplyScale()` call during PLAYER_LOGIN initialization to ensure all frames receive saved scale
+- Added `afkAutoPause` to global settings (default: true)
+- Implemented `PLAYER_FLAGS_CHANGED` event handler for AFK detection
+- Added `pausedByAFK` state flag (runtime only, not persisted)
+- AFK pause state automatically cleared on session restore
+
 ## [0.7.1] - 2026-01-12
 
 ### Added

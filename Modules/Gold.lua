@@ -154,6 +154,7 @@ function Gold:ResetSession()
     s.sessionStartGold = GetMoney()
     s.sessionStartTime = time()
     s.sessionPaused = false
+    s.pausedByAFK = false
     s.pauseStartTime = nil
     s.pausedDuration = 0
     s.pauseGoldSnapshot = nil
@@ -201,6 +202,58 @@ function Gold:TogglePauseSession()
         s.pauseGoldSnapshot = GetMoney()
         print("Goblin Toolbox: session paused.")
     end
+end
+
+function Gold:PauseSessionForAFK()
+    local s = addon.state
+
+    -- Don't pause if already paused (manually or by AFK)
+    if s.sessionPaused then
+        return
+    end
+
+    -- Don't pause if no session active
+    if not s.sessionStartTime then
+        return
+    end
+
+    -- Pause and mark as AFK-triggered
+    s.sessionPaused = true
+    s.pausedByAFK = true
+    s.pauseStartTime = time()
+    s.pauseGoldSnapshot = GetMoney()
+
+    print("|cff00ff00Goblin Toolbox:|r Session paused - AFK")
+end
+
+function Gold:ResumeSessionFromAFK()
+    local s = addon.state
+
+    -- Only resume if paused BY AFK (not manually paused)
+    if not s.sessionPaused or not s.pausedByAFK then
+        return
+    end
+
+    -- Resume session
+    s.sessionPaused = false
+    s.pausedByAFK = false
+
+    if s.pauseStartTime then
+        s.pausedDuration = s.pausedDuration + (time() - s.pauseStartTime)
+    end
+    s.pauseStartTime = nil
+
+    -- Adjust sessionStartGold to exclude gold gained/lost during pause
+    if s.pauseGoldSnapshot then
+        local goldDuringPause = GetMoney() - s.pauseGoldSnapshot
+        s.sessionStartGold = s.sessionStartGold + goldDuringPause
+        s.pauseGoldSnapshot = nil
+    end
+
+    -- Reset lastMoney to current gold so delta tracking starts clean
+    s.lastMoney = GetMoney()
+
+    print("|cff00ff00Goblin Toolbox:|r Session resumed - No longer AFK")
 end
 
 function Gold:SaveSessionState()
@@ -309,6 +362,7 @@ function Gold:LoadSessionState()
     s.sessionStartGold = saved.sessionStartGold
     s.sessionStartTime = saved.sessionStartTime
     s.sessionPaused = saved.sessionPaused
+    s.pausedByAFK = false  -- Always clear on restore (AFK system will handle itself after login)
     s.pauseStartTime = saved.pauseStartTime
     s.pausedDuration = saved.pausedDuration or 0
     s.pauseGoldSnapshot = saved.pauseGoldSnapshot
@@ -1108,11 +1162,17 @@ function Gold:Update()
         end
 
         local isPaused = s.sessionPaused
+        local isPausedByAFK = s.pausedByAFK
 
         -- Session time display: clock icon + time (red when paused, green when running)
+        -- When paused by AFK, show "Paused AFK" indicator to the left of the hourglass
         local sessionTimeDisplay
         if isPaused then
-            sessionTimeDisplay = string.format("%s |cffff4444%s|r", CLOCK_ICON_RED, timeStr)
+            if isPausedByAFK then
+                sessionTimeDisplay = string.format("|cffff4444Paused AFK|r %s |cffff4444%s|r", CLOCK_ICON_RED, timeStr)
+            else
+                sessionTimeDisplay = string.format("%s |cffff4444%s|r", CLOCK_ICON_RED, timeStr)
+            end
         else
             sessionTimeDisplay = string.format("%s |cff00ff00%s|r", CLOCK_ICON_GREEN, timeStr)
         end

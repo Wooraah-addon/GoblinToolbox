@@ -186,6 +186,7 @@ local DEFAULTS = {
     global = {
         accountLabel = "",  -- Account-wide label shown in Character section (e.g., "WOW1")
         sessionPersistOnLogout = false,  -- User preference for session data persistence (separate from profiles)
+        afkAutoPause = true,  -- Auto-pause session when player goes AFK (enabled by default)
         -- Appearance settings (account-wide visual preferences)
         scale = 1.0,
         fontSize = 13,
