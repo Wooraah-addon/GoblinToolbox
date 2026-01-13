@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-0.7.0-green)
+  ![Version](https://img.shields.io/badge/Version-1.0.0-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview
@@ -69,7 +69,11 @@
 
   ## Installation
 
-  1. Download the latest release from [GitHub Releases](https://github.com/Wooraah-addon/GoblinToolbox/releases)
+  **CurseForge (Recommended):**
+  - Install via [CurseForge](https://www.curseforge.com/wow/addons/goblintoolbox) app or download directly
+
+  **Manual Installation:**
+  1. Download the latest release from [GitHub Releases](https://github.com/Wooraah-addon/GoblinToolbox/releases) or [CurseForge](https://www.curseforge.com/wow/addons/goblintoolbox)
   2. Extract to your `World of Warcraft\_retail_\Interface\AddOns\` folder
   3. Ensure the folder is named `GoblinToolbox`
   4. Restart WoW or `/reload`
@@ -112,8 +116,6 @@
   - Optional: TradeSkillMaster for advanced price data
 
   ## Roadmap
-
-  See [Current_Development_status.txt](Current_Development_status.txt) for detailed feature status and active development tasks.
 
   **Recent Updates:**
   - ✅ Posted auctions tracking (v0.5.2)

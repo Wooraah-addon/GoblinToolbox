@@ -143,7 +143,7 @@ local function CreateResizeGrip(frame)
                 SaveFrameWidth(frame)
                 SaveFramePosition(frame)
                 self.isResizing = false
-                addon:SafeLayoutHUD()
+                addon:SafeLayoutHUD(true)  -- Immediate layout for user action completion
             end
         end
     end)
@@ -201,7 +201,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.collapsed = not section.collapsed
         p.collapsed[key] = section.collapsed
         SetToggleTextures(section)
-        addon:SafeLayoutHUD()
+        addon:SafeLayoutHUD(true)  -- Immediate layout for user action
     end)
 
     section.header = frame:CreateFontString(nil, "OVERLAY")
@@ -254,7 +254,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.sessionResetBtn:SetScript("OnClick", function()
             addon:ResetSession()
             addon:UpdateGoldSection()
-            addon:SafeLayoutHUD()
+            addon:SafeLayoutHUD(true)  -- Immediate layout for user action
         end)
 
         section.sessionPauseBtn = CreateFrame("Button", nil, frame)
@@ -290,7 +290,7 @@ local function CreateSection(frame, key, headerText, numLines)
             addon:TogglePauseSession()
             UpdatePauseButtonTexture()
             addon:UpdateGoldSection()
-            addon:SafeLayoutHUD()
+            addon:SafeLayoutHUD(true)  -- Immediate layout for user action
         end)
 
         section.UpdatePauseButtonTexture = UpdatePauseButtonTexture
@@ -642,7 +642,7 @@ local function CreateHUD()
     tb.minimize:SetHighlightTexture("Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight")
     tb.minimize:SetScript("OnClick", function()
         HUD.minimized = not HUD.minimized
-        addon:SafeLayoutHUD()
+        addon:SafeLayoutHUD(true)  -- Immediate layout for user action
     end)
 
     CreateResizeGrip(frame)

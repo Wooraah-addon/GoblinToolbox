@@ -1096,7 +1096,7 @@ function addon:ApplyProfileAndRefresh(reason)
     end
 
     if self.SafeLayoutHUD then
-        self:SafeLayoutHUD()
+        self:SafeLayoutHUD(true)  -- Immediate layout for profile switch (user action)
     end
 
     -- If config frame is open, refresh it
@@ -1330,12 +1330,3 @@ function addon:GetModule(key)
     return self.modules[key]
 end
 
------------------------------------------------------------------------
--- Debug helper (optional, useful during development)
------------------------------------------------------------------------
-
-function addon:Debug(...)
-    if self.db and self.db.profile and self.db.profile.debug then
-        print("|cff00ff00[GTB Debug]|r", ...)
-    end
-end

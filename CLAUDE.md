@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v0.7.1**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.0.0**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -156,14 +156,11 @@ Counts tracked both aggregated by `itemID` and rank-aware by `itemID:rank` key (
 - All external calls must be `pcall`'d and nil-guarded.
 - Planned: Auctionator / Oribos Exchange support
 
-## Current Development Status
+## Future Enhancements
 
-See `Current Development status.txt` for detailed tracking of feature completion and bugs.
-
-**High priority items**:
-- Auctionator price source support
-- Profile management / presets / import-export (lightweight approach)
-- Code cleanup pass prior to wider release
+**Post v1.0.0 priorities**:
+- Auctionator / Oribos Exchange price source support
+- Profile import/export functionality
 
 ## Debug / Slash Commands
 
@@ -224,14 +221,12 @@ See `Current Development status.txt` for detailed tracking of feature completion
 
 When the user says "push and commit to git" or "commit this as vX.Y.Z", you MUST:
 
-1. **Update CHANGELOG.md** - Add or update the version section with comprehensive Added/Changed/Fixed entries
+1. **Update CHANGELOG.md** - Add or update the version section with Added/Changed/Fixed entries
 2. **Update version references** - Ensure TOC file and CLAUDE.md reflect the new version
 3. **Commit changes** - Stage all modified files and commit with descriptive message
-4. **Push to remote** - `git push origin main`
-5. **Create and push tag** - `git tag -a vX.Y.Z -m "Release vX.Y.Z - Brief description"` then `git push origin vX.Y.Z`
-6. **Provide release link** - Give the user a clickable hyperlink to the GitHub release page: `https://github.com/Wooraah-addon/GoblinToolbox/releases/tag/vX.Y.Z`
+4. **Push and tag** - `git push origin main && git tag vX.Y.Z && git push origin vX.Y.Z`
 
-This ensures complete release documentation and makes it easy for users to access the published version.
+CurseForge automatically packages and publishes tagged commits via GitHub integration. No manual upload required.
 
 ## Testing Checklist
 

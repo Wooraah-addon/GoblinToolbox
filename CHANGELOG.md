@@ -5,6 +5,26 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-01-13
+
+### Added
+- **CurseForge distribution**: Addon now available on CurseForge with automatic packaging from GitHub tags
+
+### Changed
+- **HUD refresh optimization**: Implemented coalesced refresh scheduler to reduce UI churn during event storms
+  - Event-driven updates (money changes, bag updates, AH activity) now debounce with 0.3s delay
+  - User actions (button clicks, toggles, resizing) remain instant for responsive feedback
+  - Significantly reduces layout passes during mass auction posting and rapid looting
+- **Release workflow**: Streamlined release process with CurseForge GitHub integration
+
+### Removed
+- Removed unused `addon:Debug()` function (dead code cleanup)
+
+### Notes
+- First stable public release
+- All core features complete and tested
+- Ready for general use
+
 ## [0.7.2] - 2026-01-12
 
 ### Added

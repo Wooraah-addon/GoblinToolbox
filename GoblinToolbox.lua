@@ -81,14 +81,47 @@ end
 
 -----------------------------------------------------------------------
 -- Safe layout helper (prevents combat taint)
+-- Optional immediate parameter for user actions that need instant feedback
 -----------------------------------------------------------------------
 
-function addon:SafeLayoutHUD()
+function addon:SafeLayoutHUD(immediate)
     if InCombatLockdown() then
         self._needsLayoutRefresh = true
         return
     end
-    self:LayoutHUD()
+
+    -- Immediate mode: cancel any pending timer and layout now
+    if immediate then
+        if self._layoutRefreshTimer then
+            self._layoutRefreshTimer:Cancel()
+            self._layoutRefreshTimer = nil
+        end
+        self._layoutRefreshPending = false
+        self:LayoutHUD()
+        return
+    end
+
+    -- Debounced mode (default): coalesce rapid updates
+    if self._layoutRefreshPending then
+        return  -- Already scheduled, no need to reschedule
+    end
+
+    self._layoutRefreshPending = true
+
+    if self._layoutRefreshTimer then
+        self._layoutRefreshTimer:Cancel()
+    end
+
+    self._layoutRefreshTimer = C_Timer.NewTimer(0.3, function()
+        self._layoutRefreshTimer = nil
+        self._layoutRefreshPending = false
+
+        if not InCombatLockdown() then
+            self:LayoutHUD()
+        else
+            self._needsLayoutRefresh = true
+        end
+    end)
 end
 
 -----------------------------------------------------------------------
@@ -525,13 +558,13 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
             addon.db.profile.sessionState = {}
         end
         addon:UpdateGoldSection()
-        addon:SafeLayoutHUD()
+        addon:SafeLayoutHUD(true)  -- Immediate layout for user command
         print("Goblin Toolbox: session reset.")
 
     elseif cmd == "pause" or cmd == "resume" then
         addon:TogglePauseSession()
         addon:UpdateGoldSection()
-        addon:SafeLayoutHUD()
+        addon:SafeLayoutHUD(true)  -- Immediate layout for user command
 
     elseif cmd == "lock" then
         addon.db.profile.lockFrame = true
