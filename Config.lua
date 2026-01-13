@@ -1853,9 +1853,58 @@ local function CreateConfigFrame()
         Apply()
     end)
 
-    -- Expose Refresh for external use (profile switching, etc.)
+    -- Flash profile dropdown to visually indicate profile change
+    local function FlashProfileDropdown()
+        if not f or not f.profileDropdown then
+            return
+        end
+
+        local dropdown = f.profileDropdown
+        local text = _G[dropdown:GetName() .. "Text"]
+        if not text then
+            return
+        end
+
+        -- Cancel any existing flash animation
+        if dropdown.flashTimer then
+            dropdown.flashTimer:Cancel()
+        end
+
+        -- Flash animation: 3 pulses over 1.5 seconds
+        local pulseCount = 0
+        local maxPulses = 3
+        local pulseDuration = 0.25  -- 250ms per pulse (on + off)
+
+        local function pulse()
+            pulseCount = pulseCount + 1
+            if pulseCount > maxPulses then
+                -- Reset to default color
+                text:SetTextColor(1, 1, 1)
+                dropdown.flashTimer = nil
+                return
+            end
+
+            -- Green flash
+            text:SetTextColor(0, 1, 0)
+
+            -- Reset to white after half pulse duration
+            C_Timer.After(pulseDuration / 2, function()
+                if text then
+                    text:SetTextColor(1, 1, 1)
+                    -- Schedule next pulse
+                    C_Timer.After(pulseDuration / 2, pulse)
+                end
+            end)
+        end
+
+        -- Start first pulse
+        pulse()
+    end
+
+    -- Expose Refresh and FlashProfileDropdown for external use
     addon.Config = addon.Config or {}
     addon.Config.Refresh = Refresh
+    addon.Config.FlashProfileDropdown = FlashProfileDropdown
 end
 
 -----------------------------------------------------------------------

@@ -1099,9 +1099,13 @@ function addon:ApplyProfileAndRefresh(reason)
         self:SafeLayoutHUD(true)  -- Immediate layout for profile switch (user action)
     end
 
-    -- If config frame is open, refresh it
+    -- If config frame is open, refresh it and flash profile indicator
     if self.Config and self.Config.Refresh then
         self.Config:Refresh()
+        -- Add visual flash to profile dropdown to show it changed
+        if self.Config.FlashProfileDropdown then
+            self.Config:FlashProfileDropdown()
+        end
     end
 
     -- Print confirmation message

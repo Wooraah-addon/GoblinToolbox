@@ -223,7 +223,7 @@ function Gold:PauseSessionForAFK()
     s.pauseStartTime = time()
     s.pauseGoldSnapshot = GetMoney()
 
-    print("|cff00ff00Goblin Toolbox:|r Session paused - AFK")
+    print("|cff00ff00Goblin Toolbox:|r Session auto-paused - AFK")
 end
 
 function Gold:ResumeSessionFromAFK()
@@ -253,7 +253,7 @@ function Gold:ResumeSessionFromAFK()
     -- Reset lastMoney to current gold so delta tracking starts clean
     s.lastMoney = GetMoney()
 
-    print("|cff00ff00Goblin Toolbox:|r Session resumed - No longer AFK")
+    print("|cff00ff00Goblin Toolbox:|r Session auto-resumed - No longer AFK")
 end
 
 function Gold:SaveSessionState()
@@ -1165,13 +1165,14 @@ function Gold:Update()
         local isPausedByAFK = s.pausedByAFK
 
         -- Session time display: clock icon + time (red when paused, green when running)
-        -- When paused by AFK, show "Paused AFK" indicator to the left of the hourglass
+        -- When paused by AFK, show "Auto-Paused - AFK" indicator to the left of the hourglass
+        -- When paused manually, show "Manually Paused" indicator to the left of the hourglass
         local sessionTimeDisplay
         if isPaused then
             if isPausedByAFK then
-                sessionTimeDisplay = string.format("|cffff4444Paused AFK|r %s |cffff4444%s|r", CLOCK_ICON_RED, timeStr)
+                sessionTimeDisplay = string.format("|cffff4444Auto-Paused - AFK|r %s |cffff4444%s|r", CLOCK_ICON_RED, timeStr)
             else
-                sessionTimeDisplay = string.format("%s |cffff4444%s|r", CLOCK_ICON_RED, timeStr)
+                sessionTimeDisplay = string.format("|cffff4444Manually Paused|r %s |cffff4444%s|r", CLOCK_ICON_RED, timeStr)
             end
         else
             sessionTimeDisplay = string.format("%s |cff00ff00%s|r", CLOCK_ICON_GREEN, timeStr)

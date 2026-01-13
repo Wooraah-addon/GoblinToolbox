@@ -5,6 +5,20 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-01-13
+
+### Fixed
+- **HUD tooltip visibility**: Fixed tooltips displaying when HUD is minimized - all section tooltips now properly hidden when minimized
+
+### Changed
+- **Session pause indicators**: Improved clarity of pause state display
+  - Manual pause: Now shows "Manually Paused" in red before hourglass icon
+  - AFK auto-pause: Changed from "Paused AFK" to "Auto-Paused - AFK" in red
+  - Chat messages now say "auto-paused" and "auto-resumed" for consistency
+- **Profile change feedback**: Added visual flash indicator to profile dropdown when switching/copying profiles
+  - Dropdown text pulses green 3 times to make profile changes more obvious
+  - Helps prevent confusion when profiles auto-switch after copying
+
 ## [1.0.2] - 2026-01-13
 
 ### Changed

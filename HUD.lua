@@ -115,7 +115,7 @@ local function CreateResizeGrip(frame)
     highlightTexture:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
 
     grip:SetScript("OnEnter", function(self)
-        if addon.db.profile.lockFrame then
+        if addon.db.profile.lockFrame or HUD.minimized then
             return
         end
         GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
@@ -225,6 +225,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.shardTooltipBtn:EnableMouse(true)
 
         section.shardTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Shard ID", 1, 1, 1)
             GameTooltip:AddLine("WoW splits busy zones into multiple parallel instances ('shards'). This shows which one you're on. If ShardID shows as \"Unknown\", click on an NPC to update it.", 0.8, 0.8, 0.8, true)
@@ -245,6 +246,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.sessionResetBtn:SetHighlightAtlas("common-icon-undo")
 
         section.sessionResetBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Reset Session")
             GameTooltip:AddLine("Resets session start gold and timer.", 1, 1, 1, true)
@@ -274,6 +276,7 @@ local function CreateSection(frame, key, headerText, numLines)
         end
 
         section.sessionPauseBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             local s = addon.state
             if s.sessionPaused then
@@ -309,6 +312,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.tokenTooltipBtn:EnableMouse(true)
 
         section.tokenTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("WoW Token Price", 1, 1, 1)
 
@@ -361,6 +365,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.earnedTooltipBtn:EnableMouse(true)
 
         section.earnedTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Session Earned", 1, 1, 1)
             GameTooltip:AddLine("Tracks gold gained during the current session from all sources (quest rewards, vendor sales, mail, etc.). Only positive gold changes are counted.", 0.8, 0.8, 0.8, true)
@@ -377,6 +382,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.lootedTooltipBtn:EnableMouse(true)
 
         section.lootedTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Looted Value", 1, 1, 1)
 
@@ -404,6 +410,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.postedTooltipBtn:EnableMouse(true)
 
         section.postedTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Posted Auctions", 1, 1, 1)
             GameTooltip:AddLine("Displays the total buyout value and count of your currently active auctions. Updates when you open the auction house or post new auctions. Uses Blizzard's auction data API.", 0.8, 0.8, 0.8, true)
@@ -420,6 +427,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.sessionHeaderTooltipBtn:EnableMouse(true)
 
         section.sessionHeaderTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Session Tracking", 1, 1, 1)
             GameTooltip:AddLine("Click the pause button to pause or resume session tracking. When paused, the icon turns red and tracking stops for both gold gains and looted item values. Configure auto-reset on logout or session persistence in the options menu.", 0.8, 0.8, 0.8, true)
@@ -438,6 +446,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.bagValueTooltipBtn:EnableMouse(true)
 
         section.bagValueTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Bag Value", 1, 1, 1)
 
@@ -466,6 +475,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.bagSlotsTooltipBtn:EnableMouse(true)
         
         section.bagSlotsTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Free Normal Bag Slots / Free Reagent Bag Slots", 1, 1, 1, 1, true)
             GameTooltip:Show()
@@ -481,6 +491,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.warbankTooltipBtn:EnableMouse(true)
 
         section.warbankTooltipBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Warbank Access Indicator", 1, 1, 1)
             GameTooltip:AddLine("The Warband Bank is shared across your Battle.net account. If you are logged in on multiple WoW clients simultaneously, this indicator will clearly show which of your clients has access to the Warband Bank.", 0.8, 0.8, 0.8, true)
