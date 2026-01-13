@@ -5,6 +5,15 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-01-13
+
+### Changed
+- **Header button sizes**: Increased lock and minimize button sizes by 30% for better visibility
+  - Lock button: 20px → 26px
+  - Minimize button: 16px → 26px (now matches lock button size)
+  - Addresses user feedback about buttons being too small and easy to miss
+- **Guild bank clarity**: Changed "Visit" to "Visit GBank" to match the "GBank:" label added in v1.0.2
+
 ## [1.0.3] - 2026-01-13
 
 ### Fixed

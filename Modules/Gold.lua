@@ -1108,7 +1108,7 @@ function Gold:Update()
                 guildText = guildText .. " |TInterface\\TimeManager\\Clock-Red:0:0:0:0|t"
             end
         else
-            guildText = "|cffff4444Visit|r"
+            guildText = "|cffff4444Visit GBank|r"
         end
 
         table.insert(goldParts, "GBank: " .. guildText)

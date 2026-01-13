@@ -573,6 +573,7 @@ local function CreateHUD()
     tb.title:SetText("Goblin Toolbox")
 
     local btnSize = 16
+    local lockMinimizeSize = 26  -- 30% larger than original 20px lock button, matches for consistency
 
     tb.close = CreateFrame("Button", nil, tb, "UIPanelCloseButton")
     tb.close:SetPoint("RIGHT", tb, "RIGHT", -2, 0)
@@ -596,7 +597,7 @@ local function CreateHUD()
     tb.menu:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     tb.lock = CreateFrame("Button", nil, tb)
-    tb.lock:SetSize(20, 20)
+    tb.lock:SetSize(lockMinimizeSize, lockMinimizeSize)
     tb.lock:SetPoint("RIGHT", tb.menu, "LEFT", -4, 0)
 
     tb.lock:SetScript("OnEnter", function(self)
@@ -646,7 +647,7 @@ local function CreateHUD()
     end)
 
     tb.minimize = CreateFrame("Button", nil, tb)
-    tb.minimize:SetSize(btnSize, btnSize)
+    tb.minimize:SetSize(lockMinimizeSize, lockMinimizeSize)
     tb.minimize:SetPoint("RIGHT", tb.lock, "LEFT", -2, 0)
     tb.minimize:SetNormalTexture("Interface\\Buttons\\UI-Panel-HideButton-Up")
     tb.minimize:SetPushedTexture("Interface\\Buttons\\UI-Panel-HideButton-Down")
