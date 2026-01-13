@@ -54,10 +54,18 @@ local function CreateDragHandle(parent)
         if not db then
             return
         end
-        local point, _, relPoint, xOfs, yOfs = parent:GetPoint(1)
-        if point and relPoint and xOfs and yOfs then
-            db.trackerPoint, db.trackerRelPoint, db.trackerXOfs, db.trackerYOfs =
-                point, relPoint, xOfs, yOfs
+        -- Get current screen position and re-anchor to TOPLEFT
+        local left = parent:GetLeft()
+        local top = parent:GetTop()
+        if left and top then
+            -- Re-anchor frame to TOPLEFT so it grows right from fixed position
+            parent:ClearAllPoints()
+            parent:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+            -- Save position for persistence
+            db.trackerPoint = "TOPLEFT"
+            db.trackerRelPoint = "BOTTOMLEFT"
+            db.trackerXOfs = left
+            db.trackerYOfs = top
         end
     end)
     
@@ -146,10 +154,18 @@ function addon:CreateTrackerFrame()
         if not db then
             return
         end
-        local point, _, relPoint, xOfs, yOfs = frame:GetPoint(1)
-        if point and relPoint and xOfs and yOfs then
-            db.trackerPoint, db.trackerRelPoint, db.trackerXOfs, db.trackerYOfs =
-                point, relPoint, xOfs, yOfs
+        -- Get current screen position and re-anchor to TOPLEFT
+        local left = frame:GetLeft()
+        local top = frame:GetTop()
+        if left and top then
+            -- Re-anchor frame to TOPLEFT so it grows right from fixed position
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+            -- Save position for persistence
+            db.trackerPoint = "TOPLEFT"
+            db.trackerRelPoint = "BOTTOMLEFT"
+            db.trackerXOfs = left
+            db.trackerYOfs = top
         end
     end)
 
@@ -161,10 +177,10 @@ function addon:CreateTrackerFrame()
     })
     f:SetBackdropBorderColor(0.2, 0.3, 0.2, 1)  -- Green-grey tint for item tracker bar
 
-    -- Default position: fixed position below utility bar default area (no auto-snapping)
+    -- Default position: always use TOPLEFT anchor so bar grows right from fixed position
     local db = addon.db.profile
-    if db.trackerPoint and db.trackerRelPoint and db.trackerXOfs and db.trackerYOfs then
-        f:SetPoint(db.trackerPoint, UIParent, db.trackerRelPoint, db.trackerXOfs, db.trackerYOfs)
+    if db.trackerXOfs and db.trackerYOfs then
+        f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", db.trackerXOfs, db.trackerYOfs)
     else
         f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -475)
     end
@@ -268,13 +284,26 @@ function addon:RestoreTrackerBarPosition()
     if not f then return end
 
     local db = self.db.profile
-    if db.trackerPoint and db.trackerRelPoint and db.trackerXOfs and db.trackerYOfs then
+    if db.trackerXOfs and db.trackerYOfs then
         f:ClearAllPoints()
-        f:SetPoint(db.trackerPoint, UIParent, db.trackerRelPoint, db.trackerXOfs, db.trackerYOfs)
+        f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", db.trackerXOfs, db.trackerYOfs)
     else
-        -- No saved position, use fixed default (no auto-snapping)
+        -- No saved position, use fixed default
         f:ClearAllPoints()
         f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -475)
+    end
+end
+
+-----------------------------------------------------------------------
+-- Helper to ensure frame is anchored at TOPLEFT (so it grows right)
+-----------------------------------------------------------------------
+
+local function EnsureLeftAnchor(frame)
+    local left = frame:GetLeft()
+    local top = frame:GetTop()
+    if left and top then
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
     end
 end
 
@@ -390,8 +419,12 @@ function addon:UpdateTrackedBar()
             f.addButton:Show()
             UpdateSourceIndicator()
             local padding = addon.CONST.PADDING
-            local addButtonSize = addon.CONST.BUTTON_SIZE_SMALL * 0.7
-            f:SetSize(padding * 2 + addButtonSize, padding * 2 + addButtonSize)
+            local buttonSize = addon.CONST.BUTTON_SIZE_SMALL
+            local addButtonSize = buttonSize * 0.7
+            -- Re-anchor to TOPLEFT before resize so bar grows right from fixed position
+            EnsureLeftAnchor(f)
+            -- Use full buttonSize for height so frame doesn't shift vertically when items are added
+            f:SetSize(padding * 2 + addButtonSize, buttonSize + padding * 2)
         end
         return
     end
@@ -473,6 +506,8 @@ function addon:UpdateTrackedBar()
     -- Calculate width: padding + add button + spacing + items
     local addButtonSize = buttonSize * 0.7
     local totalWidth = padding + addButtonSize + spacing + (numTracked * buttonSize) + ((numTracked - 1) * spacing) + padding
+    -- Re-anchor to TOPLEFT before resize so bar grows right from fixed position
+    EnsureLeftAnchor(f)
     f:SetSize(totalWidth, buttonSize + padding * 2)
 
     local prev = f.addButton  -- Start positioning after the add button

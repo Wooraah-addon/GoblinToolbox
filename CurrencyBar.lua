@@ -54,10 +54,18 @@ local function CreateDragHandle(parent)
         if not db then
             return
         end
-        local point, _, relPoint, xOfs, yOfs = parent:GetPoint(1)
-        if point and relPoint and xOfs and yOfs then
-            db.currencyPoint, db.currencyRelPoint, db.currencyXOfs, db.currencyYOfs =
-                point, relPoint, xOfs, yOfs
+        -- Get current screen position and re-anchor to TOPLEFT
+        local left = parent:GetLeft()
+        local top = parent:GetTop()
+        if left and top then
+            -- Re-anchor frame to TOPLEFT so it grows right from fixed position
+            parent:ClearAllPoints()
+            parent:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+            -- Save position for persistence
+            db.currencyPoint = "TOPLEFT"
+            db.currencyRelPoint = "BOTTOMLEFT"
+            db.currencyXOfs = left
+            db.currencyYOfs = top
         end
     end)
     
@@ -146,10 +154,18 @@ function addon:CreateCurrencyFrame()
         if not db then
             return
         end
-        local point, _, relPoint, xOfs, yOfs = frame:GetPoint(1)
-        if point and relPoint and xOfs and yOfs then
-            db.currencyPoint, db.currencyRelPoint, db.currencyXOfs, db.currencyYOfs =
-                point, relPoint, xOfs, yOfs
+        -- Get current screen position and re-anchor to TOPLEFT
+        local left = frame:GetLeft()
+        local top = frame:GetTop()
+        if left and top then
+            -- Re-anchor frame to TOPLEFT so it grows right from fixed position
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+            -- Save position for persistence
+            db.currencyPoint = "TOPLEFT"
+            db.currencyRelPoint = "BOTTOMLEFT"
+            db.currencyXOfs = left
+            db.currencyYOfs = top
         end
     end)
 
@@ -161,10 +177,10 @@ function addon:CreateCurrencyFrame()
     })
     f:SetBackdropBorderColor(0.35, 0.3, 0.2, 1)  -- Yellow-grey tint for currency tracker bar
 
-    -- Default position: fixed position below tracker bar default area (no auto-snapping)
+    -- Default position: always use TOPLEFT anchor so bar grows right from fixed position
     local db = addon.db.profile
-    if db.currencyPoint and db.currencyRelPoint and db.currencyXOfs and db.currencyYOfs then
-        f:SetPoint(db.currencyPoint, UIParent, db.currencyRelPoint, db.currencyXOfs, db.currencyYOfs)
+    if db.currencyXOfs and db.currencyYOfs then
+        f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", db.currencyXOfs, db.currencyYOfs)
     else
         f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
     end
@@ -218,11 +234,11 @@ function addon:RestoreCurrencyBarPosition()
     if not f then return end
 
     local db = self.db.profile
-    if db.currencyPoint and db.currencyRelPoint and db.currencyXOfs and db.currencyYOfs then
+    if db.currencyXOfs and db.currencyYOfs then
         f:ClearAllPoints()
-        f:SetPoint(db.currencyPoint, UIParent, db.currencyRelPoint, db.currencyXOfs, db.currencyYOfs)
+        f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", db.currencyXOfs, db.currencyYOfs)
     else
-        -- No saved position, use fixed default (no auto-snapping)
+        -- No saved position, use fixed default
         f:ClearAllPoints()
         f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
     end
@@ -295,6 +311,19 @@ local function FindCurrencyByName(searchName)
 end
 
 -----------------------------------------------------------------------
+-- Helper to ensure frame is anchored at TOPLEFT (so it grows right)
+-----------------------------------------------------------------------
+
+local function EnsureLeftAnchor(frame)
+    local left = frame:GetLeft()
+    local top = frame:GetTop()
+    if left and top then
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+    end
+end
+
+-----------------------------------------------------------------------
 -- Currency bar update
 -----------------------------------------------------------------------
 
@@ -361,8 +390,12 @@ function addon:UpdateCurrencyBar()
         if f.addButton then
             f.addButton:Show()
             local padding = addon.CONST.PADDING
-            local addButtonSize = addon.CONST.BUTTON_SIZE_SMALL * 0.7
-            f:SetSize(padding * 2 + addButtonSize, padding * 2 + addButtonSize)
+            local buttonSize = addon.CONST.BUTTON_SIZE_SMALL
+            local addButtonSize = buttonSize * 0.7
+            -- Re-anchor to TOPLEFT before resize so bar grows right from fixed position
+            EnsureLeftAnchor(f)
+            -- Use full buttonSize for height so frame doesn't shift vertically when items are added
+            f:SetSize(padding * 2 + addButtonSize, buttonSize + padding * 2)
         end
         return
     end
@@ -425,6 +458,8 @@ function addon:UpdateCurrencyBar()
     -- Calculate width: padding + add button + spacing + currencies
     local addButtonSize = buttonSize * 0.7
     local totalWidth = padding + addButtonSize + spacing + (numTracked * buttonSize) + ((numTracked - 1) * spacing) + padding
+    -- Re-anchor to TOPLEFT before resize so bar grows right from fixed position
+    EnsureLeftAnchor(f)
     f:SetSize(totalWidth, buttonSize + padding * 2)
 
     -- Position and update buttons (start after add button)
