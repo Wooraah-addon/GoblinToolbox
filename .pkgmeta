@@ -13,6 +13,7 @@ ignore:
   - docs
   - Initial_Project_Brief_-_Goblin_toolbox.docx
   - Current_Development_status.txt
+  - media/**
 
 manual-changelog:
   filename: CHANGELOG.md
