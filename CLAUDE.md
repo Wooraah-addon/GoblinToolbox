@@ -217,9 +217,26 @@ Counts tracked both aggregated by `itemID` and rank-aware by `itemID:rank` key (
 - For releases: tag `vX.Y.Z`. Keep release notes short and user-facing.
 - If CurseForge packaging present, keep metadata updated.
 
-### Release Workflow (IMPORTANT)
+### Development Workflow (CRITICAL - READ FIRST)
 
-When the user says "push and commit to git" or "commit this as vX.Y.Z", you MUST:
+**NEVER commit or push changes without user approval after testing.**
+
+Standard workflow for ANY code changes:
+
+1. **Make the code changes** - Edit files as requested
+2. **Wait for user to test** - User will `/reload` and verify changes work correctly in-game
+3. **User provides feedback** - User will report if changes work or need adjustment
+4. **Only after user approval** - Proceed to commit and push
+
+**DO NOT**:
+- Automatically commit after making changes
+- Push to git without explicit user instruction
+- Create tags without user confirmation that testing passed
+- Skip the testing step - user MUST test first
+
+### Release Workflow (After Testing Approved)
+
+When the user explicitly says "push and commit to git" or "commit this as vX.Y.Z" AFTER testing, you MUST:
 
 1. **Update CHANGELOG.md** - Add or update the version section with Added/Changed/Fixed entries
 2. **Update version references** - Ensure TOC file and CLAUDE.md reflect the new version
