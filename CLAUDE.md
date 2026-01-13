@@ -171,6 +171,40 @@ Counts tracked both aggregated by `itemID` and rank-aware by `itemID:rank` key (
 - `/gtb pause` - Pause/resume session
 - `/gtb lock` / `/gtb unlock` - Lock/unlock frame positions
 
+## Change Impact Considerations (CRITICAL - Addon is Live)
+
+**The addon is now publicly released with active users. Every change must be evaluated for impact on existing installations.**
+
+Before implementing ANY change, consider:
+
+### Profile & Settings Impact
+- **Will this change break existing profiles?** Ensure saved variable schema changes are backwards compatible
+- **Will existing settings migrate correctly?** If changing setting structure, add migration logic
+- **Will default value changes affect existing users?** Use `CopyDefaults()` pattern to preserve existing values
+- **Does this require a schema version bump?** Update `global.schemaVersion` and add migration in `GetDB()`
+
+### User Experience Impact
+- **Will this disrupt existing workflows?** Consider if behavior changes will confuse users who are accustomed to current behavior
+- **Will frame positions be preserved?** Changes to frame layout/sizing should preserve existing saved positions
+- **Will tracked items/currencies persist?** Don't accidentally clear user's tracked item lists
+- **Will session data survive?** Ensure session tracking state survives the change
+
+### Data Preservation
+- **Character-specific data**: Cached gold, auction data, bank scans (in `characters` table)
+- **Profile-specific data**: Module toggles, tracked items, frame positions (in `profiles` table)
+- **Account-wide data**: Warband caches, global settings (in `global` table)
+- **Guild data**: Guild bank caches (in `guilds` table)
+
+### Testing Requirements
+After implementing changes affecting saved data:
+1. Test with existing profile → ensure old data still works
+2. Test with new profile → ensure defaults work
+3. Test `/reload` → ensure settings persist
+4. Test logout/login → ensure session persistence settings honored
+5. If schema changes: test migration from previous version
+
+**When in doubt, prefer additive changes over destructive ones. Add new fields instead of replacing existing ones.**
+
 ## Code Style Preferences
 
 - Edit in place with minimal diffs - change only what is necessary.
