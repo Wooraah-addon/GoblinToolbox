@@ -182,9 +182,9 @@ Therefore the following proposed features are currently on hold/deffered or out 
   - Posted auctions only update when AH window is opened (Blizzard API limitation)
   - Although the menu option exists for support of custom TSM prices, the functionality is not yet working
 
-  ## Contributing
+  ## Feedback & suggestions
 
-  Contributions are welcome! Please feel free to submit issues or pull requests.
+  Contributions are welcome! If you have feature requests or bug reports, please leave a comment on the CurseForge project page.
 
   **Development:**
   - Development of this addon was was assisted greatly by both ChatGPT and Claude Code for development context and patterns, I'm not a professional coder, so apologies if performance is not optimal, I'm learning as I go.
