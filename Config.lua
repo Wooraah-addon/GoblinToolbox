@@ -984,6 +984,58 @@ local function CreateConfigFrame()
         { key = "garrisonHS", label = "Garrison HS", width = 100 },
         { key = "housingTeleport", label = "Housing", width = 75 },
     }, function() Apply() end)
+
+    -- Add tooltips to utility bar buttons explaining prioritization
+    if f.utilModule.childCheckboxes.mailbox then
+        f.utilModule.childCheckboxes.mailbox:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Mailbox", 1, 1, 1)
+            GameTooltip:AddLine("Summons a portable mailbox toy. Priority order:", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("1. Katy's Stampwhistle", 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine("2. Ohuna Perch", 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine("3. MOLL-E", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end)
+        f.utilModule.childCheckboxes.mailbox:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
+    if f.utilModule.childCheckboxes.tradersBrutosaur then
+        f.utilModule.childCheckboxes.tradersBrutosaur:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("AH Mount", 1, 1, 1)
+            GameTooltip:AddLine("Mounts the Trader's Gilded Brutosaur (requires ownership).", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("Provides access to auction house while mounted.", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end)
+        f.utilModule.childCheckboxes.tradersBrutosaur:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
+    if f.utilModule.childCheckboxes.vendorMount then
+        f.utilModule.childCheckboxes.vendorMount:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Vendor Mount", 1, 1, 1)
+            GameTooltip:AddLine("Mounts a vendor-capable mount. Priority order:", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("1. Mighty Caravan Brutosaur", 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine("2. Grizzly Hills Packmaster", 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine("3. Grand Expedition Yak", 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine("4. Traveler's Tundra Mammoth", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end)
+        f.utilModule.childCheckboxes.vendorMount:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
+    if f.utilModule.childCheckboxes.hearthstone then
+        f.utilModule.childCheckboxes.hearthstone:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Hearthstone", 1, 1, 1)
+            GameTooltip:AddLine("Teleports to your hearthstone location. Priority order:", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("1. Physical Hearthstone (if in bags)", 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine("2. Any owned Hearthstone toy", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end)
+        f.utilModule.childCheckboxes.hearthstone:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
     y = y - f.utilModule.totalHeight - SECTION_GAP
 
     -----------------------------------------------------------------------
