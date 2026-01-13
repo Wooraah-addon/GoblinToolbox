@@ -1111,7 +1111,7 @@ function Gold:Update()
             guildText = "|cffff4444Visit|r"
         end
 
-        table.insert(goldParts, "Guild: " .. guildText)
+        table.insert(goldParts, "GBank: " .. guildText)
     end
 
     if #goldParts > 0 then
