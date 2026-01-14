@@ -158,6 +158,10 @@ Therefore the following proposed features are currently on hold/deffered or out 
     - Already well-covered by Blizzard's default profession UI
     - Limited value for gold-making compared to other metrics
    
+  ### Faster Looting
+    -  Fast Looting: Not included to avoid conflicts with the many excellent addons that already handle this (SpeedyAutoLoot, FasterLoot, Leatrix Plus, etc.). GTB seeks to complement these addons rather than duplicating them.
+  
+   
   ### Non English Language Support
    - No plans currently in place for non English client support
 
