@@ -161,7 +161,7 @@ Therefore the following proposed features are currently on hold/deffered or out 
   ### Faster Looting
    -  Fast Looting: Not included to avoid conflicts with the many excellent addons that already handle this (SpeedyAutoLoot, FasterLoot, Leatrix Plus, etc.). GTB seeks to complement these addons rather than duplicating them.
 
-  ### Session Income/Expense Filtering
+  ### Session Income/Expense Filtering (e.g. Ignore income from mail)
   
   - Not currently feasible due to GTB's delta-based session tracking, which monitors total gold changes without attributing them to specific sources (auctions, mail, vendors, etc.). Implementing automatic source detection and filtering would require extensive refactoring of core session tracking logic. For now, use the pause button before collecting mail or checking auctions to manually exclude those transactions from your session.
    
