@@ -39,7 +39,10 @@ dist/
 *.temp
 tmpclaude-*
 .claude/
-CLAUDE.md
 
 # Development notes (not for distribution)
 Current Development status.txt
+DesignDoc.txt
+AGENTS.md
+.cursor/
+.pkgmeta

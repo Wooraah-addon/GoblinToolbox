@@ -203,9 +203,9 @@ function addon:CreateCurrencyFrame()
     
     f.addButton:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Goblin Toolbox: Add Currencies to Track", 1, 1, 1)
-        GameTooltip:AddLine("Type in chat to add currencies to track: /gtb add [currency link]", 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine("Shift+click on currencies to remove from tracking", 0.8, 0.8, 0.8, true)
+        GameTooltip:SetText("|cffffd100Goblin Toolbox: Add Currencies to Track|r")
+        GameTooltip:AddLine("|cffd0d0d0Type in chat to add currencies to track: /gtb add [currency link]|r", 1, 1, 1, true)
+        GameTooltip:AddLine("|cffd0d0d0Shift+click on currencies to remove from tracking|r", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     
