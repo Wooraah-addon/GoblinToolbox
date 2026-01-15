@@ -226,6 +226,10 @@ local function CreateSection(frame, key, headerText, numLines)
 
         section.shardTooltipBtn:SetScript("OnEnter", function(self)
             if HUD.minimized then return end
+            -- ONLY show if Shard ID is enabled in settings
+            local elem = addon.db.profile.elements or {}
+            if elem.charShardID == false then return end
+
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText("Shard ID", 1, 1, 1)
             GameTooltip:AddLine("WoW splits busy zones into multiple parallel instances ('shards'). This shows which one you're on. If ShardID shows as \"Unknown\", click on an NPC to update it.", 0.8, 0.8, 0.8, true)
@@ -244,15 +248,8 @@ local function CreateSection(frame, key, headerText, numLines)
         section.sessionResetBtn:SetNormalAtlas("common-icon-undo")
         section.sessionResetBtn:SetPushedAtlas("common-icon-undo")
         section.sessionResetBtn:SetHighlightAtlas("common-icon-undo")
+        section.sessionResetBtn:SetFrameLevel(frame:GetFrameLevel() + 10) -- Above tooltip button
 
-        section.sessionResetBtn:SetScript("OnEnter", function(self)
-            if HUD.minimized then return end
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText("Reset Session")
-            GameTooltip:AddLine("Resets session start gold and timer.", 1, 1, 1, true)
-            GameTooltip:Show()
-        end)
-        section.sessionResetBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
         section.sessionResetBtn:SetScript("OnClick", function()
             addon:ResetSession()
             addon:UpdateGoldSection()
@@ -263,6 +260,7 @@ local function CreateSection(frame, key, headerText, numLines)
         section.sessionPauseBtn:SetSize(14, 14)
         section.sessionPauseBtn:Hide()
         section.sessionPauseBtn:SetHighlightTexture(130757)
+        section.sessionPauseBtn:SetFrameLevel(frame:GetFrameLevel() + 10) -- Above tooltip button
 
         local function UpdatePauseButtonTexture()
             local s = addon.state
@@ -275,20 +273,6 @@ local function CreateSection(frame, key, headerText, numLines)
             end
         end
 
-        section.sessionPauseBtn:SetScript("OnEnter", function(self)
-            if HUD.minimized then return end
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            local s = addon.state
-            if s.sessionPaused then
-                GameTooltip:SetText("Resume Session")
-                GameTooltip:AddLine("Click to resume tracking", 0.8, 0.8, 0.8, true)
-            else
-                GameTooltip:SetText("Pause Session")
-                GameTooltip:AddLine("Click to pause tracking", 0.8, 0.8, 0.8, true)
-            end
-            GameTooltip:Show()
-        end)
-        section.sessionPauseBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
         section.sessionPauseBtn:SetScript("OnClick", function()
             addon:TogglePauseSession()
             UpdatePauseButtonTexture()
@@ -299,11 +283,99 @@ local function CreateSection(frame, key, headerText, numLines)
         section.UpdatePauseButtonTexture = UpdatePauseButtonTexture
         UpdatePauseButtonTexture()
 
+        -- Helper function to show combined session controls tooltip
+        local function ShowSessionControlsTooltip(owner)
+            if HUD.minimized then return end
+            GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Session Tracking", 1, 0.82, 0)
+            GameTooltip:AddLine("Tracks gold gains and looted item values over time.", 0.82, 0.82, 0.82, true)
+            GameTooltip:AddLine(" ", 1, 1, 1)
+            GameTooltip:AddLine("Pause/Resume: Stops or starts tracking. The hourglass turns red when paused.", 0.82, 0.82, 0.82, true)
+            GameTooltip:AddLine("Reset: Starts a completely fresh session (clears timer and earnings).", 0.82, 0.82, 0.82, true)
+            GameTooltip:AddLine(" ", 1, 1, 1)
+            GameTooltip:AddLine("Options > Gold & Economy > Session", 0.62, 0.62, 0.62, true)
+            GameTooltip:Show()
+        end
+
+        -- Add tooltip to reset button
+        section.sessionResetBtn:SetScript("OnEnter", function(self)
+            ShowSessionControlsTooltip(self)
+        end)
+        section.sessionResetBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        -- Add tooltip to pause button
+        section.sessionPauseBtn:SetScript("OnEnter", function(self)
+            ShowSessionControlsTooltip(self)
+        end)
+        section.sessionPauseBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
         -- Create timer display fontstring (positioned to left of pause button)
         section.sessionTimerDisplay = frame:CreateFontString(nil, "OVERLAY")
         section.sessionTimerDisplay:SetFontObject(addon:GetBodyFont())
         section.sessionTimerDisplay:SetJustifyH("RIGHT")
         section.sessionTimerDisplay:Hide()
+
+        -- Create session persistence status icon
+        section.sessionPersistIcon = CreateFrame("Button", nil, frame)
+        section.sessionPersistIcon:SetSize(12, 12)
+        section.sessionPersistIcon:Hide()
+        section.sessionPersistIcon:SetFrameLevel(frame:GetFrameLevel() + 20)
+
+        local function UpdateSessionPersistIcon()
+            local isEnabled = addon.db and addon.db.global and addon.db.global.sessionPersistOnLogout or false
+            
+            if not section.sessionPersistIcon:GetNormalTexture() then
+                local tex = section.sessionPersistIcon:CreateTexture(nil, "ARTWORK")
+                tex:SetAllPoints()
+                -- Use the icon ID suggested by the user: 4630457 (ability_evoker_innatemagic4)
+                tex:SetTexture(4630457)
+                section.sessionPersistIcon:SetNormalTexture(tex)
+            end
+            
+            local normalTex = section.sessionPersistIcon:GetNormalTexture()
+            if normalTex then
+                if isEnabled then
+                    -- Enabled: tinted green
+                    normalTex:SetVertexColor(0.2, 1.0, 0.2, 1.0)
+                    section.sessionPersistIcon:SetAlpha(1.0)
+                else
+                    -- Disabled: faded grey
+                    normalTex:SetVertexColor(0.5, 0.5, 0.5, 1.0)
+                    section.sessionPersistIcon:SetAlpha(0.4)
+                end
+            end
+        end
+
+        section.sessionPersistIcon:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Keep Session Between Logins", 1, 0.82, 0)
+            GameTooltip:AddLine("Controls whether session data persists across logout or resets on next login.", 0.82, 0.82, 0.82, true)
+            local isEnabled = addon.db and addon.db.global and addon.db.global.sessionPersistOnLogout or false
+            if isEnabled then
+                GameTooltip:AddLine("Green swirl = session continues after logout.", 0.82, 0.82, 0.82, true)
+            else
+                GameTooltip:AddLine("Grey swirl = session ends on logout; next login starts fresh.", 0.82, 0.82, 0.82, true)
+            end
+            GameTooltip:AddLine("Options > Gold & Economy > Session", 0.62, 0.62, 0.62, true)
+            GameTooltip:Show()
+        end)
+        section.sessionPersistIcon:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+        section.UpdateSessionPersistIcon = UpdateSessionPersistIcon
+        UpdateSessionPersistIcon()
+
+        -- Create invisible tooltip button for combined session controls (hourglass, timer, pause, reset)
+        section.sessionControlsTooltipBtn = CreateFrame("Button", nil, frame)
+        section.sessionControlsTooltipBtn:SetSize(1, 1)
+        section.sessionControlsTooltipBtn:Hide()
+        section.sessionControlsTooltipBtn:EnableMouse(true)
+        section.sessionControlsTooltipBtn:SetFrameLevel(frame:GetFrameLevel() + 5) -- Lower than buttons but above text
+
+        section.sessionControlsTooltipBtn:SetScript("OnEnter", function(self)
+            ShowSessionControlsTooltip(self)
+        end)
+        section.sessionControlsTooltipBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
         -- Create invisible tooltip button for token line
         section.tokenTooltipBtn = CreateFrame("Button", nil, frame)
@@ -417,23 +489,6 @@ local function CreateSection(frame, key, headerText, numLines)
             GameTooltip:Show()
         end)
         section.postedTooltipBtn:SetScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
-
-        -- Create invisible tooltip button for Session header line
-        section.sessionHeaderTooltipBtn = CreateFrame("Button", nil, frame)
-        section.sessionHeaderTooltipBtn:SetSize(1, 1)
-        section.sessionHeaderTooltipBtn:Hide()
-        section.sessionHeaderTooltipBtn:EnableMouse(true)
-
-        section.sessionHeaderTooltipBtn:SetScript("OnEnter", function(self)
-            if HUD.minimized then return end
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText("Session Tracking", 1, 1, 1)
-            GameTooltip:AddLine("Click the pause button to pause or resume session tracking. When paused, the icon turns red and tracking stops for both gold gains and looted item values. Configure auto-reset on logout or session persistence in the options menu.", 0.8, 0.8, 0.8, true)
-            GameTooltip:Show()
-        end)
-        section.sessionHeaderTooltipBtn:SetScript("OnLeave", function()
             GameTooltip:Hide()
         end)
     end
@@ -804,7 +859,7 @@ function addon:LayoutHUD()
                 if key == "Gold" then
                     if section.postedTooltipBtn then section.postedTooltipBtn:Hide() end
                     if section.tokenTooltipBtn then section.tokenTooltipBtn:Hide() end
-                    if section.sessionHeaderTooltipBtn then section.sessionHeaderTooltipBtn:Hide() end
+                    if section.sessionControlsTooltipBtn then section.sessionControlsTooltipBtn:Hide() end
                     if section.earnedTooltipBtn then section.earnedTooltipBtn:Hide() end
                     if section.lootedTooltipBtn then section.lootedTooltipBtn:Hide() end
                 end
@@ -833,6 +888,11 @@ function addon:LayoutHUD()
                                     section.UpdatePauseButtonTexture()
                                 end
 
+                                -- Update session persistence icon state
+                                if section.UpdateSessionPersistIcon then
+                                    section.UpdateSessionPersistIcon()
+                                end
+
                                 section.sessionResetBtn:Show()
                                 section.sessionPauseBtn:Show()
 
@@ -852,13 +912,39 @@ function addon:LayoutHUD()
                                     section.sessionTimerDisplay:SetPoint("CENTER", fs, "CENTER", 0, 0)
                                 end
 
+                                -- Position session persistence icon between "Session" text and timer display
+                                if section.sessionPersistIcon then
+                                    section.sessionPersistIcon:Show()
+                                    section.sessionPersistIcon:ClearAllPoints()
+                                    if section.sessionTimerDisplay and section.sessionTimerDisplay:IsShown() then
+                                        section.sessionPersistIcon:SetPoint("RIGHT", section.sessionTimerDisplay, "LEFT", -4, 0)
+                                    else
+                                        section.sessionPersistIcon:SetPoint("RIGHT", section.sessionPauseBtn, "LEFT", -4, 0)
+                                    end
+                                    section.sessionPersistIcon:SetPoint("CENTER", fs, "CENTER", 0, 0)
+                                end
+
                                 local totalButtonWidth = section.sessionResetBtn:GetWidth() + section.sessionPauseBtn:GetWidth() + 4
-                                rightPad = -(6 + totalButtonWidth + 6)
+                                local iconWidth = section.sessionPersistIcon and section.sessionPersistIcon:GetWidth() or 0
+                                rightPad = -(6 + totalButtonWidth + 6 + iconWidth + 4)
+
+                                -- Expand pause button hit area to cover timer text (for tooltip hover)
+                                if section.sessionPauseBtn and section.sessionTimerDisplay and section.sessionTimerDisplay:IsShown() then
+                                    local timerWidth = section.sessionTimerDisplay:GetStringWidth() or 0
+                                    local extendLeft = math.max(0, timerWidth + 8)
+                                    section.sessionPauseBtn:SetHitRectInsets(-extendLeft, 0, 0, 0)
+                                end
                             else
                                 section.sessionResetBtn:Hide()
                                 section.sessionPauseBtn:Hide()
                                 if section.sessionTimerDisplay then
                                     section.sessionTimerDisplay:Hide()
+                                end
+                                if section.sessionPauseBtn then
+                                    section.sessionPauseBtn:SetHitRectInsets(0, 0, 0, 0)
+                                end
+                                if section.sessionPersistIcon then
+                                    section.sessionPersistIcon:Hide()
                                 end
                             end
                         end
@@ -928,12 +1014,9 @@ function addon:LayoutHUD()
                                 section.tokenTooltipBtn:Show()
                             end
 
-                            -- Session header tooltip (Line 4 always)
-                            if i == 4 and section.sessionHeaderTooltipBtn and elem.goldSession ~= false then
-                                section.sessionHeaderTooltipBtn:ClearAllPoints()
-                                section.sessionHeaderTooltipBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
-                                section.sessionHeaderTooltipBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
-                                section.sessionHeaderTooltipBtn:Show()
+                            -- Session controls tooltip (Line 4 is handled by pause/reset hit area)
+                            if i == 4 and section.sessionControlsTooltipBtn then
+                                section.sessionControlsTooltipBtn:Hide()
                             end
 
                             -- Earned tooltip (Line 5 in simple, Line 6 in detailed)
@@ -1004,7 +1087,7 @@ function addon:LayoutHUD()
             if key == "Gold" then
                 if section.postedTooltipBtn then section.postedTooltipBtn:Hide() end
                 if section.tokenTooltipBtn then section.tokenTooltipBtn:Hide() end
-                if section.sessionHeaderTooltipBtn then section.sessionHeaderTooltipBtn:Hide() end
+                if section.sessionControlsTooltipBtn then section.sessionControlsTooltipBtn:Hide() end
                 if section.earnedTooltipBtn then section.earnedTooltipBtn:Hide() end
                 if section.lootedTooltipBtn then section.lootedTooltipBtn:Hide() end
             end

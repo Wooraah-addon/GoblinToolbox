@@ -13,6 +13,10 @@ ignore:
   - docs
   - Initial_Project_Brief_-_Goblin_toolbox.docx
   - Current_Development_status.txt
+  - DesignDoc.txt
+  - AGENTS.md
+  - .cursor/**
+  - .pkgmeta
   - media/**
 
 manual-changelog:

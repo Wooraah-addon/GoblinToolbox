@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.0.4**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.0.5**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -18,6 +18,74 @@ Wooraah (golbintoolbox@gmail.com)
 - **Event-driven over polling**: Avoid frequent queries; debounce UI refreshes; use tickers sparingly.
 - **Combat safety**: Never change protected/secure UI state in combat. Use existing safe helpers.
 - **UI Design**: Clear, easily readable fonts, colors and spacing.
+
+## Task Delegation & Model Selection
+
+When working on GTB, use appropriate models/agents for different task types to optimize token efficiency and response quality.
+
+### LIGHTWEIGHT Tasks → Haiku (via Task tool or model switch)
+- **File/code searching**: "Where is X defined", "Find all references to Y", "List all event handlers"
+- **Simple summaries**: "What does this function do", "Explain this code block"
+- **Documentation writing**: README updates, CHANGELOG entries, simple inline comments
+- **Mechanical refactors**: Rename variable across files, consistent formatting, batch similar edits
+- **Git operations**: Commit message drafting (after code review), simple git commands
+- **Pattern-following config**: Adding checkboxes that follow existing patterns exactly
+
+### STANDARD Tasks → Sonnet (main agent, default)
+- **Code implementation**: New modules, feature additions, bug fixes, logic modifications
+- **WoW API integration**: Event handlers, protected frames, combat safety, timing-sensitive code
+- **Config UI changes**: New sections, layout modifications, tooltip text (requires UX judgment)
+- **SavedVariables work**: Schema changes, migration logic, backwards compatibility
+- **Debugging**: Error analysis, execution flow tracing, nil-guarding, pcall wrapping
+- **Testing verification**: Analyzing test results, identifying root causes
+- **User-facing text**: Error messages, feature explanations, tooltip content
+- **Third-party analysis**: Understanding other addons' approaches, API patterns
+
+### HEAVY Tasks → Opus (via `/model opusplan` or plan mode)
+- **Architecture planning**: Multi-file system redesigns, major refactoring decisions
+- **Feature evaluation**: Analyzing feasibility, complexity, and impact of new features
+- **Complex problem-solving**: Issues requiring deep reasoning across multiple systems
+- **Design decisions**: Choosing between multiple implementation approaches
+- **Scope analysis**: Breaking down large features, identifying dependencies
+
+### When to Delegate vs Stay in Main Agent
+
+**Delegate to Haiku when:**
+- Task is purely mechanical and well-defined
+- No judgment or architecture decisions required
+- Batch operations (updating 5+ files identically)
+- Simple, isolated information retrieval
+
+**Stay in Sonnet when:**
+- Task requires any architectural thinking
+- Multiple file changes that interact with each other
+- Unclear specifications that need judgment
+- Work that builds on previous context in the conversation
+
+**Use Opus when:**
+- Planning new features (use plan mode)
+- Evaluating complex tradeoffs
+- Making decisions that affect core systems
+- Situations where you'd normally "stop and think" for a while
+
+### Gray Areas - Use Judgment
+
+**Code exploration** ("How does session tracking work?"):
+- Simple flow/summary → Haiku
+- Complex multi-file analysis → Sonnet
+
+**Config additions** (adding new checkboxes):
+- Obvious pattern duplication → Haiku
+- Requires UX/placement judgment → Sonnet
+
+**TOC/manifest updates**:
+- Usually faster to just do in main agent than context-switch
+
+**Testing**:
+- Pass/fail verification → Haiku
+- Debugging failures → Sonnet
+
+**Important**: For GTB's scale (small codebase, clear patterns), only delegate when it provides clear benefit. When in doubt, stay in Sonnet to maintain conversation context and avoid overhead.
 
 ## Tech Stack
 

@@ -829,19 +829,19 @@ local function CreateUtilityButton(parent, index, size)
         end
 
         GameTooltip:SetOwner(selfBtn, "ANCHOR_RIGHT")
-        GameTooltip:SetText(title, 1, 1, 1, 1, true)
+        GameTooltip:SetText("|cffffd100" .. title .. "|r", 1, 1, 1, 1, true)
 
         if selfBtn.tooltipSubtext then
-            GameTooltip:AddLine(selfBtn.tooltipSubtext, 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("|cffd0d0d0" .. selfBtn.tooltipSubtext .. "|r", 1, 1, 1, true)
         end
         
-        -- Show unavailability reason if present
+        -- Show unavailability reason if present (keep red as it's a warning)
         if selfBtn.unavailableReason then
             GameTooltip:AddLine(" ", 1, 1, 1)
-            GameTooltip:AddLine("|cffff4444Not Available:|r " .. selfBtn.unavailableReason, 1, 0.5, 0.5, true)
+            GameTooltip:AddLine("|cffff4040Not Available:|r " .. selfBtn.unavailableReason, 1, 0.5, 0.5, true)
         end
 
-        GameTooltip:AddLine("Shift+Right-Click to remove", 0.6, 0.6, 0.6, true)
+        GameTooltip:AddLine("|cffd0d0d0Shift+Right-Click to remove|r", 1, 1, 1, true)
         GameTooltip:Show()
     end)
 
