@@ -830,6 +830,7 @@ local function CreateConfigFrame()
     })
     noteFrameBackground:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
     noteFrameBackground:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+    noteFrameBackground:SetFrameLevel(f.charNoteScrollFrame:GetFrameLevel())
 
     -- Multi-line editbox
     f.charNoteEdit = CreateFrame("EditBox", nil, f.charNoteScrollFrame)
@@ -840,6 +841,7 @@ local function CreateConfigFrame()
     f.charNoteEdit:SetTextColor(1, 1, 1, 1)  -- White text for visibility
     f.charNoteEdit:SetTextInsets(6, 6, 6, 6)  -- Add padding to keep text from edges
     f.charNoteEdit:SetMaxLetters(500)
+    f.charNoteEdit:SetFrameLevel(f.charNoteScrollFrame:GetFrameLevel() + 2)  -- Ensure editbox is above background
     f.charNoteScrollFrame:SetScrollChild(f.charNoteEdit)
 
     f.charNoteEdit:SetScript("OnEscapePressed", function(self)
@@ -983,6 +985,7 @@ local function CreateConfigFrame()
         { key = "dalaranHS", label = "Dalaran HS", width = 95 },
         { key = "garrisonHS", label = "Garrison HS", width = 100 },
         { key = "housingTeleport", label = "Housing", width = 75 },
+        { key = "resetInstances", label = "Reset Instances", width = 120 },
     }, function() Apply() end)
 
     -- Add tooltips to utility bar buttons explaining prioritization
@@ -1034,6 +1037,17 @@ local function CreateConfigFrame()
             GameTooltip:Show()
         end)
         f.utilModule.childCheckboxes.hearthstone:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
+    if f.utilModule.childCheckboxes.resetInstances then
+        f.utilModule.childCheckboxes.resetInstances:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Reset Instances", 1, 1, 1)
+            GameTooltip:AddLine("Adds a Utility Bar button that resets your dungeon instances.", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("May require party leader when grouped.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        f.utilModule.childCheckboxes.resetInstances:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
 
     y = y - f.utilModule.totalHeight - SECTION_GAP
@@ -1621,6 +1635,9 @@ local function CreateConfigFrame()
         if f.utilModule.childCheckboxes.housingTeleport then
             f.utilModule.childCheckboxes.housingTeleport:SetChecked(db.utilityButtons.housingTeleport ~= false)
         end
+        if f.utilModule.childCheckboxes.resetInstances then
+            f.utilModule.childCheckboxes.resetInstances:SetChecked(db.utilityButtons.resetInstances ~= false)
+        end
 
         -- Tracker bars
         f.trackerCB:SetChecked(db.showTracker ~= false)
@@ -1765,6 +1782,9 @@ local function CreateConfigFrame()
         end
         if f.utilModule.childCheckboxes.housingTeleport then
             db.utilityButtons.housingTeleport = f.utilModule.childCheckboxes.housingTeleport:GetChecked()
+        end
+        if f.utilModule.childCheckboxes.resetInstances then
+            db.utilityButtons.resetInstances = f.utilModule.childCheckboxes.resetInstances:GetChecked()
         end
 
         -- Tracker bars

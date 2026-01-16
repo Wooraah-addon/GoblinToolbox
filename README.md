@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-1.0.0-green)
+  ![Version](https://img.shields.io/badge/Version-1.0.6-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview
@@ -17,8 +17,9 @@
   ### Character & Server Module
   - Character name with race and class icons
   - Realm name display
+  - **Character Notes**: Custom per-character note field (up to 500 characters) for labeling alts
   - **Account Label**: Custom account-wide identifier (e.g., [WOW1]) shown next to your name
-  - **Shard ID tracking** with tooltip guidance (for farming coordination and phasing troubleshooting)      
+  - **Shard ID tracking** with tooltip guidance (for farming coordination and phasing troubleshooting)
   - **Movement speed display** to 3 decimal places (for testing speed sets)
 
   ### Gold & Economy Module
@@ -26,9 +27,10 @@
   - **Warband bank gold** total (cached when unavailable)
   - **Guild bank gold** with staleness indicator (shows age of data)
   - **Posted Auctions**: Total value and count of active auctions (updates on AH open/post)
-  - **Session tracking** with pause/resume functionality:
-    - Time elapsed with pause support
-    - Session persistence option (keep data across logouts)
+  - **Session tracking** with pause/resume and AFK auto-pause:
+    - Time elapsed with manual pause and automatic AFK pause
+    - Session persistence option (keep data across logouts with visual indicator)
+    - Bank transfer neutralization (deposits/withdrawals don't affect session net)
     - Two display modes:
       - **Simple**: Net gold and GPH
       - **Detailed**: Start/current gold, earned/spent breakdown, net gold and GPH
@@ -57,11 +59,15 @@
     - Warband Bank access (Trader's Brutosaur, Vendor mounts)
     - Hearthstone (auto-detects toys like Dalaran HS, Garrison HS)
     - Housing teleport (when available)
+    - Reset Instances (party leader required when grouped)
     - Optional Logout/Reload buttons
+  - Unavailable buttons show grey overlay with tooltip explanations
+  - Shift+Right-click to remove buttons from bar
 
   ### Additional Features
+  - **Profile system**: Create, copy, and switch between named profiles per character
   - **Interactive tooltips**: Hover over HUD elements for detailed explanations
-  - **Tooltip ID display**: Optional display of IDs for items, spells, NPCs, currencies, mounts, and icons  
+  - **Tooltip ID display**: Optional display of IDs for items, spells, NPCs, currencies, mounts, and icons
   - **Customizable visibility**: Hide in combat / hide in instances options
   - **Flexible layout**: Fully movable and resizable HUD with background opacity control
   - **Auto-switch to Warband Bank tab** (optional, Blizzard UI only)
@@ -117,21 +123,28 @@
 
   ## Roadmap
 
-  **Recent Updates:**
-  - ✅ Posted auctions tracking (v0.5.2)
-  - ✅ Looted item value tracking with GPH (v0.5.2)
-  - ✅ Session persistence on logout (v0.5.2)
-  - ✅ Account label display (v0.6.0)
-  - ✅ HUD tooltips for all major elements (v0.6.0)
-  - ✅ Rank-aware item tracker with value overlay (v0.5.1)
-  - ✅ Token price trend detection (v0.5.2)
+  **Recent Updates (v1.0+):**
+  - ✅ Posted auctions tracking with commodity support
+  - ✅ Looted item value tracking with GPH
+  - ✅ Session persistence on logout with visual indicator
+  - ✅ AFK auto-pause for session tracking
+  - ✅ Bank transfer neutralization for accurate session net
+  - ✅ Profile system (create, copy, switch profiles per character)
+  - ✅ Character notes (per-character labels)
+  - ✅ Account label display
+  - ✅ Interactive tooltips throughout HUD and bars
+  - ✅ Rank-aware item tracker with multi-source support
+  - ✅ Token price trend detection
+  - ✅ Grey overlay for unavailable utility buttons
+  - ✅ Housing teleport button
+  - ✅ Reset Instances utility button
 
   **Future Planned Features:**
+  - Profile import/export functionality
   - Auctionator/Oribos Exchange price source support
-  - Additional utility bar customizations
-  - The option to Auto-pause session on AFK
-  - Configuration defaults for different use cases e.g. "Essentials", "Farmer", "Flipper"
-  - Saving of GoblinToolbox profiles (inlcuding import/export and character specific profiles rather than current account wide config)
+  - Additional font options (Expressway specifically requested)
+  - Minimap button for quick access
+  - Gold-per-hour display toggle
   - XP Tracking functionality
 
   ## Currently Out of Scope

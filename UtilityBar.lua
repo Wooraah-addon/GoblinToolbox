@@ -213,6 +213,14 @@ local UTILITY_ACTIONS = {
         iconTexture     = 7252953,  -- Ui_homestone-64
         cooldownSpellID = 1233637,  -- Teleport Home spell ID for cooldown tracking
     },
+
+    resetInstances = {
+        key         = "resetInstances",
+        label       = "Reset Instances",
+        kind        = "macro",
+        macroText   = "/run ResetInstances()",
+        iconTexture = 236393,  -- Achievement_bg_wineos_underxminutes
+    },
 }
 
 local UTILITY_ORDER = {
@@ -227,6 +235,7 @@ local UTILITY_ORDER = {
     "dalaranHS",
     "garrisonHS",
     "housingTeleport",
+    "resetInstances",
 }
 
 -----------------------------------------------------------------------
@@ -534,6 +543,20 @@ local function IsHousingTeleportAvailable()
     return true, nil
 end
 
+local function IsResetInstancesAvailable()
+    -- Check if in combat
+    if InCombatLockdown() then
+        return false, "Not available in combat"
+    end
+
+    -- Check if in group and not leader
+    if IsInGroup() and not UnitIsGroupLeader("player") then
+        return false, "Party leader required"
+    end
+
+    return true, nil
+end
+
 -- Map utility keys to their availability check functions
 local AVAILABILITY_CHECKS = {
     mobileBank       = IsMobileBankingAvailable,
@@ -545,6 +568,7 @@ local AVAILABILITY_CHECKS = {
     dalaranHS        = IsDalaranHSAvailable,
     garrisonHS       = IsGarrisonHSAvailable,
     housingTeleport  = IsHousingTeleportAvailable,
+    resetInstances   = IsResetInstancesAvailable,
 }
 
 -----------------------------------------------------------------------

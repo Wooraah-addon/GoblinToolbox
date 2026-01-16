@@ -155,6 +155,7 @@ local DEFAULTS = {
             dalaranHS         = true,
             garrisonHS        = true,
             housingTeleport   = false,
+            resetInstances    = false,
         },
 
         -- Position persistence
@@ -805,6 +806,7 @@ addon.PRESETS = {
             dalaranHS = true,
             garrisonHS = true,
             housingTeleport = true,
+            resetInstances = true,
         },
         -- Enable all tooltip IDs
         tooltipIDs = {

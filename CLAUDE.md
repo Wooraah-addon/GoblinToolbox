@@ -2,13 +2,30 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.0.5**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.0.6**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
 ## Author
 
 Wooraah (golbintoolbox@gmail.com)
+
+## Project Planning & User Priorities
+
+**CRITICAL: Always review `Current Development status.txt` when planning features or evaluating priorities.**
+
+This document is manually maintained by the user and provides:
+- Current feature completion status (COMPLETE/INCOMPLETE)
+- User-assigned priority levels (LOW/MEDIUM/HIGH)
+- Known bugs and their severity
+- Features marked as "OUT OF SCOPE" or "IGNORE"
+- User requests and community feedback
+
+When proposing work or evaluating implementation approaches, cross-reference this document to:
+- Avoid working on IGNORE/OUT OF SCOPE items unless explicitly requested
+- Prioritize HIGH/MEDIUM items over LOW priority work
+- Understand user perspective on feature value and complexity
+- Check if a similar request has already been addressed or deferred
 
 ## Design Philosophy (Non-negotiables)
 
@@ -340,12 +357,54 @@ Standard workflow for ANY code changes:
 
 When the user explicitly says "push and commit to git" or "commit this as vX.Y.Z" AFTER testing, you MUST:
 
-1. **Update CHANGELOG.md** - Add or update the version section with Added/Changed/Fixed entries
-2. **Update version references** - Ensure TOC file and CLAUDE.md reflect the new version
-3. **Commit changes** - Stage all modified files and commit with descriptive message
-4. **Push and tag** - `git push origin main && git tag vX.Y.Z && git push origin vX.Y.Z`
+1. **Update CHANGELOG.md**
+   - Add or update the version section with Added/Changed/Fixed/Technical entries
+   - Use Keep a Changelog format with proper subsections
+   - Ensure no placeholder text like "... (rest of file remains unchanged)"
+   - Verify all previous versions are documented (no gaps in version history)
+   - If backfilling missing versions, reconstruct from git history and Current Development status.txt
+
+2. **Update README.md**
+   - **Version badge**: Update `![Version](https://img.shields.io/badge/Version-X.Y.Z-green)` to current version
+   - **Feature descriptions**: Add/update sections for new features in the "Features" section
+   - **Known Issues**: Remove fixed bugs, add new ones if applicable
+   - **Roadmap/Recent Updates**: Move completed items from "Future Planned Features" to "Recent Updates"
+   - **Verify accuracy**: All features in "Features" section match actual implementation
+   - **Verify completeness**: Cross-check against Current Development status.txt for missing features
+
+3. **Update version references in all files**
+   - `GoblinToolbox.toc` (Line 5: `## Version: X.Y.Z`)
+   - `CLAUDE.md` (Line 5: "currently at **vX.Y.Z**")
+   - `README.md` version badge (as noted in step 2)
+
+4. **Cross-check against Current Development status.txt**
+   - Verify all COMPLETE features have corresponding documentation in README.md
+   - Don't document IGNORE/OUT OF SCOPE items as if they're implemented
+   - Update any references to feature priorities if they've changed since last release
+   - Ensure "Known Issues" in README matches current MINOR/INCOMPLETE bugs
+
+5. **If working in Cursor: Verify AGENTS.md synchronization**
+   - Check if any constraint changes in CLAUDE.md need to be reflected in AGENTS.md
+   - Keep tooltip standards in sync between both files
+   - AGENTS.md should remain a lightweight reference that defers to CLAUDE.md for full workflow
+
+6. **Commit changes** - Stage all modified files with descriptive message following conventional commit format
+
+7. **Push and tag** - `git push origin main && git tag vX.Y.Z && git push origin vX.Y.Z`
 
 CurseForge automatically packages and publishes tagged commits via GitHub integration. No manual upload required.
+
+**Pre-Commit Documentation Checklist:**
+- [ ] CHANGELOG.md has entry for this version with all changes documented
+- [ ] CHANGELOG.md has no placeholder text or gaps in version history
+- [ ] README.md version badge updated to current version
+- [ ] README.md feature descriptions match implemented features
+- [ ] README.md "Known Issues" section is current and accurate
+- [ ] README.md "Roadmap" section updated (completed items moved out)
+- [ ] All version references updated (TOC, CLAUDE.md, README.md)
+- [ ] Current Development status.txt cross-checked for feature accuracy
+- [ ] AGENTS.md synchronized if constraints or standards changed
+- [ ] No references to unimplemented features or outdated version numbers
 
 ## Testing Checklist
 
