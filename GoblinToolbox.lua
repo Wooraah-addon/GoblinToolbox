@@ -238,7 +238,10 @@ local EventHandlers = {
             end
         end
 
-        print("Goblin Toolbox loaded. Type /gtb for options.")
+        -- Show load message if enabled (account-wide preference)
+        if addon.db.global.showLoadMessage ~= false then
+            print("Goblin Toolbox loaded. Type /gtb for options.")
+        end
     end,
 
     PLAYER_LOGOUT = function()

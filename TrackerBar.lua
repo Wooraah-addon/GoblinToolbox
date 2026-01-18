@@ -78,9 +78,10 @@ local function CreateDragHandle(parent)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             GameTooltip:SetText("Frame Locked", 1, 0.2, 0.2)
-            GameTooltip:AddLine("Click the lock icon to unlock", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("Unlock via lock icon or by deselecting \"Lock Frames\" in the /gtb menu", 0.8, 0.8, 0.8, true)
         else
             GameTooltip:SetText("Drag to Move", 0.2, 1, 0.2)
+            GameTooltip:AddLine("Lock frames using the lock icon or by selecting \"Lock Frames\" in the /gtb menu", 0.8, 0.8, 0.8, true)
         end
         GameTooltip:Show()
     end)
@@ -220,14 +221,55 @@ function addon:CreateTrackerFrame()
         GameTooltip:SetText("|cffffd100Goblin Toolbox: Add Items to Track|r")
         GameTooltip:AddLine("|cffd0d0d0Drag items from bags onto this icon to add to tracking|r", 1, 1, 1, true)
         GameTooltip:AddLine("|cffd0d0d0Or use: /gtb add [item link]|r", 1, 1, 1, true)
+        GameTooltip:AddLine("|cffd0d0d0Shift+Right-Click a tracked icon to remove it|r", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     
     f.addButton:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
-    
+
+    -- Drag to move bar
+    f.addButton:SetScript("OnDragStart", function(self)
+        -- Don't move if locked or if cursor has an item (drag-to-add)
+        if addon.db and addon.db.profile and addon.db.profile.lockFrame then
+            return
+        end
+        local cursorType = GetCursorInfo()
+        if cursorType == "item" then
+            return  -- Let OnReceiveDrag handle item drops
+        end
+        f:StartMoving()
+        self._gtbDidMove = true
+    end)
+
+    f.addButton:SetScript("OnDragStop", function(self)
+        f:StopMovingOrSizing()
+
+        -- Save position using existing schema (TOPLEFT to UIParent BOTTOMLEFT)
+        local db = addon.db and addon.db.profile
+        if not db then
+            return
+        end
+
+        local point, _, relPoint, xOfs, yOfs = f:GetPoint(1)
+        if not point then
+            return
+        end
+
+        db.trackerPoint = point
+        db.trackerRelPoint = relPoint
+        db.trackerXOfs = xOfs
+        db.trackerYOfs = yOfs
+    end)
+
     f.addButton:SetScript("OnClick", function(self, button)
+        -- Prevent click after drag
+        if self._gtbDidMove then
+            self._gtbDidMove = false
+            return
+        end
+
         -- Check if there's an item on the cursor (drag-and-drop)
         local cursorType, itemID, itemLink = GetCursorInfo()
         if cursorType == "item" then

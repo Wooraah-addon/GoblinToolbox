@@ -5,6 +5,30 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2026-01-18
+
+### Added
+- **Menu Lock/Unlock option**: New "Lock frames" checkbox in General settings (mirrors HUD title bar lock icon for better discoverability)
+- **Load message toggle**: "Show load message" checkbox to suppress/enable addon loaded chat print (account-wide setting)
+- **Utility action confirmations**: Single "Add confirmation step for sensitive actions" toggle for Logout, Reload, and Mailbox buttons
+  - Shows StaticPopup-style confirmation dialogs (respects out-of-combat restrictions)
+  - Works only when respective buttons are enabled
+  - Default OFF to preserve current behavior
+- **Currency count centering**: Currency tracker count overlay now centered for consistency with item tracker styling
+- **Gold per hour toggle**: New "Show gold per hour values" option to hide /h values without changing other displays
+- **Draggable tracker/currency bars**: Click and drag the green + icon on item tracker and currency tracker bars to reposition them
+  - Preserves existing click-to-chat and item-drop functionality
+
+### Fixed
+- **Warband bank integer overflow**: Removed unsafe %d formatting for copper values in bank transfer debug logs (prevents overflow with large values)
+- **Session persistence icon visibility**: Icon now correctly hides when Gold & Economy module is disabled, collapsed, or minimized
+- **Child option parent enabling**: Enabling a child option now auto-enables the parent module before applying (fixes "I enabled something but nothing shows" confusion)
+
+### Technical
+- Debug logging for bank transfers now uses safe string formatting for all copper values
+- Confirmation popups use Blizzard SecureActionButtonTemplate for Logout/Reload (respects combat lockdown)
+- Mailbox confirmation uses custom handler for compatibility with secure action buttons
+
 ## [1.0.6] - 2026-01-16
 
 ### Added

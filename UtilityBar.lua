@@ -4,6 +4,178 @@
 local addonName, addon = ...
 
 -----------------------------------------------------------------------
+-- Secure confirmation frame for mailbox (with real secure button)
+-----------------------------------------------------------------------
+
+local mailboxConfirmFrame
+local function GetMailboxConfirmFrame()
+    if mailboxConfirmFrame then
+        return mailboxConfirmFrame
+    end
+
+    -- Create a StaticPopup-styled confirmation dialog with secure button
+    local f = CreateFrame("Frame", "GoblinToolbox_MailboxConfirmFrame", UIParent, "BackdropTemplate")
+    f:SetSize(320, 100)
+    f:SetPoint("CENTER")
+
+    -- Use standard StaticPopup backdrop
+    f:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 32, edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 },
+    })
+    f:SetFrameStrata("DIALOG")
+    f:Hide()
+
+    -- Text (StaticPopup style)
+    local text = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    text:SetPoint("TOP", 0, -24)
+    text:SetWidth(290)
+    text:SetJustifyH("CENTER")
+    text:SetText("Summon mailbox now?\nThis starts a cooldown.")
+    f.text = text
+
+    -- Yes button (SECURE, using standard button template)
+    local yesBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate, UIPanelButtonTemplate")
+    yesBtn:SetSize(128, 21)
+    yesBtn:SetPoint("BOTTOM", -64, 16)
+    yesBtn:SetText(YES)
+    -- Don't override RegisterForClicks - let SecureActionButtonTemplate handle it
+
+    -- Post-click script to hide frame (runs in insecure context after secure action)
+    yesBtn:SetScript("PostClick", function()
+        f:Hide()
+    end)
+
+    f.yesBtn = yesBtn
+
+    -- Cancel button (normal, using standard button template)
+    local cancelBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    cancelBtn:SetSize(128, 21)
+    cancelBtn:SetPoint("BOTTOM", 64, 16)
+    cancelBtn:SetText(CANCEL)
+
+    cancelBtn:SetScript("OnClick", function()
+        f:Hide()
+    end)
+
+    f.cancelBtn = cancelBtn
+
+    -- ESC to close
+    f:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:Hide()
+        end
+    end)
+    f:EnableKeyboard(true)
+
+    mailboxConfirmFrame = f
+    return f
+end
+
+-----------------------------------------------------------------------
+-- Secure confirmation frames for Logout and Reload
+-----------------------------------------------------------------------
+
+local logoutConfirmFrame
+local function GetLogoutConfirmFrame()
+    if logoutConfirmFrame then
+        return logoutConfirmFrame
+    end
+
+    local f = CreateFrame("Frame", "GoblinToolbox_LogoutConfirmFrame", UIParent, "BackdropTemplate")
+    f:SetSize(320, 90)
+    f:SetPoint("CENTER")
+    f:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 32, edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 },
+    })
+    f:SetFrameStrata("DIALOG")
+    f:Hide()
+
+    local text = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    text:SetPoint("TOP", 0, -24)
+    text:SetWidth(290)
+    text:SetJustifyH("CENTER")
+    text:SetText("Log out now?")
+
+    local yesBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate, UIPanelButtonTemplate")
+    yesBtn:SetSize(128, 21)
+    yesBtn:SetPoint("BOTTOM", -64, 16)
+    yesBtn:SetText(YES)
+    yesBtn:SetAttribute("type", "macro")
+    yesBtn:SetAttribute("macrotext", "/logout")
+    yesBtn:SetScript("PostClick", function() f:Hide() end)
+    f.yesBtn = yesBtn
+
+    local cancelBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    cancelBtn:SetSize(128, 21)
+    cancelBtn:SetPoint("BOTTOM", 64, 16)
+    cancelBtn:SetText(CANCEL)
+    cancelBtn:SetScript("OnClick", function() f:Hide() end)
+
+    f:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then self:Hide() end
+    end)
+    f:EnableKeyboard(true)
+
+    logoutConfirmFrame = f
+    return f
+end
+
+local reloadConfirmFrame
+local function GetReloadConfirmFrame()
+    if reloadConfirmFrame then
+        return reloadConfirmFrame
+    end
+
+    local f = CreateFrame("Frame", "GoblinToolbox_ReloadConfirmFrame", UIParent, "BackdropTemplate")
+    f:SetSize(320, 90)
+    f:SetPoint("CENTER")
+    f:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 32, edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 },
+    })
+    f:SetFrameStrata("DIALOG")
+    f:Hide()
+
+    local text = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    text:SetPoint("TOP", 0, -24)
+    text:SetWidth(290)
+    text:SetJustifyH("CENTER")
+    text:SetText("Reload UI now?")
+
+    local yesBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate, UIPanelButtonTemplate")
+    yesBtn:SetSize(128, 21)
+    yesBtn:SetPoint("BOTTOM", -64, 16)
+    yesBtn:SetText(YES)
+    yesBtn:SetAttribute("type", "macro")
+    yesBtn:SetAttribute("macrotext", "/reload")
+    yesBtn:SetScript("PostClick", function() f:Hide() end)
+    f.yesBtn = yesBtn
+
+    local cancelBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    cancelBtn:SetSize(128, 21)
+    cancelBtn:SetPoint("BOTTOM", 64, 16)
+    cancelBtn:SetText(CANCEL)
+    cancelBtn:SetScript("OnClick", function() f:Hide() end)
+
+    f:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then self:Hide() end
+    end)
+    f:EnableKeyboard(true)
+
+    reloadConfirmFrame = f
+    return f
+end
+
+
+-----------------------------------------------------------------------
 -- Drag handle indicator (Hardware LED design)
 -----------------------------------------------------------------------
 
@@ -79,9 +251,10 @@ local function CreateDragHandle(parent)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             GameTooltip:SetText("Frame Locked", 1, 0.2, 0.2)
-            GameTooltip:AddLine("Click the lock icon to unlock", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("Unlock via lock icon or by deselecting \"Lock Frames\" in the /gtb menu", 0.8, 0.8, 0.8, true)
         else
             GameTooltip:SetText("Drag to Move", 0.2, 1, 0.2)
+            GameTooltip:AddLine("Lock frames using the lock icon or by selecting \"Lock Frames\" in the /gtb menu", 0.8, 0.8, 0.8, true)
         end
         GameTooltip:Show()
     end)
@@ -1206,6 +1379,67 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
     else
         btn.tooltip = tip
     end
+
+    -----------------------------------------------------------------------
+    -- Confirmation logic for sensitive actions (ONLY when enabled)
+    -- When confirmation is OFF, we do nothing here - buttons work normally
+    -- via their secure attributes set earlier in this function.
+    -----------------------------------------------------------------------
+    local db = addon.db and addon.db.profile
+    local confirmEnabled = db and db.utilityConfirmSensitiveActions
+    local isSensitive = (def.key == "logout" or def.key == "reload" or def.key == "mailbox")
+
+    if confirmEnabled and isSensitive and not InCombatLockdown() then
+        -- Confirmation is ON: clear secure attributes and use OnClick handler instead
+        btn:SetAttribute("type", nil)
+        btn:SetAttribute("typerelease", nil)
+        btn:SetAttribute("macrotext", nil)
+        btn:SetAttribute("item", nil)
+        btn:SetAttribute("toy", nil)
+        btn:SetAttribute("spell", nil)
+
+        btn:SetScript("OnClick", function(self, button)
+            if button ~= "LeftButton" then return end
+            if IsShiftKeyDown() then return end
+            if self.unavailableReason then return end
+            if InCombatLockdown() then
+                print("Cannot do that in combat.")
+                return
+            end
+
+            if def.key == "logout" then
+                GetLogoutConfirmFrame():Show()
+            elseif def.key == "reload" then
+                GetReloadConfirmFrame():Show()
+            elseif def.key == "mailbox" and self.itemID then
+                local isToy = (PlayerHasToy and PlayerHasToy(self.itemID)) or false
+                local itemName = self.itemName or (GetItemInfo and GetItemInfo(self.itemID))
+                local confirmFrame = GetMailboxConfirmFrame()
+
+                if not InCombatLockdown() then
+                    confirmFrame.yesBtn:SetAttribute("type", nil)
+                    confirmFrame.yesBtn:SetAttribute("toy", nil)
+                    confirmFrame.yesBtn:SetAttribute("item", nil)
+
+                    if isToy then
+                        confirmFrame.yesBtn:SetAttribute("type", "toy")
+                        confirmFrame.yesBtn:SetAttribute("toy", self.itemID)
+                    elseif itemName then
+                        confirmFrame.yesBtn:SetAttribute("type", "item")
+                        confirmFrame.yesBtn:SetAttribute("item", itemName)
+                    else
+                        print("Error: Mailbox item name not found")
+                        return
+                    end
+                    confirmFrame:Show()
+                else
+                    print("Cannot configure mailbox confirmation in combat.")
+                end
+            end
+        end)
+    end
+    -- When confirmation is OFF (or button is not sensitive): do nothing here.
+    -- The secure attributes were already set correctly by the kind-specific code above.
 
     -- Apply secure attribute guards to prevent accidental activation with modifiers/non-left-clicks
     ApplySecureAttributeGuards(btn)

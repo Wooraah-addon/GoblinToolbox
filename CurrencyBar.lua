@@ -78,9 +78,10 @@ local function CreateDragHandle(parent)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             GameTooltip:SetText("Frame Locked", 1, 0.2, 0.2)
-            GameTooltip:AddLine("Click the lock icon to unlock", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("Unlock via lock icon or by deselecting \"Lock Frames\" in the /gtb menu", 0.8, 0.8, 0.8, true)
         else
             GameTooltip:SetText("Drag to Move", 0.2, 1, 0.2)
+            GameTooltip:AddLine("Lock frames using the lock icon or by selecting \"Lock Frames\" in the /gtb menu", 0.8, 0.8, 0.8, true)
         end
         GameTooltip:Show()
     end)
@@ -194,7 +195,8 @@ function addon:CreateCurrencyFrame()
     f.addButton:SetSize(addButtonSize, addButtonSize)
     f.addButton:SetPoint("LEFT", f, "LEFT", 4, 0)
     f.addButton:SetAlpha(0.5)  -- 50% opacity
-    
+    f.addButton:RegisterForDrag("LeftButton")  -- Enable drag to move bar
+
     local addIcon = f.addButton:CreateTexture(nil, "ARTWORK")
     addIcon:SetAllPoints(true)
     addIcon:SetTexture("Interface\\Buttons\\UI-PlusButton-Up")
@@ -205,15 +207,51 @@ function addon:CreateCurrencyFrame()
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("|cffffd100Goblin Toolbox: Add Currencies to Track|r")
         GameTooltip:AddLine("|cffd0d0d0Type in chat to add currencies to track: /gtb add [currency link]|r", 1, 1, 1, true)
-        GameTooltip:AddLine("|cffd0d0d0Shift+click on currencies to remove from tracking|r", 1, 1, 1, true)
+        GameTooltip:AddLine("|cffd0d0d0Shift+Right-Click a tracked icon to remove it|r", 1, 1, 1, true)
         GameTooltip:Show()
     end)
     
     f.addButton:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
-    
-    f.addButton:SetScript("OnClick", function()
+
+    -- Drag to move bar
+    f.addButton:SetScript("OnDragStart", function(self)
+        -- Don't move if locked
+        if addon.db and addon.db.profile and addon.db.profile.lockFrame then
+            return
+        end
+        f:StartMoving()
+        self._gtbDidMove = true
+    end)
+
+    f.addButton:SetScript("OnDragStop", function(self)
+        f:StopMovingOrSizing()
+
+        -- Save position using existing schema (TOPLEFT to UIParent BOTTOMLEFT)
+        local db = addon.db and addon.db.profile
+        if not db then
+            return
+        end
+
+        local point, _, relPoint, xOfs, yOfs = f:GetPoint(1)
+        if not point then
+            return
+        end
+
+        db.currencyPoint = point
+        db.currencyRelPoint = relPoint
+        db.currencyXOfs = xOfs
+        db.currencyYOfs = yOfs
+    end)
+
+    f.addButton:SetScript("OnClick", function(self)
+        -- Prevent click after drag
+        if self._gtbDidMove then
+            self._gtbDidMove = false
+            return
+        end
+
         -- Insert chat command template
         local editBox = ChatEdit_ChooseBoxForSend()
         ChatEdit_ActivateChat(editBox)
@@ -419,7 +457,7 @@ function addon:UpdateCurrencyBar()
             btn.icon:SetAllPoints(true)
 
             btn.count = btn:CreateFontString(nil, "OVERLAY")
-            btn.count:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 2)
+            btn.count:SetPoint("CENTER", btn, "CENTER", 0, 0)
             btn.count:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
             btn.count:SetTextColor(1, 1, 1)
             btn.count:SetShadowOffset(1, -1)

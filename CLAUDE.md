@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.0.6**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.0.7**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -175,6 +175,63 @@ Use `addon:SafeLayoutHUD()` when updates are triggered by events. This defers `L
 - Posted auction totals cached per-character in `characters[characterKey]`
 - Frame positions (HUD, Utility, Tracker, Currency) stored per-profile
 - Schema migrations tracked via `global.schemaVersion` (currently 5)
+
+### SavedVariables Architecture (Implementation Details)
+
+**CRITICAL: GTB is live with users - treat SavedVariables as an external contract.**
+
+**Core Pattern (Core.lua:214-231):**
+```lua
+-- CopyDefaults: Recursive merge that only fills nil keys
+function CopyDefaults(src, dst)
+    for k, v in pairs(src) do
+        if type(v) == "table" then
+            dst[k] = CopyDefaults(v, dst[k])
+        elseif dst[k] == nil then  -- ← Never overwrites existing values
+            dst[k] = v
+        end
+    end
+end
+
+-- GetDB: One-line initialization
+function addon:GetDB()
+    GoblinToolboxDB = CopyDefaults(DEFAULTS, GoblinToolboxDB or {})
+    return GoblinToolboxDB
+end
+```
+
+**Migration Philosophy (Core.lua:264+):**
+- Each migration checks `if currentSchema < N` (idempotent, ordered, never re-runs)
+- Migrations run sequentially: v0→v1→v2→v3→v4→v5
+- Update `global.schemaVersion` at end of each step
+- Never delete old keys during migration (deprecate first, remove in later schema)
+- Test requirement: v4 profile → v5 must load without errors (see Testing Checklist)
+
+**Data Separation Principles:**
+- **Profile-specific**: UI content, element toggles, tracked items, frame positions
+- **Character-specific**: Session state, bank caches, auction data, notes (in `characters[charKey]`)
+- **Account-wide**: Visual preferences, technical settings (in `global`)
+- **Runtime-only**: Volatile state in `addon.state`, never saved
+
+**Stable Internal Keys:**
+- Use machine-readable keys in SavedVariables: `utilityButtons.resetInstances`
+- UI labels can change freely: "Reset Instances" displayed to user
+- Example: Config checkbox label "Reset Instances" maps to `db.utilityButtons.resetInstances`
+
+**Known Gap: No Explicit Validation/Sanitization**
+GTB currently has no validation pass after CopyDefaults + migrations. If adding:
+- Clamp numeric ranges: `scale` (0.5-2.0), `fontSize` (8-24), `backgroundOpacity` (0.0-1.0)
+- Coerce booleans: `if type(db.enabled) ~= "boolean" then db.enabled = true end`
+- Repair invalid enums: `if db.goldViewMode ~= "simple" and db.goldViewMode ~= "detailed" then db.goldViewMode = "simple" end`
+- Location: Add validation function called after `MigrateSavedVariables()` in `GoblinToolbox.lua:PLAYER_LOGIN`
+
+**Nil-Guard Discipline:**
+Throughout codebase, always guard against missing data:
+```lua
+local value = db.setting or defaultValue  -- Never assume db.setting exists
+local count = cache[itemKey] or 0         -- Never assume cache entry exists
+if not charCache then return end          -- Early return on missing tables
+```
 
 ## Key Patterns
 

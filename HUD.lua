@@ -788,6 +788,9 @@ function addon:LayoutHUD()
                     if section.sessionTimerDisplay then
                         section.sessionTimerDisplay:Hide()
                     end
+                    if section.sessionPersistIcon then
+                        section.sessionPersistIcon:Hide()
+                    end
                 end
             end
         end
@@ -851,6 +854,9 @@ function addon:LayoutHUD()
                     section.sessionPauseBtn:Hide()
                     if section.sessionTimerDisplay then
                         section.sessionTimerDisplay:Hide()
+                    end
+                    if section.sessionPersistIcon then
+                        section.sessionPersistIcon:Hide()
                     end
                 end
                 if key == "Character" then
@@ -1079,6 +1085,9 @@ function addon:LayoutHUD()
                 section.sessionPauseBtn:Hide()
                 if section.sessionTimerDisplay then
                     section.sessionTimerDisplay:Hide()
+                end
+                if section.sessionPersistIcon then
+                    section.sessionPersistIcon:Hide()
                 end
             end
             if key == "Character" then

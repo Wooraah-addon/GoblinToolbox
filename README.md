@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-1.0.6-green)
+  ![Version](https://img.shields.io/badge/Version-1.0.7-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview
@@ -138,13 +138,17 @@
   - ✅ Grey overlay for unavailable utility buttons
   - ✅ Housing teleport button
   - ✅ Reset Instances utility button
+  - ✅ Menu lock/unlock option (complementing HUD title bar toggle)
+  - ✅ Load message suppression toggle
+  - ✅ Confirmation prompts for sensitive actions (Logout/Reload/Mailbox)
+  - ✅ Gold-per-hour display toggle
+  - ✅ Draggable tracker and currency bars
 
   **Future Planned Features:**
   - Profile import/export functionality
   - Auctionator/Oribos Exchange price source support
   - Additional font options (Expressway specifically requested)
   - Minimap button for quick access
-  - Gold-per-hour display toggle
   - XP Tracking functionality
 
   ## Currently Out of Scope

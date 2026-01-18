@@ -309,9 +309,13 @@ local function CreateModuleCheckbox(parent, section, moduleKey, label, x, y, chi
         for _, def in ipairs(childDefs) do
             local cb = childRow:AddCheckbox(def.key, def.label, def.width or 100)
             result.childCheckboxes[def.key] = cb
-            
+
             -- Hook child checkbox to Apply
-            cb:SetScript("OnClick", function()
+            cb:SetScript("OnClick", function(self)
+                -- If turning ON a child and parent is OFF, auto-enable parent first
+                if self:GetChecked() and not mainCB:GetChecked() then
+                    mainCB:SetChecked(true)
+                end
                 if Apply then Apply() end
             end)
         end
@@ -449,6 +453,29 @@ local function CreateConfigFrame()
     f.hideInstCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     generalSection:AddChild(f.hideInstCB)
 
+    y = y - ITEM_HEIGHT
+
+    f.lockFrameCB = CreateCheckbox(scrollChild, "Lock frames", INDENT, y)
+    f.lockFrameCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Lock Frames", 1, 1, 1)
+        GameTooltip:AddLine("Prevents moving or resizing frames and hides drag handles. Can also be toggled by clicking the lock icon in the HUD title bar.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.lockFrameCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    generalSection:AddChild(f.lockFrameCB)
+
+    f.showLoadMsgCB = CreateCheckbox(scrollChild, "Show load message", INDENT + 150, y)
+    f.showLoadMsgCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Show Load Message", 1, 1, 1)
+        GameTooltip:AddLine("Displays a chat message when the addon loads on login or reload.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("|cff00ff00Account-wide:|r This setting applies to all characters.", 0.6, 1, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.showLoadMsgCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    generalSection:AddChild(f.showLoadMsgCB)
+
     y = y - ITEM_HEIGHT - SECTION_GAP
 
     -----------------------------------------------------------------------
@@ -528,7 +555,7 @@ local function CreateConfigFrame()
     f.scaleContainer:SetScript("OnLeave", function() GameTooltip:Hide() end)
     y = y - 28
 
-    f.fontContainer = CreateSlider(scrollChild, "Font Size", INDENT, y, 10, 16, 1)
+    f.fontContainer = CreateSlider(scrollChild, "Font Size", INDENT, y, 10, 20, 1)
     appearanceSection:AddChild(f.fontContainer)
     f.fontContainer:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -939,7 +966,19 @@ local function CreateConfigFrame()
         f.goldModule.childCheckboxes.goldPostedAuctions:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
 
-    y = y - f.goldModule.totalHeight - 4
+    y = y - f.goldModule.totalHeight
+
+    f.hideGoldPerHourCB = CreateCheckbox(scrollChild, "Hide gold per hour values", INDENT + 24, y)
+    f.hideGoldPerHourCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Hide Gold Per Hour", 1, 1, 1)
+        GameTooltip:AddLine("When checked, hides gold per hour (/h) calculations in session and looted value lines.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.hideGoldPerHourCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    modulesSection:AddChild(f.hideGoldPerHourCB)
+
+    y = y - ITEM_HEIGHT - SECTION_GAP
 
     -- Inventory module with sub-elements
     f.invModule = CreateModuleCheckbox(scrollChild, modulesSection, "Inventory", "Inventory", INDENT, y, {
@@ -1050,7 +1089,19 @@ local function CreateConfigFrame()
         f.utilModule.childCheckboxes.resetInstances:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
 
-    y = y - f.utilModule.totalHeight - SECTION_GAP
+    y = y - f.utilModule.totalHeight
+
+    f.utilityConfirmCB = CreateCheckbox(scrollChild, "Add confirmation step for sensitive actions", INDENT + 24, y)
+    f.utilityConfirmCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Confirmation Prompts", 1, 1, 1)
+        GameTooltip:AddLine("When enabled, adds a confirmation step before using Logout, Reload UI, or Mailbox buttons (if those buttons are enabled).", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.utilityConfirmCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    modulesSection:AddChild(f.utilityConfirmCB)
+
+    y = y - ITEM_HEIGHT - SECTION_GAP
 
     -----------------------------------------------------------------------
     -- Section 4: Item Tracker Bar
@@ -1490,12 +1541,15 @@ local function CreateConfigFrame()
         f.enableCB:SetChecked(db.enabled)
         f.hideCombatCB:SetChecked(db.hideInCombat)
         f.hideInstCB:SetChecked(db.hideInInstances)
+        f.lockFrameCB:SetChecked(db.lockFrame)
         f.headerCB:SetChecked(db.showHeaders)
         f.titlebarCB:SetChecked(db.showTitleBar)
         f.bgCB:SetChecked(db.showBackground)
         f.wbBankDefaultCB:SetChecked(db.preferWarbandBankOnOpen)
+        f.hideGoldPerHourCB:SetChecked(db.showGoldPerHour == false)  -- Inverted: checked = hidden
         f.sessionPersistCB:SetChecked(addon.db.global.sessionPersistOnLogout or false)
         f.afkAutoPauseCB:SetChecked(addon.db.global.afkAutoPause ~= false)  -- Default true
+        f.showLoadMsgCB:SetChecked(addon.db.global.showLoadMessage ~= false)  -- Default true
 
         local opacity = addon.db.global.backgroundOpacity or 0.30
         f.opacityContainer.slider:SetValue(opacity)
@@ -1639,6 +1693,9 @@ local function CreateConfigFrame()
             f.utilModule.childCheckboxes.resetInstances:SetChecked(db.utilityButtons.resetInstances ~= false)
         end
 
+        -- Utility bar confirmation setting
+        f.utilityConfirmCB:SetChecked(db.utilityConfirmSensitiveActions or false)
+
         -- Tracker bars
         f.trackerCB:SetChecked(db.showTracker ~= false)
         f.currencyCB:SetChecked(db.showCurrencyTracker ~= false)
@@ -1678,12 +1735,15 @@ local function CreateConfigFrame()
         db.enabled              = f.enableCB:GetChecked()
         db.hideInCombat         = f.hideCombatCB:GetChecked()
         db.hideInInstances      = f.hideInstCB:GetChecked()
+        db.lockFrame            = f.lockFrameCB:GetChecked()
         db.showHeaders          = f.headerCB:GetChecked()
         db.showTitleBar         = f.titlebarCB:GetChecked()
         db.showBackground       = f.bgCB:GetChecked()
         db.preferWarbandBankOnOpen = f.wbBankDefaultCB:GetChecked()
+        db.showGoldPerHour      = not f.hideGoldPerHourCB:GetChecked()  -- Inverted: checked = hidden
         addon.db.global.sessionPersistOnLogout = f.sessionPersistCB:GetChecked()
         addon.db.global.afkAutoPause = f.afkAutoPauseCB:GetChecked()
+        addon.db.global.showLoadMessage = f.showLoadMsgCB:GetChecked()
         addon.db.global.tsmCustomSource = f.customEdit:GetText() or ""
 
         -- Modules
@@ -1787,6 +1847,9 @@ local function CreateConfigFrame()
             db.utilityButtons.resetInstances = f.utilModule.childCheckboxes.resetInstances:GetChecked()
         end
 
+        -- Utility bar confirmation setting
+        db.utilityConfirmSensitiveActions = f.utilityConfirmCB:GetChecked()
+
         -- Tracker bars
         db.showTracker          = f.trackerCB:GetChecked()
         db.showCurrencyTracker  = f.currencyCB:GetChecked()
@@ -1833,10 +1896,13 @@ local function CreateConfigFrame()
     HookCheckbox(f.enableCB)
     HookCheckbox(f.hideCombatCB)
     HookCheckbox(f.hideInstCB)
+    HookCheckbox(f.lockFrameCB)
+    HookCheckbox(f.showLoadMsgCB)
     HookCheckbox(f.headerCB)
     HookCheckbox(f.titlebarCB)
     HookCheckbox(f.bgCB)
     HookCheckbox(f.wbBankDefaultCB)
+    HookCheckbox(f.hideGoldPerHourCB)
     HookCheckbox(f.sessionPersistCB)
     HookCheckbox(f.afkAutoPauseCB)
     HookCheckbox(f.trackerCB)
@@ -1844,6 +1910,7 @@ local function CreateConfigFrame()
     HookCheckbox(f.showTrackedItemValueCB)
     -- Tracker source checkboxes already have OnClick handlers set
     HookCheckbox(f.tooltipEnabledCB)
+    HookCheckbox(f.utilityConfirmCB)
 
     f.opacityContainer.slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value * 20 + 0.5) / 20

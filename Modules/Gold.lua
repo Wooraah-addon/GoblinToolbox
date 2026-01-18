@@ -33,7 +33,7 @@ local function EnqueueTransferIntent(amount, source)
         source = source,  -- "guild" or "warband"
     }
     table.insert(pendingMoneyIntents, intent)
-    LogTransfer(string.format("Queued %s intent: %+d copper", source, amount))
+    LogTransfer(string.format("Queued %s intent: %s copper", source, tostring(amount)))
 end
 
 -- Expire old intents (older than 2 seconds)
@@ -42,8 +42,8 @@ local function ExpireOldIntents()
     local i = 1
     while i <= #pendingMoneyIntents do
         if (now - pendingMoneyIntents[i].ts) > 2.0 then
-            LogTransfer(string.format("Expired %s intent: %+d copper (unmatched)",
-                pendingMoneyIntents[i].source, pendingMoneyIntents[i].amount))
+            LogTransfer(string.format("Expired %s intent: %s copper (unmatched)",
+                pendingMoneyIntents[i].source, tostring(pendingMoneyIntents[i].amount)))
             table.remove(pendingMoneyIntents, i)
         else
             i = i + 1
@@ -78,8 +78,8 @@ local function TryConsumeTransferIntent(playerDelta)
             if deltaMag >= intentMag and deltaMag <= (intentMag + tolerance) then
                 -- Match found!
                 local matchedAmount = intent.amount
-                LogTransfer(string.format("Matched %s transfer: intent=%+d, delta=%+d",
-                    intent.source, intent.amount, playerDelta))
+                LogTransfer(string.format("Matched %s transfer: intent=%s, delta=%s",
+                    intent.source, tostring(intent.amount), tostring(playerDelta)))
 
                 -- Remove this intent from queue
                 table.remove(pendingMoneyIntents, i)
@@ -479,8 +479,8 @@ local function UpdateEarnedSpent()
         -- This delta (or part of it) was a bank transfer
         -- Update transfer offset to neutralize it from Net calculation
         s.sessionTransferOffset = (s.sessionTransferOffset or 0) + matchedTransfer
-        LogTransfer(string.format("Transfer offset updated: %+d (total: %+d)",
-            matchedTransfer, s.sessionTransferOffset))
+        LogTransfer(string.format("Transfer offset updated: %s (total: %s)",
+            tostring(matchedTransfer), tostring(s.sessionTransferOffset)))
     end
 
     -- Guard against unreasonably large deltas (likely from login race condition)
@@ -1067,6 +1067,7 @@ function Gold:Update()
     end
 
     local db = addon.db.profile
+    local showPH = (db.showGoldPerHour ~= false)  -- Show per-hour values (default true)
     local elem = db.elements or {}
     local s = addon.state
     local isDetailed = (db.goldViewMode == "detailed")
@@ -1192,8 +1193,13 @@ function Gold:Update()
             local startGold = s.sessionStartGold or 0
             local currentGold = (isPaused and s.pauseGoldSnapshot) or GetMoney()
 
-            sec.lines[5]:SetText(string.format("Start: %s   Current: %s   (%s/h)",
-                addon:FormatMoney(startGold), addon:FormatMoney(currentGold), FormatColoredMoney(gph)))
+            if showPH then
+                sec.lines[5]:SetText(string.format("Start: %s   Current: %s   (%s/h)",
+                    addon:FormatMoney(startGold), addon:FormatMoney(currentGold), FormatColoredMoney(gph)))
+            else
+                sec.lines[5]:SetText(string.format("Start: %s   Current: %s",
+                    addon:FormatMoney(startGold), addon:FormatMoney(currentGold)))
+            end
 
             -- Line 6: Earned / Spent / Net
             local earned = s.sessionEarned or 0
@@ -1205,8 +1211,13 @@ function Gold:Update()
         else
             -- SIMPLE MODE
             -- Line 5: Earned + GPH
-            sec.lines[5]:SetText(string.format("Earned: %s (%s/h)",
-                FormatColoredMoney(net), FormatColoredMoney(gph)))
+            if showPH then
+                sec.lines[5]:SetText(string.format("Earned: %s (%s/h)",
+                    FormatColoredMoney(net), FormatColoredMoney(gph)))
+            else
+                sec.lines[5]:SetText(string.format("Earned: %s",
+                    FormatColoredMoney(net)))
+            end
 
             -- Line 6: Empty in simple mode
             sec.lines[6]:SetText("")
@@ -1238,8 +1249,13 @@ function Gold:Update()
             end
         end
 
-        sec.lines[7]:SetText(string.format("Looted (%s): %s (%s/h)",
-            priceSource, addon:FormatMoney(lootedValue), addon:FormatMoney(lootedGPH)))
+        if showPH then
+            sec.lines[7]:SetText(string.format("Looted (%s): %s (%s/h)",
+                priceSource, addon:FormatMoney(lootedValue), addon:FormatMoney(lootedGPH)))
+        else
+            sec.lines[7]:SetText(string.format("Looted (%s): %s",
+                priceSource, addon:FormatMoney(lootedValue)))
+        end
     else
         sec.lines[7]:SetText("")
     end

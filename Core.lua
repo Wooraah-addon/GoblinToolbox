@@ -86,6 +86,7 @@ local DEFAULTS = {
         showBackground   = true,
         preferWarbandBankOnOpen = false,
         goldViewMode     = "simple",  -- "simple" or "detailed"
+        showGoldPerHour  = true,  -- Show gold per hour (/h) values in session and looted lines
         debugTransfers   = false,  -- Debug logging for bank transfers and session persistence
 
         modules = {
@@ -158,6 +159,9 @@ local DEFAULTS = {
             resetInstances    = false,
         },
 
+        -- Utility bar behavior settings
+        utilityConfirmSensitiveActions = false,  -- Add confirmation prompts for Logout, Reload, and Mailbox buttons
+
         -- Position persistence
         point           = nil,
         relPoint        = nil,
@@ -188,6 +192,7 @@ local DEFAULTS = {
         accountLabel = "",  -- Account-wide label shown in Character section (e.g., "WOW1")
         sessionPersistOnLogout = false,  -- User preference for session data persistence (separate from profiles)
         afkAutoPause = true,  -- Auto-pause session when player goes AFK (enabled by default)
+        showLoadMessage = true,  -- Show addon loaded message on login (enabled by default)
         -- Appearance settings (account-wide visual preferences)
         scale = 1.0,
         fontSize = 13,
