@@ -2926,7 +2926,7 @@ StaticPopupDialogs["GOBLINTOOLBOX_APPLY_PRESET"] = {
 
 -- TODO v1.1.1: Remove this entire StaticPopup dialog and related code (one-time notice for v1.1.0 only)
 StaticPopupDialogs["GOBLINTOOLBOX_V1_1_0_NOTICE"] = {
-    text = "|cffF7DB4AGoblin Toolbox - UI Update Notice|r\n\nVersion v1.1.0 brings the ability to scale and wrap Item, Currency, and Utility bars, giving you much greater flexibility over your UI layout.\n\nBecause of these changes, bars might have moved slightly. If anything looks off, simply drag them back into position, or use the Reset Bar Positions button below to start fresh.\n\nYou can find the new layout options (buttons per row, growth direction, per-bar scaling) in /gtb under each bar's section.\n\n|cff808080Note: Gold data is preserved.|r\n\n–Wooraah",
+    text = "|cffF7DB4AGoblin Toolbox - UI Update Notice|r\n\nVersion 1.1.0 brings new features:\n\n• Bar layout customization (scale, wrap, buttons per row, growth direction)\n• Minimap button for quick access\n• Midnight (12.0.0) compatibility\n\nBecause of layout changes, bars might have moved slightly. If anything looks off, simply drag them back into position, or use the Reset Bar Positions button below to start fresh.\n\nYou can find the new layout options in /gtb under each bar's section.\n\n|cff808080Note: Gold data is preserved.|r\n\n–Wooraah",
     button1 = "Continue",
     button2 = "Reset Bar Positions",
     OnShow = function(self)
