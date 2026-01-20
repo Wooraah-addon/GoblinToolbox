@@ -138,7 +138,7 @@ function Inventory:GetItemPrice(itemLink)
 
     -- Fallback to vendor price
     if price <= 0 then
-        local vendor = select(11, GetItemInfo(itemLink)) or 0
+        local vendor = addon.API.GetVendorSellPrice(itemLink)
         price = vendor
     end
 
@@ -165,7 +165,7 @@ function Inventory:GetUnitPrice(itemLink, itemID)
         -- If no itemLink but we have itemID, try converting itemID to itemString
         elseif not itemLink and itemID then
             -- Try to get itemLink from itemID, then convert
-            local name, link = GetItemInfo(itemID)
+            local name, link = addon.API.GetItemInfo(itemID)
             if link then
                 if TSM_API.ToItemString then
                     local ok, s = pcall(TSM_API.ToItemString, link)
