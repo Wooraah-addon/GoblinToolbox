@@ -272,6 +272,10 @@ local EventHandlers = {
     PLAYER_TARGET_CHANGED = function()
         if addon.Character and addon.Character.UpdateShardFromUnit then
             addon.Character:UpdateShardFromUnit("target")
+            -- Refresh Character section to display updated shard ID
+            if addon.UpdateCharacterSection then
+                addon:UpdateCharacterSection()
+            end
         end
     end,
 
@@ -279,6 +283,10 @@ local EventHandlers = {
     UPDATE_MOUSEOVER_UNIT = function()
         if addon.Character and addon.Character.UpdateShardFromUnit then
             addon.Character:UpdateShardFromUnit("mouseover")
+            -- Refresh Character section to display updated shard ID
+            if addon.UpdateCharacterSection then
+                addon:UpdateCharacterSection()
+            end
         end
     end,
 
