@@ -487,7 +487,7 @@ local function IsToyOwnedAndUsable(itemID)
 
     if PlayerHasToy and PlayerHasToy(itemID) then
         owned = true
-    elseif GetItemCount and GetItemCount(itemID, true) > 0 then
+    elseif addon.API.GetItemCount(itemID, true) > 0 then
         owned = true
     end
 
@@ -536,14 +536,7 @@ local function ResolveClassQuickTravel()
         return dreamwalkID, addon.API.GetSpellTexture(dreamwalkID), nil, false, "Druid / Death Knight / Monk only"
     end
 
-    local isLearned = false
-    if C_Spell and C_Spell.IsSpellKnown then
-        isLearned = C_Spell.IsSpellKnown(baseSpellID)
-    elseif IsSpellKnown then
-        isLearned = IsSpellKnown(baseSpellID)
-    elseif IsPlayerSpell then
-        isLearned = IsPlayerSpell(baseSpellID)
-    end
+    local isLearned = addon.API.IsSpellKnown(baseSpellID)
 
     if not isLearned then
         local name = addon.API.GetSpellName(baseSpellID) or "Class Travel"
@@ -575,7 +568,7 @@ local function IsMountCollectedBySpell(spellID)
     end
 
     -- Fallback: spell-known heuristic
-    if IsSpellKnown and IsSpellKnown(spellID) then
+    if addon.API.IsSpellKnown(spellID) then
         return true
     end
 
@@ -695,7 +688,7 @@ local function IsWarbandBankAvailable()
     end
     
     -- Method 2: Check if spell is known (fallback)
-    if IsSpellKnown and IsSpellKnown(spellID) then
+    if addon.API.IsSpellKnown(spellID) then
         return true, nil
     end
     
@@ -874,18 +867,18 @@ local hearthstoneCache = {
 local toyNameCache = {}
 
 local function HasItemInBags(itemID)
-    if not itemID or not GetItemCount then
+    if not itemID then
         return false
     end
-    local count = GetItemCount(itemID, false, false, false)
+    local count = addon.API.GetItemCount(itemID, false, false, false)
     return (count or 0) > 0
 end
 
 local function IsHearthstoneToyItemBySpell(itemID, hearthSpellID)
-    if not itemID or not hearthSpellID or not GetItemSpell then
+    if not itemID or not hearthSpellID then
         return false
     end
-    local _, spellID = GetItemSpell(itemID)
+    local _, spellID = addon.API.GetItemSpell(itemID)
     return spellID == hearthSpellID
 end
 
@@ -966,12 +959,10 @@ local function GetToyNameCached(itemID)
         return toyNameCache[itemID]
     end
 
-    if GetItemInfo then
-        local name = GetItemInfo(itemID)
-        if name and name ~= "" then
-            toyNameCache[itemID] = name
-            return name
-        end
+    local name = addon.API.GetItemInfo(itemID)
+    if name and name ~= "" then
+        toyNameCache[itemID] = name
+        return name
     end
 
     -- Asynchronous load; when ready, refresh the bar (out of combat only).
@@ -1434,7 +1425,7 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
                 btn:SetAttribute("item", nil)
             else
                 -- For physical items, must use item name (not ID)
-                local itemName = GetItemInfo and GetItemInfo(itemID)
+                local itemName = addon.API.GetItemInfo(itemID)
                 if itemName then
                     btn:SetAttribute("type", "item")
                     btn:SetAttribute("typerelease", "item")
@@ -1451,8 +1442,8 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
             tip = name or def.label or "Toy"
         else
             local name = nil
-            if itemID and GetItemInfo then
-                name = GetItemInfo(itemID)
+            if itemID then
+                name = addon.API.GetItemInfo(itemID)
                 tip = name or def.label or "Item"
             else
                 tip = def.label or "Item"
@@ -1538,7 +1529,7 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
                 GetReloadConfirmFrame():Show()
             elseif def.key == "mailbox" and self.itemID then
                 local isToy = (PlayerHasToy and PlayerHasToy(self.itemID)) or false
-                local itemName = self.itemName or (GetItemInfo and GetItemInfo(self.itemID))
+                local itemName = self.itemName or addon.API.GetItemInfo(self.itemID)
                 local confirmFrame = GetMailboxConfirmFrame()
 
                 if not InCombatLockdown() then
