@@ -191,7 +191,9 @@ local EventHandlers = {
         end
         
         -- Start character combat log monitoring for shard detection
-        if addon.Character and addon.Character.StartCombatLogMonitoring then
+        -- Skip on Midnight (12.0.0+) due to combat log restrictions
+        local interfaceVersion = select(4, GetBuildInfo())
+        if addon.Character and addon.Character.StartCombatLogMonitoring and interfaceVersion < 120000 then
             addon.Character:StartCombatLogMonitoring()
         end
 
@@ -254,7 +256,10 @@ local EventHandlers = {
     end,
 
     PLAYER_LOGOUT = function()
-        addon:SaveUtilityBarPositionOnLogout()
+        -- Save utility bar position (nil-safe for future refactors)
+        if addon.SaveUtilityBarPositionOnLogout then
+            addon:SaveUtilityBarPositionOnLogout()
+        end
         addon:SaveSessionState()
     end,
 

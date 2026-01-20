@@ -300,11 +300,23 @@ function Character:StartCombatLogMonitoring()
         return
     end
 
-    self._combatLogFrame = CreateFrame("Frame")
-    self._combatLogFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    self._combatLogFrame:SetScript("OnEvent", function()
-        OnCombatLogEvent()
+    -- Attempt to register combat log event (may fail on Midnight due to combat restrictions)
+    local success, err = pcall(function()
+        self._combatLogFrame = CreateFrame("Frame")
+        self._combatLogFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+        self._combatLogFrame:SetScript("OnEvent", function()
+            OnCombatLogEvent()
+        end)
     end)
+
+    if not success then
+        -- Midnight (12.0.0+) blocks combat log registration for addons
+        -- Shard detection will fall back to target/mouseover methods (future enhancement)
+        if addon.db and addon.db.global and addon.db.global.debugTransfers then
+            print("|cff00ff00Goblin Toolbox:|r Shard detection unavailable (combat log restricted on Midnight)")
+        end
+        self._combatLogFrame = nil
+    end
 end
 
 -----------------------------------------------------------------------

@@ -1631,6 +1631,12 @@ function addon:RestoreUtilityBarPosition()
     bar._gtbLastDesiredAnchor = visualAnchor
 end
 
+-- Public API: Save utility bar position on logout
+-- Exposes the local SaveUtilityBarPosition() for PLAYER_LOGOUT handler
+function addon:SaveUtilityBarPositionOnLogout()
+    SaveUtilityBarPosition()
+end
+
 -----------------------------------------------------------------------
 -- Utility bar creation
 -----------------------------------------------------------------------
