@@ -168,7 +168,6 @@
   - Profile import/export functionality
   - Auctionator/Oribos Exchange price source support
   - Additional font options (Expressway specifically requested)
-  - Minimap button for quick access
   - XP Tracking functionality
 
   ## Currently Out of Scope
@@ -221,10 +220,18 @@ Therefore the following proposed features are currently on hold/deffered or out 
 
   ## Known Issues
 
-  - Shard ID may show "Unknown" until you interact with an NPC (by design - detection requires NPC GUID)    
+  - Shard ID may show "Unknown" until you target or mouseover an NPC (by design - detection requires NPC interaction)
   - Guild bank gold requires visiting the guild bank to update (cached afterward)
   - Posted auctions only update when AH window is opened (Blizzard API limitation)
   - Although the menu option exists for support of custom TSM prices, the functionality is not yet working
+
+  ## Midnight (12.0.0) Compatibility
+
+  Goblin Toolbox is **fully compatible** with WoW Midnight (12.0.0) launching January 20, 2026:
+  - All deprecated API functions replaced with modern C_Item and C_SpellBook namespaced APIs
+  - Shard detection uses non-combat events (target/mouseover) instead of restricted combat log
+  - Session persistence and utility bar position saving working correctly
+  - Tested on Midnight beta and retail with zero errors
 
   ## Feedback & suggestions
 

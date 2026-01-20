@@ -5,7 +5,7 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - TBD
+## [1.1.0] - 2026-01-20
 
 ### Added
 - **Minimap button**: Quick access to GTB configuration via minimap icon
@@ -50,6 +50,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Empty bar dragging**: Fixed drag functionality on empty bars after visual fix
 
 ### Technical
+- **Midnight (12.0.0) compatibility**: Full support for WoW Midnight launch
+  - Migrated to modern C_Item and C_SpellBook namespaced APIs (19 deprecated API call sites replaced)
+  - Replaced COMBAT_LOG_EVENT_UNFILTERED shard detection with PLAYER_TARGET_CHANGED and UPDATE_MOUSEOVER_UNIT events (combat log restrictions workaround)
+  - Fixed SaveUtilityBarPositionOnLogout nil method error (session persistence now reliable on logout/reload)
+  - Graceful degradation for combat log restrictions with pcall wrapper and version gating
+  - All deprecated API usage eliminated (addresses community feedback from Larsj_02)
+- **Modern API wrappers**: Added centralized addon.API compatibility layer for future-proofing
+  - GetItemInfo, GetItemInfoInstant, GetItemCount, GetItemSpell → C_Item namespace
+  - IsSpellKnown → C_SpellBook.IsSpellKnown (corrected from non-existent C_Spell.IsSpellKnown)
+  - Added GetVendorSellPrice helper to replace select(11, GetItemInfo) patterns
+  - No legacy fallbacks (12.0+ only), cleaner codebase
+- **Config global leak fix**: Fixed trackersSection undefined variable in Config.lua sections table
 - **Library dependencies**: GTB now vendors LibStub, CallbackHandler-1.0, LibDataBroker-1.1, and LibDBIcon-1.0 for minimap button functionality
   - First external dependencies for GTB (chosen for minimap manager compatibility)
   - Packaged via .pkgmeta externals (automatically pulled during CurseForge builds)
