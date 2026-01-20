@@ -45,27 +45,30 @@ local function CreateDragHandle(parent)
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             return
         end
-        parent:StartMoving()
+        -- Move the anchor (parent's parent), not the visual frame
+        local anchor = parent:GetParent()
+        if anchor then
+            anchor:StartMoving()
+        end
     end)
-    
+
     handle:SetScript("OnDragStop", function(self)
-        parent:StopMovingOrSizing()
+        -- Stop moving the anchor
+        local anchor = parent:GetParent()
+        if not anchor then return end
+        anchor:StopMovingOrSizing()
+
         local db = addon.db and addon.db.profile
         if not db then
             return
         end
-        -- Get current screen position and re-anchor to TOPLEFT
-        local left = parent:GetLeft()
-        local top = parent:GetTop()
-        if left and top then
-            -- Re-anchor frame to TOPLEFT so it grows right from fixed position
-            parent:ClearAllPoints()
-            parent:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
-            -- Save position for persistence
-            db.currencyPoint = "TOPLEFT"
-            db.currencyRelPoint = "BOTTOMLEFT"
-            db.currencyXOfs = left
-            db.currencyYOfs = top
+        -- Save anchor position (not visual frame position)
+        local point, relativeTo, relativePoint, xOfs, yOfs = anchor:GetPoint(1)
+        if point then
+            db.currencyPoint = point
+            db.currencyRelPoint = relativePoint or "BOTTOMLEFT"
+            db.currencyXOfs = xOfs
+            db.currencyYOfs = yOfs
         end
     end)
     
@@ -132,12 +135,21 @@ function addon:CreateCurrencyFrame()
         return
     end
 
-    local f = CreateFrame("Frame", "GoblinToolboxCurrencyTracker", UIParent, "BackdropTemplate")
+    -- Create unscaled anchor frame (position container)
+    local anchor = CreateFrame("Frame", "GoblinToolboxCurrencyAnchor", UIParent)
+    self.currencyAnchor = anchor
+    anchor:SetSize(1, 1)
+    anchor:SetMovable(true)
+    anchor:SetClampedToScreen(true)
+    -- Never scale the anchor
+
+    -- Create scaled visual frame (content container)
+    local f = CreateFrame("Frame", "GoblinToolboxCurrencyTracker", anchor, "BackdropTemplate")
     self.currencyFrame = f
 
     f:SetSize(260, 34)
     f:SetFrameStrata("MEDIUM")  -- Same as Blizzard action bars
-    f:SetClampedToScreen(true)
+    -- Don't clamp visual frame - anchor handles clamping
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
@@ -146,27 +158,24 @@ function addon:CreateCurrencyFrame()
         if addon.db.profile.lockFrame then
             return
         end
-        frame:StartMoving()
+        -- Move the anchor, not the visual frame
+        anchor:StartMoving()
     end)
 
     f:SetScript("OnDragStop", function(frame)
-        frame:StopMovingOrSizing()
+        -- Stop moving the anchor
+        anchor:StopMovingOrSizing()
         local db = addon.db and addon.db.profile
         if not db then
             return
         end
-        -- Get current screen position and re-anchor to TOPLEFT
-        local left = frame:GetLeft()
-        local top = frame:GetTop()
-        if left and top then
-            -- Re-anchor frame to TOPLEFT so it grows right from fixed position
-            frame:ClearAllPoints()
-            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
-            -- Save position for persistence
-            db.currencyPoint = "TOPLEFT"
-            db.currencyRelPoint = "BOTTOMLEFT"
-            db.currencyXOfs = left
-            db.currencyYOfs = top
+        -- Save anchor position (not visual frame position)
+        local point, relativeTo, relativePoint, xOfs, yOfs = anchor:GetPoint(1)
+        if point then
+            db.currencyPoint = point
+            db.currencyRelPoint = relativePoint or "BOTTOMLEFT"
+            db.currencyXOfs = xOfs
+            db.currencyYOfs = yOfs
         end
     end)
 
@@ -178,13 +187,24 @@ function addon:CreateCurrencyFrame()
     })
     f:SetBackdropBorderColor(0.35, 0.3, 0.2, 1)  -- Yellow-grey tint for currency tracker bar
 
-    -- Default position: always use TOPLEFT anchor so bar grows right from fixed position
+    -- Position anchor frame from saved vars
     local db = addon.db.profile
+    local growX = db.currencyGrowX or "RIGHT"
+    local growY = db.currencyGrowY or "DOWN"
+    local anchorPoint = db.currencyPoint or addon:GetAnchorFromGrowth(growX, growY)
+    local relativePoint = db.currencyRelPoint or "BOTTOMLEFT"
+
     if db.currencyXOfs and db.currencyYOfs then
-        f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", db.currencyXOfs, db.currencyYOfs)
+        anchor:SetPoint(anchorPoint, UIParent, relativePoint, db.currencyXOfs, db.currencyYOfs)
     else
-        f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
+        -- No saved position, use default (top-left corner of screen with offset)
+        anchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
     end
+
+    -- Anchor visual frame to anchor container at growth corner
+    local visualAnchor = addon:GetAnchorFromGrowth(growX, growY)
+    f:ClearAllPoints()
+    f:SetPoint(visualAnchor, anchor, visualAnchor, 0, 0)
 
     f.buttons = {}
 
@@ -221,28 +241,29 @@ function addon:CreateCurrencyFrame()
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             return
         end
-        f:StartMoving()
+        -- Move the anchor, not the visual frame
+        anchor:StartMoving()
         self._gtbDidMove = true
     end)
 
     f.addButton:SetScript("OnDragStop", function(self)
-        f:StopMovingOrSizing()
+        -- Stop moving the anchor
+        anchor:StopMovingOrSizing()
 
-        -- Save position using existing schema (TOPLEFT to UIParent BOTTOMLEFT)
+        -- Save anchor position
         local db = addon.db and addon.db.profile
         if not db then
             return
         end
 
-        local point, _, relPoint, xOfs, yOfs = f:GetPoint(1)
-        if not point then
-            return
+        -- Save anchor position (not visual frame position)
+        local point, relativeTo, relativePoint, xOfs, yOfs = anchor:GetPoint(1)
+        if point then
+            db.currencyPoint = point
+            db.currencyRelPoint = relativePoint or "BOTTOMLEFT"
+            db.currencyXOfs = xOfs
+            db.currencyYOfs = yOfs
         end
-
-        db.currencyPoint = point
-        db.currencyRelPoint = relPoint
-        db.currencyXOfs = xOfs
-        db.currencyYOfs = yOfs
     end)
 
     f.addButton:SetScript("OnClick", function(self)
@@ -268,18 +289,33 @@ function addon:CreateCurrencyFrame()
 end
 
 function addon:RestoreCurrencyBarPosition()
+    local anchor = self.currencyAnchor
     local f = self.currencyFrame
-    if not f then return end
+    if not anchor or not f then return end
 
     local db = self.db.profile
+    local growX = db.currencyGrowX or "RIGHT"
+    local growY = db.currencyGrowY or "DOWN"
+    local anchorPoint = db.currencyPoint or addon:GetAnchorFromGrowth(growX, growY)
+    local relativePoint = db.currencyRelPoint or "BOTTOMLEFT"
+
+    -- Restore anchor position
     if db.currencyXOfs and db.currencyYOfs then
-        f:ClearAllPoints()
-        f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", db.currencyXOfs, db.currencyYOfs)
+        anchor:ClearAllPoints()
+        anchor:SetPoint(anchorPoint, UIParent, relativePoint, db.currencyXOfs, db.currencyYOfs)
     else
         -- No saved position, use fixed default
-        f:ClearAllPoints()
-        f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
+        anchor:ClearAllPoints()
+        anchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
     end
+
+    -- Anchor visual frame to anchor container at growth corner
+    local visualAnchor = addon:GetAnchorFromGrowth(growX, growY)
+    f:ClearAllPoints()
+    f:SetPoint(visualAnchor, anchor, visualAnchor, 0, 0)
+
+    -- Initialize anchor cache to prevent unnecessary re-anchoring
+    f._gtbLastDesiredAnchor = visualAnchor
 end
 
 -----------------------------------------------------------------------
@@ -349,15 +385,26 @@ local function FindCurrencyByName(searchName)
 end
 
 -----------------------------------------------------------------------
--- Helper to ensure frame is anchored at TOPLEFT (so it grows right)
+-- Helper to re-anchor frame based on current growth settings
 -----------------------------------------------------------------------
 
-local function EnsureLeftAnchor(frame)
-    local left = frame:GetLeft()
-    local top = frame:GetTop()
-    if left and top then
-        frame:ClearAllPoints()
-        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+local function UpdateAnchorFromGrowth(visualFrame, db)
+    local growX = db.currencyGrowX or "RIGHT"
+    local growY = db.currencyGrowY or "DOWN"
+    local desiredAnchor = addon:GetAnchorFromGrowth(growX, growY)
+
+    -- Only re-anchor if growth settings actually changed
+    if visualFrame._gtbLastDesiredAnchor == desiredAnchor then
+        return
+    end
+
+    -- Growth changed - re-point visual frame to new corner of anchor
+    -- No coordinate conversion needed - visual stays at (0,0) relative to anchor
+    local anchor = visualFrame:GetParent()
+    if anchor then
+        visualFrame:ClearAllPoints()
+        visualFrame:SetPoint(desiredAnchor, anchor, desiredAnchor, 0, 0)
+        visualFrame._gtbLastDesiredAnchor = desiredAnchor
     end
 end
 
@@ -420,6 +467,15 @@ function addon:UpdateCurrencyBar()
     local tracked = db.trackedCurrencies or {}
     local numTracked = #tracked
 
+    -- Get growth settings and update anchor if needed
+    local growX = db.currencyGrowX or "RIGHT"
+    local growY = db.currencyGrowY or "DOWN"
+    UpdateAnchorFromGrowth(f, db)
+    local anchorPoint = addon:GetAnchorFromGrowth(growX, growY)
+
+    -- Buttons-per-row setting
+    local buttonsPerRow = db.currencyButtonsPerRow or 30
+
     if numTracked == 0 then
         for _, b in ipairs(f.buttons) do
             b:Hide()
@@ -430,10 +486,13 @@ function addon:UpdateCurrencyBar()
             local padding = addon.CONST.PADDING
             local buttonSize = addon.CONST.BUTTON_SIZE_SMALL
             local addButtonSize = buttonSize * 0.7
-            -- Re-anchor to TOPLEFT before resize so bar grows right from fixed position
-            EnsureLeftAnchor(f)
-            -- Use full buttonSize for height so frame doesn't shift vertically when items are added
-            f:SetSize(padding * 2 + addButtonSize, buttonSize + padding * 2)
+            -- Use full buttonSize for both width and height so frame is square and doesn't shift when items are added
+            f:SetSize(padding * 2 + buttonSize, buttonSize + padding * 2)
+
+            -- Center the add button in the square frame
+            local centerOffset = (buttonSize - addButtonSize) / 2
+            f.addButton:ClearAllPoints()
+            f.addButton:SetPoint("CENTER", f, "CENTER", 0, 0)
         end
         return
     end
@@ -446,6 +505,7 @@ function addon:UpdateCurrencyBar()
     local buttonSize = addon.CONST.BUTTON_SIZE_SMALL
     local spacing = addon.CONST.SPACING_SMALL
     local padding = addon.CONST.PADDING
+    local addButtonSize = buttonSize * 0.7
 
     -- Create buttons as needed
     for i = 1, numTracked do
@@ -493,22 +553,45 @@ function addon:UpdateCurrencyBar()
         f.buttons[i]:Hide()
     end
 
-    -- Calculate width: padding + add button + spacing + currencies
-    local addButtonSize = buttonSize * 0.7
-    local totalWidth = padding + addButtonSize + spacing + (numTracked * buttonSize) + ((numTracked - 1) * spacing) + padding
-    -- Re-anchor to TOPLEFT before resize so bar grows right from fixed position
-    EnsureLeftAnchor(f)
-    f:SetSize(totalWidth, buttonSize + padding * 2)
+    -- Grid layout calculation
+    -- Total slots = 1 (add button) + numTracked
+    local nSlots = 1 + numTracked
+    local bpr = math.min(buttonsPerRow, nSlots)  -- Clamp to actual slot count
+    local cols = math.min(bpr, nSlots)
+    local rows = math.ceil(nSlots / bpr)
 
-    -- Position and update buttons (start after add button)
-    local prev = f.addButton
+    -- Frame size
+    local step = buttonSize + spacing
+    local frameWidth = padding * 2 + (cols * buttonSize) + ((cols - 1) * spacing)
+    local frameHeight = padding * 2 + (rows * buttonSize) + ((rows - 1) * spacing)
+    f:SetSize(frameWidth, frameHeight)
+
+    -- Offset signs based on anchor
+    local xSign = (anchorPoint:find("LEFT") and 1) or -1
+    local ySign = (anchorPoint:find("TOP") and -1) or 1
+
+    -- Position add button (slot 0) - centered in its cell since it's smaller
+    local addRow = math.floor(0 / bpr)
+    local addCol = 0 % bpr
+    local addOffset = (buttonSize - addButtonSize) / 2  -- Center offset
+    local addX = xSign * (padding + addCol * step + addOffset)
+    local addY = ySign * (padding + addRow * step + addOffset)
+    f.addButton:ClearAllPoints()
+    f.addButton:SetPoint(anchorPoint, f, anchorPoint, addX, addY)
+
+    -- Position and update currency buttons (slots 1+)
     for i, currencyID in ipairs(tracked) do
         local btn = f.buttons[i]
         btn.currencyID = currencyID
 
+        local slot = i  -- Slot 1 is the first currency
+        local row = math.floor(slot / bpr)
+        local col = slot % bpr
+        local x = xSign * (padding + col * step)
+        local y = ySign * (padding + row * step)
+
         btn:ClearAllPoints()
-        btn:SetPoint("LEFT", prev, "RIGHT", spacing, 0)
-        prev = btn
+        btn:SetPoint(anchorPoint, f, anchorPoint, x, y)
 
         local name, count, icon = GetCurrencyData(currencyID)
 

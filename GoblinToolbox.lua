@@ -158,6 +158,7 @@ local EventHandlers = {
         addon:CreateTrackerFrame()
         addon:CreateCurrencyFrame()
         addon:CreateUtilityBar()
+        addon:CreateMinimapButton()
         addon:ApplyScale()  -- Apply saved scale to all frames
         addon:UpdateBackground()
         addon:UpdateTitleBar()
@@ -241,6 +242,14 @@ local EventHandlers = {
         -- Show load message if enabled (account-wide preference)
         if addon.db.global.showLoadMessage ~= false then
             print("Goblin Toolbox loaded. Type /gtb for options.")
+        end
+
+        -- TODO v1.1.1: Remove this entire block (one-time notice for v1.1.0 only)
+        -- Show v1.1.0 UI update notice (one-time, account-wide)
+        if not addon.db.global.shownV1_1_0Notice then
+            C_Timer.After(1.5, function()
+                StaticPopup_Show("GOBLINTOOLBOX_V1_1_0_NOTICE")
+            end)
         end
     end,
 
@@ -521,6 +530,7 @@ local cooldownEvents = {
     "SPELLS_CHANGED",
     "TOYS_UPDATED",
     "PLAYER_EQUIPMENT_CHANGED",
+    "UPDATE_OVERRIDE_ACTIONBAR",
 }
 
 for _, event in ipairs(cooldownEvents) do

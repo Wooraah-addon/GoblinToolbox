@@ -155,12 +155,31 @@ local DEFAULTS = {
             hearthstone       = true,
             dalaranHS         = true,
             garrisonHS        = true,
+            classQuickTravel  = false,
             housingTeleport   = false,
             resetInstances    = false,
         },
 
         -- Utility bar behavior settings
         utilityConfirmSensitiveActions = false,  -- Add confirmation prompts for Logout, Reload, and Mailbox buttons
+
+        -- Utility Bar layout settings
+        utilityButtonsPerRow = 15,   -- Max 15 (all utility buttons fit in one row)
+        utilityGrowX = "RIGHT",      -- Horizontal growth direction: "RIGHT" or "LEFT"
+        utilityGrowY = "DOWN",       -- Vertical growth direction: "DOWN" or "UP"
+        utilityBarScale = 1.0,       -- Per-bar scale multiplier (stacks with global scale)
+
+        -- Item Tracker Bar layout settings
+        trackerButtonsPerRow = 30,   -- 30 = "No wrap" (default); 1-30 range
+        trackerGrowX = "RIGHT",      -- Horizontal growth direction: "RIGHT" or "LEFT"
+        trackerGrowY = "DOWN",       -- Vertical growth direction: "DOWN" or "UP"
+        trackerBarScale = 1.0,       -- Per-bar scale multiplier (stacks with global scale)
+
+        -- Currency Tracker Bar layout settings
+        currencyButtonsPerRow = 30,  -- 30 = "No wrap" (default); 1-30 range
+        currencyGrowX = "RIGHT",     -- Horizontal growth direction: "RIGHT" or "LEFT"
+        currencyGrowY = "DOWN",      -- Vertical growth direction: "DOWN" or "UP"
+        currencyBarScale = 1.0,      -- Per-bar scale multiplier (stacks with global scale)
 
         -- Position persistence
         point           = nil,
@@ -193,6 +212,7 @@ local DEFAULTS = {
         sessionPersistOnLogout = false,  -- User preference for session data persistence (separate from profiles)
         afkAutoPause = true,  -- Auto-pause session when player goes AFK (enabled by default)
         showLoadMessage = true,  -- Show addon loaded message on login (enabled by default)
+        minimap = { hide = false, minimapPos = 220 },  -- Minimap button: hide=false (shown), minimapPos=angle in degrees
         -- Appearance settings (account-wide visual preferences)
         scale = 1.0,
         fontSize = 13,
@@ -200,7 +220,10 @@ local DEFAULTS = {
         -- Gold valuation settings (account-wide technical preferences)
         tsmSource = "dbregionsaleavg",
         tsmCustomSource = "",
-        schemaVersion = 1,  -- Used for tracking SavedVariables migrations
+        schemaVersion = 5,  -- Current schema version for fresh installs (migrations 1-5 complete)
+        -- UI update notices (account-wide, dismissed once)
+        -- TODO v1.1.1: Remove shownV1_1_0Notice (one-time notice for v1.1.0 only)
+        shownV1_1_0Notice = false,  -- v1.1.0 bar layout update notice
     },
 
     profiles = {},      -- Will be populated with Default profile after migration
@@ -215,6 +238,9 @@ local DEFAULTS = {
         itemsLastUpdate = 0,   -- Timestamp of last warband bank scan
     },
 }
+
+-- Expose DEFAULTS for access by other modules (e.g., Config.lua)
+addon.DEFAULTS = DEFAULTS
 
 local function CopyDefaults(src, dst)
     if type(dst) ~= "table" then
@@ -233,6 +259,49 @@ end
 function addon:GetDB()
     GoblinToolboxDB = CopyDefaults(DEFAULTS, GoblinToolboxDB or {})
     return GoblinToolboxDB
+end
+
+-----------------------------------------------------------------------
+-- Bar Layout Helpers
+-----------------------------------------------------------------------
+
+-- Compute anchor point from growth directions
+function addon:GetAnchorFromGrowth(growX, growY)
+    local horizontal = (growX == "LEFT") and "RIGHT" or "LEFT"
+    local vertical = (growY == "UP") and "BOTTOM" or "TOP"
+    return vertical .. horizontal  -- e.g., "TOPLEFT", "BOTTOMRIGHT", etc.
+end
+
+-- Get frame coordinate for a specific anchor point in UIParent space (scale-invariant)
+function addon:GetFrameCoordForAnchor(frame, anchorPoint)
+    if not frame then return nil, nil end
+
+    local left = frame:GetLeft()
+    local right = frame:GetRight()
+    local top = frame:GetTop()
+    local bottom = frame:GetBottom()
+
+    if not (left and right and top and bottom) then
+        return nil, nil
+    end
+
+    -- Get the edge coordinate based on anchor point
+    -- GetLeft/Right/Top/Bottom already return coordinates in UIParent space
+    -- No scale conversion needed - these are already scale-invariant
+    local edgeX, edgeY
+    if anchorPoint:find("LEFT") then
+        edgeX = left
+    else
+        edgeX = right
+    end
+
+    if anchorPoint:find("TOP") then
+        edgeY = top
+    else
+        edgeY = bottom
+    end
+
+    return edgeX, edgeY
 end
 
 -----------------------------------------------------------------------
@@ -478,6 +547,16 @@ function addon:EnsureProfileSystem()
     -- Point addon.db.profile to the active profile table
     self.db.profile = self.db.profiles[profileName]
 
+    -- Merge any missing defaults into the active profile (for legacy profiles missing new keys)
+    CopyDefaults(DEFAULTS.profile, self.db.profile)
+
+    -- Also merge defaults into all other existing profiles (prevents issues on future profile switch)
+    for name, profile in pairs(self.db.profiles) do
+        if name ~= profileName then  -- Already merged active profile above
+            CopyDefaults(DEFAULTS.profile, profile)
+        end
+    end
+
     -- Store the active profile name for easy reference
     self.state.activeProfileName = profileName
 end
@@ -560,6 +639,9 @@ function addon:SetActiveProfile(profileName)
     -- Update the active profile pointer
     self.db.profile = self.db.profiles[profileName]
     self.state.activeProfileName = profileName
+
+    -- Merge any missing defaults into the newly active profile
+    CopyDefaults(DEFAULTS.profile, self.db.profile)
 
     return true
 end
@@ -810,6 +892,7 @@ addon.PRESETS = {
             hearthstone = true,
             dalaranHS = true,
             garrisonHS = true,
+            classQuickTravel = true,
             housingTeleport = true,
             resetInstances = true,
         },
@@ -860,6 +943,9 @@ function addon:ApplyPresetToProfile(presetName, profileName)
     end
 
     deepMerge(profile, preset)
+
+    -- Backfill any missing defaults (presets may not include all keys)
+    CopyDefaults(DEFAULTS.profile, profile)
 
     -- If this is the active profile, refresh is needed
     if profileName == self:GetActiveProfileName() then
@@ -1278,7 +1364,9 @@ end
 function addon.API.GetSpellTexture(spellID)
     if not spellID then return nil end
     
-    if GetSpellTexture then
+    if C_Spell and C_Spell.GetSpellTexture then
+        return C_Spell.GetSpellTexture(spellID)
+    elseif GetSpellTexture then
         return GetSpellTexture(spellID)
     elseif GetSpellInfo then
         local _, _, tex = GetSpellInfo(spellID)
@@ -1290,7 +1378,9 @@ end
 function addon.API.GetSpellName(spellID)
     if not spellID then return nil end
     
-    if GetSpellInfo then
+    if C_Spell and C_Spell.GetSpellName then
+        return C_Spell.GetSpellName(spellID)
+    elseif GetSpellInfo then
         return GetSpellInfo(spellID)
     end
     return nil

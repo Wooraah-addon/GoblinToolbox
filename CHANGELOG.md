@@ -5,6 +5,62 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - TBD
+
+### Added
+- **Minimap button**: Quick access to GTB configuration via minimap icon
+  - Uses LibDBIcon-1.0 for maximum compatibility with minimap managers
+  - Left-click to open/close menu
+  - Right-drag to reposition around minimap rim
+  - Toggle visibility via Options panel → General → "Minimap button" checkbox (account-wide setting)
+  - Position persists across sessions
+- **Per-bar scaling**: Each bar (Item Tracker, Currency Tracker, Utility Bar) now has independent scale control (0.5x to 2.0x)
+  - Configurable in Options panel under each bar's section
+  - Scale adjustments no longer cause position drift (see Technical section)
+- **Buttons per row configuration**: All three bars now support wrapping to multiple rows
+  - Item Tracker: 1-20 buttons per row
+  - Currency Tracker: 1-20 buttons per row
+  - Utility Bar: 1-12 buttons per row
+- **Growth direction controls**: Choose how bars expand when adding items
+  - Horizontal growth: LEFT or RIGHT
+  - Vertical growth: UP or DOWN
+  - Four corner anchoring options (e.g., grow right+down from top-left corner)
+- **One-time update notice**: Account-wide popup on first login explaining v1.1.0 bar layout changes
+  - Includes "Reset Bar Positions" button for easy recovery if bars shifted
+  - "Don't show this again" checkbox to permanently dismiss
+  - Will be removed in v1.1.1 (temporary notification only)
+
+### Changed
+- **Reset All Settings** now properly resets all UI/display settings to defaults
+  - Preserves user behavioral preferences: session persistence, AFK auto-pause, TSM source, load message setting, account label
+  - Uses deep copy from DEFAULTS table to ensure complete reset
+- **Reset Bar Positions**: New dedicated function to reset only bar positions (not HUD)
+  - Accessed via Options panel or v1.1.0 update notice popup
+  - HUD position remains unchanged when resetting bars
+
+### Fixed
+- **Session pause state restoration**: Fixed "Manually Paused" flag appearing incorrectly after logout/reload
+  - AFK-paused sessions now auto-resume on login (no longer incorrectly show "Manually Paused")
+  - Manually-paused sessions correctly remain paused across logout/reload
+  - Root cause: `pausedByAFK` flag now properly saved/restored in session state
+- **Bar position persistence**: Scaling a bar no longer causes position drift on reload/logout
+  - Bars now remember exact positions regardless of scale changes
+  - Growth direction changes no longer shift bar position
+- **Empty bar appearance**: Add button (+) on empty bars now properly square (not rectangular)
+- **Empty bar dragging**: Fixed drag functionality on empty bars after visual fix
+
+### Technical
+- **Library dependencies**: GTB now vendors LibStub, CallbackHandler-1.0, LibDataBroker-1.1, and LibDBIcon-1.0 for minimap button functionality
+  - First external dependencies for GTB (chosen for minimap manager compatibility)
+  - Packaged via .pkgmeta externals (automatically pulled during CurseForge builds)
+  - SavedVariables schema updated: `db.global.minimap = { hide = false, minimapPos = 220 }`
+- **Anchor-container architecture**: Implemented separation of position (unscaled anchor frame) from visual rendering (scaled content frame)
+  - Anchor frame handles position/movement, never scales
+  - Visual content frame handles layout/scaling, always positioned relative to anchor
+  - Eliminates coordinate conversion errors that caused position drift
+- **Schema version**: Fresh installs now default to schemaVersion 5 (no unnecessary migrations)
+- **SavedVariables cleanup**: Improved handling of bar position data with anchor-based storage
+
 ## [1.0.7] - 2026-01-18
 
 ### Added

@@ -43,6 +43,7 @@ tmpclaude-*
 # Development notes (not for distribution)
 Current Development status.txt
 DesignDoc.txt
+Font_Options_Notes.md
 AGENTS.md
 .cursor/
 .pkgmeta

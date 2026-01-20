@@ -217,29 +217,35 @@ local function CreateDragHandle(parent)
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             return
         end
-        parent:StartMoving()
+        -- Move the anchor (parent's parent), not the visual frame
+        local anchor = parent:GetParent()
+        if anchor then
+            anchor:StartMoving()
+        end
     end)
 
     handle:SetScript("OnDragStop", function(self)
-        parent:StopMovingOrSizing()
+        -- Stop moving the anchor
+        local anchor = parent:GetParent()
+        if not anchor then return end
+        anchor:StopMovingOrSizing()
         addon._utilityMovedThisSession = true
 
-        -- Persist position using the same schema as the rest of UtilityBar.lua
+        -- Persist position using growth-based anchoring
         local db = addon.db and addon.db.profile
         if not db then
             return
         end
 
-        local point, _, relPoint, xOfs, yOfs = parent:GetPoint(1)
-        if not point then
-            return
+        -- Save anchor position (not visual frame position)
+        local point, relativeTo, relativePoint, xOfs, yOfs = anchor:GetPoint(1)
+        if point then
+            db.utilityBarPos = db.utilityBarPos or {}
+            db.utilityBarPos.point = point
+            db.utilityBarPos.relPoint = relativePoint or "BOTTOMLEFT"
+            db.utilityBarPos.x = xOfs
+            db.utilityBarPos.y = yOfs
         end
-
-        db.utilityBarPos = db.utilityBarPos or {}
-        db.utilityBarPos.point = point
-        db.utilityBarPos.relPoint = relPoint
-        db.utilityBarPos.x = xOfs
-        db.utilityBarPos.y = yOfs
     end)
 
     -- Hover behavior
@@ -379,6 +385,12 @@ local UTILITY_ACTIONS = {
         itemID   = addon.CONST.ITEMS.GARRISON_HS,
     },
 
+    classQuickTravel = {
+        key      = "classQuickTravel",
+        label    = "Class Travel",
+        kind     = "dynamicSpell",
+    },
+
     housingTeleport = {
         key             = "housingTeleport",
         label           = "Housing",
@@ -407,6 +419,7 @@ local UTILITY_ORDER = {
     "hearthstone",
     "dalaranHS",
     "garrisonHS",
+    "classQuickTravel",
     "housingTeleport",
     "resetInstances",
 }
@@ -442,6 +455,27 @@ local function GetSpellCooldownCompat(spellID)
     end
 
     return 0, 0, 0
+end
+
+local function GetOverrideSpellCompat(baseSpellID)
+    if not baseSpellID then return nil end
+    
+    if C_Spell and C_Spell.GetOverrideSpell then
+        local override = C_Spell.GetOverrideSpell(baseSpellID)
+        return (override and override ~= 0) and override or baseSpellID
+    end
+    
+    if C_SpellBook and C_SpellBook.FindSpellOverrideByID then
+        local override = C_SpellBook.FindSpellOverrideByID(baseSpellID)
+        return (override and override ~= 0) and override or baseSpellID
+    end
+
+    if _G.FindSpellOverrideByID then
+        local override = _G.FindSpellOverrideByID(baseSpellID)
+        return (override and override ~= 0) and override or baseSpellID
+    end
+
+    return baseSpellID
 end
 
 local function IsToyOwnedAndUsable(itemID)
@@ -481,6 +515,46 @@ local function PickMailboxToyID()
     end
 
     return nil
+end
+
+local function ResolveClassQuickTravel()
+    local _, classFile = UnitClass("player")
+    local baseSpellID
+    
+    if classFile == "DRUID" then
+        baseSpellID = 193753 -- Dreamwalk
+    elseif classFile == "MONK" then
+        baseSpellID = 126892 -- Zen Pilgrimage
+    elseif classFile == "DEATHKNIGHT" then
+        baseSpellID = 50977 -- Death Gate
+    end
+
+    -- Use Dreamwalk icon (1391708) as placeholder for unsupported classes
+    local dreamwalkID = 193753
+    
+    if not baseSpellID then
+        return dreamwalkID, addon.API.GetSpellTexture(dreamwalkID), nil, false, "Druid / Death Knight / Monk only"
+    end
+
+    local isLearned = false
+    if C_Spell and C_Spell.IsSpellKnown then
+        isLearned = C_Spell.IsSpellKnown(baseSpellID)
+    elseif IsSpellKnown then
+        isLearned = IsSpellKnown(baseSpellID)
+    elseif IsPlayerSpell then
+        isLearned = IsPlayerSpell(baseSpellID)
+    end
+
+    if not isLearned then
+        local name = addon.API.GetSpellName(baseSpellID) or "Class Travel"
+        return baseSpellID, addon.API.GetSpellTexture(baseSpellID), name, false, "Spell not learned"
+    end
+
+    local effectiveSpellID = GetOverrideSpellCompat(baseSpellID)
+    local name = addon.API.GetSpellName(effectiveSpellID) or addon.API.GetSpellName(baseSpellID) or "Class Travel"
+    local icon = addon.API.GetSpellTexture(effectiveSpellID) or addon.API.GetSpellTexture(baseSpellID)
+
+    return effectiveSpellID, icon, name, true, nil
 end
 
 -----------------------------------------------------------------------
@@ -1092,6 +1166,10 @@ local function GetCooldownForUtilityButton(btn)
 
     local def = btn.utilDef
 
+    if btn.cooldownSpellID then
+        return GetSpellCooldownCompat(btn.cooldownSpellID)
+    end
+
     if def.kind == "spell" or def.kind == "mount" then
         local spellID = def.spellID
         if not spellID then
@@ -1191,11 +1269,58 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
     btn.spellKey = nil
     btn.utilityKey = def.key
     btn.unavailableReason = nil
+    btn.cooldownSpellID = nil
 
     -- Check availability for this button type
     local checkFunc = AVAILABILITY_CHECKS[def.key]
     local isAvailable = true
     local unavailableReason = nil
+    
+    if def.kind == "dynamicSpell" then
+        local effectiveSpellID, iconTexture, spellName, isSpellAvailable, reason = ResolveClassQuickTravel()
+        
+        isAvailable = isSpellAvailable
+        unavailableReason = reason
+        
+        if isAvailable then
+            if not InCombatLockdown() then
+                btn:SetAttribute("type", "spell")
+                btn:SetAttribute("typerelease", "spell")
+                btn:SetAttribute("spell", spellName)
+                btn:SetAttribute("toy", nil)
+                btn:SetAttribute("item", nil)
+            end
+            btn.spellKey = spellName
+            btn.cooldownSpellID = effectiveSpellID
+        else
+            if not InCombatLockdown() then
+                btn:SetAttribute("type", nil)
+                btn:SetAttribute("typerelease", nil)
+                btn:SetAttribute("spell", nil)
+                btn:SetAttribute("toy", nil)
+                btn:SetAttribute("item", nil)
+            end
+            btn.cooldownSpellID = nil
+        end
+        
+        btn.icon:SetTexture(iconTexture)
+        btn.tooltipTitle = "Class Travel"
+        btn.tooltipSubtext = spellName
+        
+        -- Apply visuals
+        if isAvailable then
+            btn.icon:SetDesaturated(false)
+            if btn.overlay then btn.overlay:Hide() end
+        else
+            btn.icon:SetDesaturated(true)
+            if btn.overlay then btn.overlay:Show() end
+        end
+        btn.unavailableReason = unavailableReason
+
+        ApplySecureAttributeGuards(btn)
+        UpdateUtilityButtonCooldown(btn)
+        return -- Handled completely by dynamicSpell branch
+    end
     
     if checkFunc then
         isAvailable, unavailableReason = checkFunc()
@@ -1455,10 +1580,10 @@ addon._utilityMovedThisSession = false
 
 local function SaveUtilityBarPosition()
     local db = addon.db and addon.db.profile
-    local bar = addon.utilityBar
-    if not db or not bar then return end
+    local anchor = addon.utilityAnchor
+    if not db or not anchor then return end
 
-    local point, _, relPoint, xOfs, yOfs = bar:GetPoint(1)
+    local point, _, relPoint, xOfs, yOfs = anchor:GetPoint(1)
     if not point then return end
 
     db.utilityBarPos = db.utilityBarPos or {}
@@ -1470,30 +1595,49 @@ end
 
 local function Utility_DeferredApply()
     local db = addon.db and addon.db.profile
+    local anchor = addon.utilityAnchor
     local bar = addon.utilityBar
-    if not db or not bar then return end
+    if not db or not anchor or not bar then return end
 
     local pos = db.utilityBarPos
     if pos and pos.point and pos.relPoint and pos.x and pos.y and not addon._utilityMovedThisSession then
+        anchor:ClearAllPoints()
+        anchor:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
+
+        -- Anchor visual frame to anchor container at growth corner
+        local growX = db.utilityGrowX or "RIGHT"
+        local growY = db.utilityGrowY or "DOWN"
+        local visualAnchor = addon:GetAnchorFromGrowth(growX, growY)
         bar:ClearAllPoints()
-        bar:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
+        bar:SetPoint(visualAnchor, anchor, visualAnchor, 0, 0)
     end
 end
 
 function addon:RestoreUtilityBarPosition()
+    local anchor = self.utilityAnchor
     local bar = self.utilityBar
-    if not bar then return end
+    if not anchor or not bar then return end
 
     local db = self.db.profile
     local pos = db.utilityBarPos
     if pos and pos.point and pos.relPoint and pos.x and pos.y then
-        bar:ClearAllPoints()
-        bar:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
+        anchor:ClearAllPoints()
+        anchor:SetPoint(pos.point, UIParent, pos.relPoint, pos.x, pos.y)
     else
         -- No saved position, use fixed default (no auto-snapping)
-        bar:ClearAllPoints()
-        bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
+        anchor:ClearAllPoints()
+        anchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
     end
+
+    -- Anchor visual frame to anchor container at growth corner
+    local growX = db.utilityGrowX or "RIGHT"
+    local growY = db.utilityGrowY or "DOWN"
+    local visualAnchor = addon:GetAnchorFromGrowth(growX, growY)
+    bar:ClearAllPoints()
+    bar:SetPoint(visualAnchor, anchor, visualAnchor, 0, 0)
+
+    -- Initialize anchor cache to prevent unnecessary re-anchoring
+    bar._gtbLastDesiredAnchor = visualAnchor
 end
 
 -----------------------------------------------------------------------
@@ -1505,12 +1649,21 @@ function addon:CreateUtilityBar()
         return
     end
 
-    local f = CreateFrame("Frame", "GoblinToolboxUtilityBar", UIParent, "BackdropTemplate")
+    -- Create unscaled anchor frame (position container)
+    local anchor = CreateFrame("Frame", "GoblinToolboxUtilityAnchor", UIParent)
+    self.utilityAnchor = anchor
+    anchor:SetSize(1, 1)
+    anchor:SetMovable(true)
+    anchor:SetClampedToScreen(true)
+    -- Never scale the anchor
+
+    -- Create scaled visual frame (content container)
+    local f = CreateFrame("Frame", "GoblinToolboxUtilityBar", anchor, "BackdropTemplate")
     self.utilityBar = f
 
     f:SetSize(200, 34)
     f:SetFrameStrata("MEDIUM")  -- Same as Blizzard action bars, won't block quest dialogs
-    f:SetClampedToScreen(true)
+    -- Don't clamp visual frame - anchor handles clamping
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
@@ -1519,11 +1672,13 @@ function addon:CreateUtilityBar()
         if addon.db and addon.db.profile and addon.db.profile.lockFrame then
             return
         end
-        frame:StartMoving()
+        -- Move the anchor, not the visual frame
+        anchor:StartMoving()
     end)
 
     f:SetScript("OnDragStop", function(frame)
-        frame:StopMovingOrSizing()
+        -- Stop moving the anchor
+        anchor:StopMovingOrSizing()
         addon._utilityMovedThisSession = true
         SaveUtilityBarPosition()
     end)
@@ -1537,7 +1692,15 @@ function addon:CreateUtilityBar()
     f:SetBackdropBorderColor(0.2, 0.25, 0.35, 1)
 
     -- Default position: fixed position below HUD default area (no auto-snapping)
-    f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
+    anchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
+
+    -- Anchor visual frame to anchor container at growth corner
+    local db = addon.db.profile
+    local growX = db.utilityGrowX or "RIGHT"
+    local growY = db.utilityGrowY or "DOWN"
+    local visualAnchor = addon:GetAnchorFromGrowth(growX, growY)
+    f:ClearAllPoints()
+    f:SetPoint(visualAnchor, anchor, visualAnchor, 0, 0)
 
     Utility_DeferredApply()
 
@@ -1546,6 +1709,30 @@ function addon:CreateUtilityBar()
     f.buttons = {}
 
     self:UpdateBackground()
+end
+
+-----------------------------------------------------------------------
+-- Helper to re-anchor frame based on current growth settings
+-----------------------------------------------------------------------
+
+local function UpdateAnchorFromGrowth(visualFrame, db)
+    local growX = db.utilityGrowX or "RIGHT"
+    local growY = db.utilityGrowY or "DOWN"
+    local desiredAnchor = addon:GetAnchorFromGrowth(growX, growY)
+
+    -- Only re-anchor if growth settings actually changed
+    if visualFrame._gtbLastDesiredAnchor == desiredAnchor then
+        return
+    end
+
+    -- Growth changed - re-point visual frame to new corner of anchor
+    -- No coordinate conversion needed - visual stays at (0,0) relative to anchor
+    local anchor = visualFrame:GetParent()
+    if anchor then
+        visualFrame:ClearAllPoints()
+        visualFrame:SetPoint(desiredAnchor, anchor, desiredAnchor, 0, 0)
+        visualFrame._gtbLastDesiredAnchor = desiredAnchor
+    end
 end
 
 -----------------------------------------------------------------------
@@ -1674,16 +1861,48 @@ function addon:UpdateUtilityBar()
         end
     end
 
+    -- Get growth settings and update anchor if needed
+    local growX = db.utilityGrowX or "RIGHT"
+    local growY = db.utilityGrowY or "DOWN"
+    UpdateAnchorFromGrowth(bar, db)
+    local anchorPoint = addon:GetAnchorFromGrowth(growX, growY)
+
+    -- Buttons-per-row setting
+    local buttonsPerRow = db.utilityButtonsPerRow or 12
+
+    if shown == 0 then
+        self:SetSecureFrameVisible(bar, false)
+        return
+    end
+
+    -- Grid layout calculation
+    local bpr = math.min(buttonsPerRow, shown)  -- Clamp to actual button count
+    local cols = math.min(bpr, shown)
+    local rows = math.ceil(shown / bpr)
+
+    -- Frame size
+    local step = size + spacing
+    local width = padding * 2 + (cols * size) + ((cols - 1) * spacing)
+    local height = padding * 2 + (rows * size) + ((rows - 1) * spacing)
+    bar:SetSize(width, height)
+
+    -- Offset signs based on anchor
+    local xSign = (anchorPoint:find("LEFT") and 1) or -1
+    local ySign = (anchorPoint:find("TOP") and -1) or 1
+
+    -- Position buttons using grid layout
     for i = 1, #bar.buttons do
         local btn = bar.buttons[i]
         if btn then
             if i <= shown then
+                local slot = i - 1  -- 0-indexed for grid calculation
+                local row = math.floor(slot / bpr)
+                local col = slot % bpr
+                local x = xSign * (padding + col * step)
+                local y = ySign * (padding + row * step)
+
                 btn:ClearAllPoints()
-                if i == 1 then
-                    btn:SetPoint("LEFT", bar, "LEFT", padding, 0)
-                else
-                    btn:SetPoint("LEFT", bar.buttons[i - 1], "RIGHT", spacing, 0)
-                end
+                btn:SetPoint(anchorPoint, bar, anchorPoint, x, y)
                 btn:Show()
                 UpdateUtilityButtonCooldown(btn)
             else
@@ -1691,15 +1910,6 @@ function addon:UpdateUtilityBar()
             end
         end
     end
-
-    if shown == 0 then
-        self:SetSecureFrameVisible(bar, false)
-        return
-    end
-
-    local width = padding * 2 + shown * size + (shown - 1) * spacing
-    local height = size + padding * 2
-    bar:SetSize(width, height)
 end
 
 -----------------------------------------------------------------------

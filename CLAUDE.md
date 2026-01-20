@@ -2,13 +2,24 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.0.7**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.0**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
 ## Author
 
 Wooraah (golbintoolbox@gmail.com)
+
+## IMPORTANT: v1.1.1 Cleanup Task
+
+**REMOVE IN v1.1.1:** The v1.1.0 update notice popup is a ONE-TIME notification for the v1.1.0 release. It must be removed in v1.1.1.
+
+**Files to clean up:**
+1. **Config.lua** (line ~2889): Remove entire `StaticPopupDialogs["GOBLINTOOLBOX_V1_1_0_NOTICE"]` definition (marked with TODO comment)
+2. **GoblinToolbox.lua** (line ~246-251): Remove the entire v1.1.0 notice display block including debug prints
+3. **Core.lua** (line ~223): Remove `shownV1_1_0Notice = false` from DEFAULTS.global
+
+**Why this matters:** StaticPopup frames are reused by Blizzard's UI, and leftover hooks/checkboxes can bleed into other dialogs. The popup serves no purpose after v1.1.0 adoption and should not persist.
 
 ## Project Planning & User Priorities
 
@@ -35,6 +46,38 @@ When proposing work or evaluating implementation approaches, cross-reference thi
 - **Event-driven over polling**: Avoid frequent queries; debounce UI refreshes; use tickers sparingly.
 - **Combat safety**: Never change protected/secure UI state in combat. Use existing safe helpers.
 - **UI Design**: Clear, easily readable fonts, colors and spacing.
+
+## WoW API Standards (CRITICAL - NON-NEGOTIABLE)
+
+**ALWAYS validate WoW API functions against https://warcraft.wiki.gg/wiki/ before use.**
+
+Before using ANY WoW API function, event, or frame method:
+
+1. **Search the function on warcraft.wiki.gg** - Check for deprecation warnings, replacement APIs, and version notes
+2. **Verify it's current for Retail/Midnight (12.0+)** - Classic-only or deprecated APIs must not be used
+3. **Check for modern alternatives** - Blizzard frequently replaces old APIs with C_NamespacedAPI equivalents
+4. **Review event documentation** - Ensure event payloads and registration requirements are current
+5. **When refactoring existing code** - Audit all WoW API calls for deprecated functions even if currently working
+
+**Common deprecation patterns to watch for:**
+- Legacy global functions replaced by C_* namespaced APIs (e.g., `GetItemInfo` → `C_Item.GetItemInfo`)
+- Old event names superseded by new events (e.g., `UNIT_INVENTORY_CHANGED` → specific slot events)
+- Frame methods with secure alternatives (e.g., `Show()/Hide()` → `SetShown()` for secure frames)
+- Removed APIs with no direct replacement (require alternative implementation approach)
+
+**When receiving feedback about deprecated APIs:**
+1. Immediately check warcraft.wiki.gg for the recommended replacement
+2. Plan migration across all instances in codebase (use Grep to find all usages)
+3. Test thoroughly - replacement APIs may have different signatures or behavior
+4. Update relevant sections of this document if architectural patterns change
+
+**Reference:** https://warcraft.wiki.gg/wiki/World_of_Warcraft_API
+
+Failure to validate API currency can result in:
+- Addon breaking in future patches when deprecated APIs are removed
+- Poor performance from using outdated, slower API patterns
+- Taint issues from using insecure methods when secure alternatives exist
+- User-facing errors and negative community feedback
 
 ## Task Delegation & Model Selection
 
@@ -474,3 +517,9 @@ CurseForge automatically packages and publishes tagged commits via GitHub integr
 - [ ] Auction house: open AH updates posted totals; mass posting does not lag
 - [ ] Bank: opening banker triggers bank scans; warband cache fallback works when inaccessible
 - [ ] Session persistence restores correctly after relog
+- [ ] **Legacy profile defaults regression test** (critical for addon updates):
+  - [ ] Load addon with a profile created in previous version (or manually remove a newly-added key from SavedVariables)
+  - [ ] Open `/gtb` and verify newly added toggles show their intended default state (OFF = unchecked, ON = checked)
+  - [ ] Toggle an unrelated setting (e.g., "AFK auto-pause") and Apply
+  - [ ] Verify the new toggle did NOT flip state or get persisted unexpectedly
+  - [ ] This test prevents "nil defaults to ON" regressions where old profiles missing new keys show wrong UI state

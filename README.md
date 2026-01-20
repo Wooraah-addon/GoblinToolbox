@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-1.0.7-green)
+  ![Version](https://img.shields.io/badge/Version-1.1.0-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview
@@ -50,7 +50,12 @@
     - Shows item rank for tiered items
     - Optional gold value overlay (uses TSM or vendor prices)
     - Configurable source toggles (inventory/player bank/warband bank)
-  - **Currency Tracker**: Track important currencies with `/gtb add`
+    - **Flexible layout**: Buttons per row (1-20), growth direction (4 corners), independent scaling (0.5x-2.0x)
+    - Fully draggable with persistent positioning
+  - **Currency Tracker**:
+    - Track important currencies with `/gtb add`
+    - **Flexible layout**: Buttons per row (1-20), growth direction (4 corners), independent scaling (0.5x-2.0x)
+    - Fully draggable with persistent positioning
 
   ### Utility Bar
   - Quick-access buttons for common actions:
@@ -61,10 +66,17 @@
     - Housing teleport (when available)
     - Reset Instances (party leader required when grouped)
     - Optional Logout/Reload buttons
+  - **Flexible layout**: Buttons per row (1-12), growth direction (4 corners), independent scaling (0.5x-2.0x)
+  - Fully draggable with persistent positioning
   - Unavailable buttons show grey overlay with tooltip explanations
   - Shift+Right-click to remove buttons from bar
 
   ### Additional Features
+  - **Minimap button**: Quick access to GTB configuration via minimap icon
+    - Left-click to open/close menu
+    - Right-drag to reposition around minimap
+    - Toggle visibility in Options → General section (account-wide setting)
+    - Compatible with minimap button managers (uses LibDBIcon-1.0)
   - **Profile system**: Create, copy, and switch between named profiles per character
   - **Interactive tooltips**: Hover over HUD elements for detailed explanations
   - **Tooltip ID display**: Optional display of IDs for items, spells, NPCs, currencies, mounts, and icons
@@ -86,7 +98,7 @@
 
   ## Usage
 
-  - Type `/gtb` to open the configuration panel
+  - **Access configuration**: Type `/gtb` or left-click the minimap button to open the configuration panel
   - Drag the HUD to position it anywhere on screen
   - Use the lock icon (top-right of HUD) to lock/unlock frame positions
   - Shift+Right-click items on tracker bars to remove them
@@ -123,7 +135,15 @@
 
   ## Roadmap
 
-  **Recent Updates (v1.0+):**
+  **Recent Updates (v1.1.0):**
+  - ✅ Per-bar scaling (independent scale for Item, Currency, and Utility bars)
+  - ✅ Buttons per row configuration (wrap bars to multiple rows)
+  - ✅ Growth direction controls (4-corner anchoring: LEFT/RIGHT + UP/DOWN)
+  - ✅ Robust position persistence (scaling no longer causes position drift)
+  - ✅ One-time update notice popup explaining bar layout changes
+  - ✅ "Reset Bar Positions" function (separate from HUD reset)
+
+  **Previous Updates (v1.0+):**
   - ✅ Posted auctions tracking with commodity support
   - ✅ Looted item value tracking with GPH
   - ✅ Session persistence on logout with visual indicator

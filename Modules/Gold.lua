@@ -282,6 +282,7 @@ function Gold:SaveSessionState()
             sessionStartGold = s.sessionStartGold,
             sessionStartTime = s.sessionStartTime,
             sessionPaused = s.sessionPaused,
+            pausedByAFK = s.pausedByAFK or false,  -- Save AFK pause flag to distinguish from manual pause
             pauseStartTime = s.pauseStartTime,
             pausedDuration = s.pausedDuration or 0,
             pauseGoldSnapshot = s.pauseGoldSnapshot,
@@ -362,7 +363,7 @@ function Gold:LoadSessionState()
     s.sessionStartGold = saved.sessionStartGold
     s.sessionStartTime = saved.sessionStartTime
     s.sessionPaused = saved.sessionPaused
-    s.pausedByAFK = false  -- Always clear on restore (AFK system will handle itself after login)
+    s.pausedByAFK = saved.pausedByAFK or false  -- Load the AFK pause flag
     s.pauseStartTime = saved.pauseStartTime
     s.pausedDuration = saved.pausedDuration or 0
     s.pauseGoldSnapshot = saved.pauseGoldSnapshot
@@ -380,10 +381,20 @@ function Gold:LoadSessionState()
         s.pausedDuration = s.pausedDuration + offlineTime
     end
 
-    -- If session was paused, update pause start time and gold snapshot
+    -- Handle paused state restoration based on pause type
     if s.sessionPaused then
-        s.pauseStartTime = now
-        s.pauseGoldSnapshot = GetMoney()
+        if s.pausedByAFK then
+            -- Was AFK-paused when logged out: auto-resume on login
+            s.sessionPaused = false
+            s.pausedByAFK = false
+            s.pauseStartTime = nil
+            s.pauseGoldSnapshot = nil
+            print("|cff00ff00Goblin Toolbox:|r Session auto-resumed (was AFK-paused)")
+        else
+            -- Was manually paused: keep it paused on login
+            s.pauseStartTime = now
+            s.pauseGoldSnapshot = GetMoney()
+        end
     end
 
     if IsDebugEnabled() then

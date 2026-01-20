@@ -278,6 +278,33 @@ local function CreateHorizontalCheckboxRow(parent, x, y, maxWidth)
 end
 
 -----------------------------------------------------------------------
+-- Growth direction dropdown helper
+-----------------------------------------------------------------------
+
+local function CreateGrowthDropdown(parent, label, x, y, options, defaultValue)
+    local container = CreateFrame("Frame", nil, parent)
+    container:SetSize(200, 24)
+    container:SetPoint("TOPLEFT", x, y)
+
+    local dropdownLabel = container:CreateFontString(nil, "OVERLAY")
+    dropdownLabel:SetFontObject(OPT_BODY_FONT)
+    dropdownLabel:SetPoint("LEFT", 0, 0)
+    dropdownLabel:SetText(label)
+    container.label = dropdownLabel
+
+    local dropdown = CreateFrame("Frame", nil, container, "UIDropDownMenuTemplate")
+    dropdown:SetPoint("LEFT", dropdownLabel, "RIGHT", 0, 0)
+    UIDropDownMenu_SetWidth(dropdown, 80)
+    container.dropdown = dropdown
+
+    -- Store options for later use
+    dropdown.options = options
+    dropdown.currentValue = defaultValue
+
+    return container
+end
+
+-----------------------------------------------------------------------
 -- Module checkbox with children
 -----------------------------------------------------------------------
 
@@ -465,7 +492,7 @@ local function CreateConfigFrame()
     f.lockFrameCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     generalSection:AddChild(f.lockFrameCB)
 
-    f.showLoadMsgCB = CreateCheckbox(scrollChild, "Show load message", INDENT + 150, y)
+    f.showLoadMsgCB = CreateCheckbox(scrollChild, "Show load message", INDENT + 120, y)
     f.showLoadMsgCB:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Show Load Message", 1, 1, 1)
@@ -475,6 +502,17 @@ local function CreateConfigFrame()
     end)
     f.showLoadMsgCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     generalSection:AddChild(f.showLoadMsgCB)
+
+    f.showMinimapButtonCB = CreateCheckbox(scrollChild, "Minimap button", INDENT + 260, y)
+    f.showMinimapButtonCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Minimap Button", 1, 1, 1)
+        GameTooltip:AddLine("Show/hide the Goblin Toolbox minimap button. Click the minimap button to open/close the menu.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("|cff00ff00Account-wide:|r This setting applies to all characters.", 0.6, 1, 0.6, true)
+        GameTooltip:Show()
+    end)
+    f.showMinimapButtonCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    generalSection:AddChild(f.showMinimapButtonCB)
 
     y = y - ITEM_HEIGHT - SECTION_GAP
 
@@ -1023,6 +1061,7 @@ local function CreateConfigFrame()
         { key = "hearthstone", label = "Hearthstone", width = 105 },
         { key = "dalaranHS", label = "Dalaran HS", width = 95 },
         { key = "garrisonHS", label = "Garrison HS", width = 100 },
+        { key = "classQuickTravel", label = "Class Travel", width = 100 },
         { key = "housingTeleport", label = "Housing", width = 75 },
         { key = "resetInstances", label = "Reset Instances", width = 120 },
     }, function() Apply() end)
@@ -1078,6 +1117,17 @@ local function CreateConfigFrame()
         f.utilModule.childCheckboxes.hearthstone:SetScript("OnLeave", function() GameTooltip:Hide() end)
     end
 
+    if f.utilModule.childCheckboxes.classQuickTravel then
+        f.utilModule.childCheckboxes.classQuickTravel:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Class Travel", 1, 1, 1)
+            GameTooltip:AddLine("Shows a class travel/return button for Druid, Death Knight, or Monk.", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine("Shows a greyed placeholder for other classes.", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        f.utilModule.childCheckboxes.classQuickTravel:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+
     if f.utilModule.childCheckboxes.resetInstances then
         f.utilModule.childCheckboxes.resetInstances:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -1101,7 +1151,60 @@ local function CreateConfigFrame()
     f.utilityConfirmCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     modulesSection:AddChild(f.utilityConfirmCB)
 
-    y = y - ITEM_HEIGHT - SECTION_GAP
+    y = y - ITEM_HEIGHT - 12
+
+    -- Utility Bar Layout subsection
+    local utilLayoutLabel = scrollChild:CreateFontString(nil, "OVERLAY")
+    utilLayoutLabel:SetPoint("TOPLEFT", INDENT + 24, y)
+    utilLayoutLabel:SetFontObject(OPT_BODY_FONT)
+    utilLayoutLabel:SetText("Layout:")
+    modulesSection:AddChild(utilLayoutLabel)
+    y = y - 24
+
+    f.utilityButtonsPerRowSlider = CreateSlider(scrollChild, "Buttons per row", INDENT + 24, y, 1, 15, 1)
+    f.utilityButtonsPerRowSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Buttons per Row", 1, 1, 1)
+        GameTooltip:AddLine("Controls wrapping behavior. Max 15 fits all utility buttons in one row.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.utilityButtonsPerRowSlider:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    modulesSection:AddChild(f.utilityButtonsPerRowSlider)
+    y = y - 30
+
+    f.utilityGrowXDropdown = CreateGrowthDropdown(scrollChild, "Horizontal:", INDENT + 24, y, {"RIGHT", "LEFT"}, "RIGHT")
+    f.utilityGrowXDropdown:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Horizontal Growth", 1, 1, 1)
+        GameTooltip:AddLine("Direction the bar expands horizontally when adding buttons.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.utilityGrowXDropdown:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    modulesSection:AddChild(f.utilityGrowXDropdown)
+
+    f.utilityGrowYDropdown = CreateGrowthDropdown(scrollChild, "Vertical:", INDENT + 220, y, {"DOWN", "UP"}, "DOWN")
+    f.utilityGrowYDropdown:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Vertical Growth", 1, 1, 1)
+        GameTooltip:AddLine("Direction the bar expands vertically when wrapping to new rows.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.utilityGrowYDropdown:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    modulesSection:AddChild(f.utilityGrowYDropdown)
+    y = y - 30
+
+    f.utilityBarScaleSlider = CreateSlider(scrollChild, "Bar scale", INDENT + 24, y, 0.5, 2.0, 0.01)
+    f.utilityBarScaleSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Bar Scale", 1, 1, 1)
+        GameTooltip:AddLine("Per-bar scale multiplier (stacks with global UI scale).", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.utilityBarScaleSlider:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    modulesSection:AddChild(f.utilityBarScaleSlider)
+    y = y - 30
+
+    y = y - 4  -- Small gap before next section
 
     -----------------------------------------------------------------------
     -- Section 4: Item Tracker Bar
@@ -1188,7 +1291,60 @@ local function CreateConfigFrame()
         itemTrackerSection:AddChild(rowContainer)
     end
 
-    y = y - trackerSourceRow:GetHeight() - SECTION_GAP
+    y = y - trackerSourceRow:GetHeight() - 12
+
+    -- Item Tracker Bar Layout subsection
+    local trackerLayoutLabel = scrollChild:CreateFontString(nil, "OVERLAY")
+    trackerLayoutLabel:SetPoint("TOPLEFT", INDENT, y)
+    trackerLayoutLabel:SetFontObject(OPT_BODY_FONT)
+    trackerLayoutLabel:SetText("Layout:")
+    itemTrackerSection:AddChild(trackerLayoutLabel)
+    y = y - 24
+
+    f.trackerButtonsPerRowSlider = CreateSlider(scrollChild, "Buttons per row", INDENT + 24, y, 1, 30, 1)
+    f.trackerButtonsPerRowSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Buttons per Row", 1, 1, 1)
+        GameTooltip:AddLine("Controls wrapping behavior. 30 = no wrap (default).", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.trackerButtonsPerRowSlider:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    itemTrackerSection:AddChild(f.trackerButtonsPerRowSlider)
+    y = y - 30
+
+    f.trackerGrowXDropdown = CreateGrowthDropdown(scrollChild, "Horizontal:", INDENT + 24, y, {"RIGHT", "LEFT"}, "RIGHT")
+    f.trackerGrowXDropdown:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Horizontal Growth", 1, 1, 1)
+        GameTooltip:AddLine("Direction the bar expands horizontally when adding items.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.trackerGrowXDropdown:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    itemTrackerSection:AddChild(f.trackerGrowXDropdown)
+
+    f.trackerGrowYDropdown = CreateGrowthDropdown(scrollChild, "Vertical:", INDENT + 220, y, {"DOWN", "UP"}, "DOWN")
+    f.trackerGrowYDropdown:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Vertical Growth", 1, 1, 1)
+        GameTooltip:AddLine("Direction the bar expands vertically when wrapping to new rows.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.trackerGrowYDropdown:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    itemTrackerSection:AddChild(f.trackerGrowYDropdown)
+    y = y - 30
+
+    f.trackerBarScaleSlider = CreateSlider(scrollChild, "Bar scale", INDENT + 24, y, 0.5, 2.0, 0.01)
+    f.trackerBarScaleSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Bar Scale", 1, 1, 1)
+        GameTooltip:AddLine("Per-bar scale multiplier (stacks with global UI scale).", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.trackerBarScaleSlider:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    itemTrackerSection:AddChild(f.trackerBarScaleSlider)
+    y = y - 30
+
+    y = y - 4  -- Small gap before next section
 
     -----------------------------------------------------------------------
     -- Section 5: Currency Tracker Bar
@@ -1213,7 +1369,60 @@ local function CreateConfigFrame()
 
     f.currencyCB = CreateCheckbox(scrollChild, "Enable Currency Tracker Bar", INDENT, y)
     currencyTrackerSection:AddChild(f.currencyCB)
-    y = y - ITEM_HEIGHT - SECTION_GAP
+    y = y - ITEM_HEIGHT - 8
+
+    -- Currency Tracker Bar Layout subsection
+    local currencyLayoutLabel = scrollChild:CreateFontString(nil, "OVERLAY")
+    currencyLayoutLabel:SetPoint("TOPLEFT", INDENT, y)
+    currencyLayoutLabel:SetFontObject(OPT_BODY_FONT)
+    currencyLayoutLabel:SetText("Layout:")
+    currencyTrackerSection:AddChild(currencyLayoutLabel)
+    y = y - 24
+
+    f.currencyButtonsPerRowSlider = CreateSlider(scrollChild, "Buttons per row", INDENT + 24, y, 1, 30, 1)
+    f.currencyButtonsPerRowSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Buttons per Row", 1, 1, 1)
+        GameTooltip:AddLine("Controls wrapping behavior. 30 = no wrap (default).", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.currencyButtonsPerRowSlider:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    currencyTrackerSection:AddChild(f.currencyButtonsPerRowSlider)
+    y = y - 30
+
+    f.currencyGrowXDropdown = CreateGrowthDropdown(scrollChild, "Horizontal:", INDENT + 24, y, {"RIGHT", "LEFT"}, "RIGHT")
+    f.currencyGrowXDropdown:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Horizontal Growth", 1, 1, 1)
+        GameTooltip:AddLine("Direction the bar expands horizontally when adding currencies.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.currencyGrowXDropdown:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    currencyTrackerSection:AddChild(f.currencyGrowXDropdown)
+
+    f.currencyGrowYDropdown = CreateGrowthDropdown(scrollChild, "Vertical:", INDENT + 220, y, {"DOWN", "UP"}, "DOWN")
+    f.currencyGrowYDropdown:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Vertical Growth", 1, 1, 1)
+        GameTooltip:AddLine("Direction the bar expands vertically when wrapping to new rows.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.currencyGrowYDropdown:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    currencyTrackerSection:AddChild(f.currencyGrowYDropdown)
+    y = y - 30
+
+    f.currencyBarScaleSlider = CreateSlider(scrollChild, "Bar scale", INDENT + 24, y, 0.5, 2.0, 0.01)
+    f.currencyBarScaleSlider:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Bar Scale", 1, 1, 1)
+        GameTooltip:AddLine("Per-bar scale multiplier (stacks with global UI scale).", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    f.currencyBarScaleSlider:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    currencyTrackerSection:AddChild(f.currencyBarScaleSlider)
+    y = y - 30
+
+    y = y - 4  -- Small gap before next section
 
     -----------------------------------------------------------------------
     -- Section 6: Gold & Economy Options
@@ -1517,6 +1726,164 @@ local function CreateConfigFrame()
     end)
 
     -----------------------------------------------------------------------
+    -- Bar Layout Dropdown Inits
+    -----------------------------------------------------------------------
+
+    -- Utility Bar Growth Dropdowns
+    UIDropDownMenu_Initialize(f.utilityGrowXDropdown.dropdown, function(self, level)
+        local current = addon.db.profile.utilityGrowX or "RIGHT"
+        for _, value in ipairs({"RIGHT", "LEFT"}) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = value
+            info.arg1 = value
+            info.func = function(_, val)
+                addon.db.profile.utilityGrowX = val
+                UIDropDownMenu_SetText(f.utilityGrowXDropdown.dropdown, val)
+                if addon.UpdateUtilityBar then addon:UpdateUtilityBar() end
+            end
+            info.checked = (current == value)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    UIDropDownMenu_Initialize(f.utilityGrowYDropdown.dropdown, function(self, level)
+        local current = addon.db.profile.utilityGrowY or "DOWN"
+        for _, value in ipairs({"DOWN", "UP"}) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = value
+            info.arg1 = value
+            info.func = function(_, val)
+                addon.db.profile.utilityGrowY = val
+                UIDropDownMenu_SetText(f.utilityGrowYDropdown.dropdown, val)
+                if addon.UpdateUtilityBar then addon:UpdateUtilityBar() end
+            end
+            info.checked = (current == value)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    -- Tracker Bar Growth Dropdowns
+    UIDropDownMenu_Initialize(f.trackerGrowXDropdown.dropdown, function(self, level)
+        local current = addon.db.profile.trackerGrowX or "RIGHT"
+        for _, value in ipairs({"RIGHT", "LEFT"}) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = value
+            info.arg1 = value
+            info.func = function(_, val)
+                addon.db.profile.trackerGrowX = val
+                UIDropDownMenu_SetText(f.trackerGrowXDropdown.dropdown, val)
+                if addon.UpdateTrackedBar then addon:UpdateTrackedBar() end
+            end
+            info.checked = (current == value)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    UIDropDownMenu_Initialize(f.trackerGrowYDropdown.dropdown, function(self, level)
+        local current = addon.db.profile.trackerGrowY or "DOWN"
+        for _, value in ipairs({"DOWN", "UP"}) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = value
+            info.arg1 = value
+            info.func = function(_, val)
+                addon.db.profile.trackerGrowY = val
+                UIDropDownMenu_SetText(f.trackerGrowYDropdown.dropdown, val)
+                if addon.UpdateTrackedBar then addon:UpdateTrackedBar() end
+            end
+            info.checked = (current == value)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    -- Currency Bar Growth Dropdowns
+    UIDropDownMenu_Initialize(f.currencyGrowXDropdown.dropdown, function(self, level)
+        local current = addon.db.profile.currencyGrowX or "RIGHT"
+        for _, value in ipairs({"RIGHT", "LEFT"}) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = value
+            info.arg1 = value
+            info.func = function(_, val)
+                addon.db.profile.currencyGrowX = val
+                UIDropDownMenu_SetText(f.currencyGrowXDropdown.dropdown, val)
+                if addon.UpdateCurrencyBar then addon:UpdateCurrencyBar() end
+            end
+            info.checked = (current == value)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    UIDropDownMenu_Initialize(f.currencyGrowYDropdown.dropdown, function(self, level)
+        local current = addon.db.profile.currencyGrowY or "DOWN"
+        for _, value in ipairs({"DOWN", "UP"}) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = value
+            info.arg1 = value
+            info.func = function(_, val)
+                addon.db.profile.currencyGrowY = val
+                UIDropDownMenu_SetText(f.currencyGrowYDropdown.dropdown, val)
+                if addon.UpdateCurrencyBar then addon:UpdateCurrencyBar() end
+            end
+            info.checked = (current == value)
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end)
+
+    -----------------------------------------------------------------------
+    -- Bar Layout Slider Handlers
+    -----------------------------------------------------------------------
+
+    -- Utility Bar Sliders
+    f.utilityButtonsPerRowSlider.slider:SetScript("OnValueChanged", function(self, value)
+        addon.db.profile.utilityButtonsPerRow = value
+        f.utilityButtonsPerRowSlider.valueText:SetText(tostring(math.floor(value)))
+        if addon.UpdateUtilityBar then addon:UpdateUtilityBar() end
+    end)
+
+    f.utilityBarScaleSlider.slider:SetScript("OnValueChanged", function(self, value)
+        addon.db.profile.utilityBarScale = value
+        f.utilityBarScaleSlider.valueText:SetText(string.format("%.0f%%", value * 100))
+
+        -- Just apply scale - frame is already anchored by its fixed corner
+        if addon.ApplyScale then
+            addon:ApplyScale()
+        end
+    end)
+
+    -- Tracker Bar Sliders
+    f.trackerButtonsPerRowSlider.slider:SetScript("OnValueChanged", function(self, value)
+        addon.db.profile.trackerButtonsPerRow = value
+        f.trackerButtonsPerRowSlider.valueText:SetText(tostring(math.floor(value)))
+        if addon.UpdateTrackedBar then addon:UpdateTrackedBar() end
+    end)
+
+    f.trackerBarScaleSlider.slider:SetScript("OnValueChanged", function(self, value)
+        addon.db.profile.trackerBarScale = value
+        f.trackerBarScaleSlider.valueText:SetText(string.format("%.0f%%", value * 100))
+
+        -- Just apply scale - frame is already anchored by its fixed corner
+        if addon.ApplyScale then
+            addon:ApplyScale()
+        end
+    end)
+
+    -- Currency Bar Sliders
+    f.currencyButtonsPerRowSlider.slider:SetScript("OnValueChanged", function(self, value)
+        addon.db.profile.currencyButtonsPerRow = value
+        f.currencyButtonsPerRowSlider.valueText:SetText(tostring(math.floor(value)))
+        if addon.UpdateCurrencyBar then addon:UpdateCurrencyBar() end
+    end)
+
+    f.currencyBarScaleSlider.slider:SetScript("OnValueChanged", function(self, value)
+        addon.db.profile.currencyBarScale = value
+        f.currencyBarScaleSlider.valueText:SetText(string.format("%.0f%%", value * 100))
+
+        -- Just apply scale - frame is already anchored by its fixed corner
+        if addon.ApplyScale then
+            addon:ApplyScale()
+        end
+    end)
+
+    -----------------------------------------------------------------------
     -- Refresh
     -----------------------------------------------------------------------
 
@@ -1550,6 +1917,8 @@ local function CreateConfigFrame()
         f.sessionPersistCB:SetChecked(addon.db.global.sessionPersistOnLogout or false)
         f.afkAutoPauseCB:SetChecked(addon.db.global.afkAutoPause ~= false)  -- Default true
         f.showLoadMsgCB:SetChecked(addon.db.global.showLoadMessage ~= false)  -- Default true
+        -- Minimap button: checkbox checked = shown (hide=false), unchecked = hidden (hide=true)
+        f.showMinimapButtonCB:SetChecked(not (addon.db.global.minimap and addon.db.global.minimap.hide))  -- Default shown
 
         local opacity = addon.db.global.backgroundOpacity or 0.30
         f.opacityContainer.slider:SetValue(opacity)
@@ -1657,10 +2026,10 @@ local function CreateConfigFrame()
 
         -- Utility button sub-elements
         if f.utilModule.childCheckboxes.logout then
-            f.utilModule.childCheckboxes.logout:SetChecked(db.utilityButtons.logout ~= false)
+            f.utilModule.childCheckboxes.logout:SetChecked(db.utilityButtons.logout == true)
         end
         if f.utilModule.childCheckboxes.reload then
-            f.utilModule.childCheckboxes.reload:SetChecked(db.utilityButtons.reload ~= false)
+            f.utilModule.childCheckboxes.reload:SetChecked(db.utilityButtons.reload == true)
         end
         if f.utilModule.childCheckboxes.mobileBank then
             f.utilModule.childCheckboxes.mobileBank:SetChecked(db.utilityButtons.mobileBank ~= false)
@@ -1686,11 +2055,14 @@ local function CreateConfigFrame()
         if f.utilModule.childCheckboxes.garrisonHS then
             f.utilModule.childCheckboxes.garrisonHS:SetChecked(db.utilityButtons.garrisonHS ~= false)
         end
+        if f.utilModule.childCheckboxes.classQuickTravel then
+            f.utilModule.childCheckboxes.classQuickTravel:SetChecked(db.utilityButtons.classQuickTravel == true)
+        end
         if f.utilModule.childCheckboxes.housingTeleport then
-            f.utilModule.childCheckboxes.housingTeleport:SetChecked(db.utilityButtons.housingTeleport ~= false)
+            f.utilModule.childCheckboxes.housingTeleport:SetChecked(db.utilityButtons.housingTeleport == true)
         end
         if f.utilModule.childCheckboxes.resetInstances then
-            f.utilModule.childCheckboxes.resetInstances:SetChecked(db.utilityButtons.resetInstances ~= false)
+            f.utilModule.childCheckboxes.resetInstances:SetChecked(db.utilityButtons.resetInstances == true)
         end
 
         -- Utility bar confirmation setting
@@ -1705,6 +2077,52 @@ local function CreateConfigFrame()
         f.trackerIncludeInventoryCB:SetChecked(db.trackerIncludeInventory ~= false)
         f.trackerIncludePlayerBankCB:SetChecked(db.trackerIncludePlayerBank == true)
         f.trackerIncludeWarbandBankCB:SetChecked(db.trackerIncludeWarbandBank == true)
+
+        -- Bar layout controls
+        -- Utility Bar
+        local utilBPR = db.utilityButtonsPerRow or 12
+        f.utilityButtonsPerRowSlider.slider:SetValue(utilBPR)
+        f.utilityButtonsPerRowSlider.valueText:SetText(tostring(utilBPR))
+
+        local utilBarScale = db.utilityBarScale or 1.0
+        f.utilityBarScaleSlider.slider:SetValue(utilBarScale)
+        f.utilityBarScaleSlider.valueText:SetText(string.format("%.0f%%", utilBarScale * 100))
+
+        local utilGrowX = db.utilityGrowX or "RIGHT"
+        UIDropDownMenu_SetText(f.utilityGrowXDropdown.dropdown, utilGrowX)
+
+        local utilGrowY = db.utilityGrowY or "DOWN"
+        UIDropDownMenu_SetText(f.utilityGrowYDropdown.dropdown, utilGrowY)
+
+        -- Tracker Bar
+        local trackerBPR = db.trackerButtonsPerRow or 30
+        f.trackerButtonsPerRowSlider.slider:SetValue(trackerBPR)
+        f.trackerButtonsPerRowSlider.valueText:SetText(tostring(trackerBPR))
+
+        local trackerBarScale = db.trackerBarScale or 1.0
+        f.trackerBarScaleSlider.slider:SetValue(trackerBarScale)
+        f.trackerBarScaleSlider.valueText:SetText(string.format("%.0f%%", trackerBarScale * 100))
+
+        local trackerGrowX = db.trackerGrowX or "RIGHT"
+        UIDropDownMenu_SetText(f.trackerGrowXDropdown.dropdown, trackerGrowX)
+
+        local trackerGrowY = db.trackerGrowY or "DOWN"
+        UIDropDownMenu_SetText(f.trackerGrowYDropdown.dropdown, trackerGrowY)
+
+        -- Currency Bar
+        local currencyBPR = db.currencyButtonsPerRow or 30
+        f.currencyButtonsPerRowSlider.slider:SetValue(currencyBPR)
+        f.currencyButtonsPerRowSlider.valueText:SetText(tostring(currencyBPR))
+
+        local currencyBarScale = db.currencyBarScale or 1.0
+        f.currencyBarScaleSlider.slider:SetValue(currencyBarScale)
+        f.currencyBarScaleSlider.valueText:SetText(string.format("%.0f%%", currencyBarScale * 100))
+
+        local currencyGrowX = db.currencyGrowX or "RIGHT"
+        UIDropDownMenu_SetText(f.currencyGrowXDropdown.dropdown, currencyGrowX)
+
+        local currencyGrowY = db.currencyGrowY or "DOWN"
+        UIDropDownMenu_SetText(f.currencyGrowYDropdown.dropdown, currencyGrowY)
 
         -- Tooltip IDs
         db.tooltipIDs = db.tooltipIDs or {}
@@ -1744,6 +2162,9 @@ local function CreateConfigFrame()
         addon.db.global.sessionPersistOnLogout = f.sessionPersistCB:GetChecked()
         addon.db.global.afkAutoPause = f.afkAutoPauseCB:GetChecked()
         addon.db.global.showLoadMessage = f.showLoadMsgCB:GetChecked()
+        -- Minimap button: inverted logic (checked = shown, hide=false)
+        addon.db.global.minimap.hide = not f.showMinimapButtonCB:GetChecked()
+        addon:UpdateMinimapButtonVisibility()  -- Apply visibility change immediately
         addon.db.global.tsmCustomSource = f.customEdit:GetText() or ""
 
         -- Modules
@@ -1840,6 +2261,9 @@ local function CreateConfigFrame()
         if f.utilModule.childCheckboxes.garrisonHS then
             db.utilityButtons.garrisonHS = f.utilModule.childCheckboxes.garrisonHS:GetChecked()
         end
+        if f.utilModule.childCheckboxes.classQuickTravel then
+            db.utilityButtons.classQuickTravel = f.utilModule.childCheckboxes.classQuickTravel:GetChecked()
+        end
         if f.utilModule.childCheckboxes.housingTeleport then
             db.utilityButtons.housingTeleport = f.utilModule.childCheckboxes.housingTeleport:GetChecked()
         end
@@ -1884,6 +2308,7 @@ local function CreateConfigFrame()
         addon:UpdateUtilityBar()
         addon:UpdateTrackedBar()
         addon:UpdateVisibility()
+        addon:UpdateMinimapButtonVisibility()
     end
 
     f:SetScript("OnShow", Refresh)
@@ -1898,6 +2323,7 @@ local function CreateConfigFrame()
     HookCheckbox(f.hideInstCB)
     HookCheckbox(f.lockFrameCB)
     HookCheckbox(f.showLoadMsgCB)
+    HookCheckbox(f.showMinimapButtonCB)
     HookCheckbox(f.headerCB)
     HookCheckbox(f.titlebarCB)
     HookCheckbox(f.bgCB)
@@ -1998,14 +2424,9 @@ end
 -- Reset functions
 -----------------------------------------------------------------------
 
-function addon:ResetAllPositions()
+function addon:ResetBarPositions()
+    -- Reset only bar positions (not HUD)
     local db = self.db.profile
-
-    db.point = DEFAULT_HUD_POSITION.point
-    db.relPoint = DEFAULT_HUD_POSITION.relPoint
-    db.xOfs = DEFAULT_HUD_POSITION.xOfs
-    db.yOfs = DEFAULT_HUD_POSITION.yOfs
-    db.hudWidth = nil
 
     db.trackerPoint = nil
     db.trackerRelPoint = nil
@@ -2026,110 +2447,117 @@ function addon:ResetAllPositions()
     db.utilityCXFrac = nil
     db.utilityCYFrac = nil
 
+    -- Fixed default positions for anchor frames (no auto-snapping)
+    if self.utilityAnchor then
+        self.utilityAnchor:ClearAllPoints()
+        self.utilityAnchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
+    end
+
+    if self.trackerAnchor then
+        self.trackerAnchor:ClearAllPoints()
+        self.trackerAnchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -475)
+    end
+
+    if self.currencyAnchor then
+        self.currencyAnchor:ClearAllPoints()
+        self.currencyAnchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
+    end
+
+    -- Re-anchor visual frames to their anchors at growth corners
+    if self.trackerFrame and self.trackerAnchor then
+        local growX = db.trackerGrowX or "RIGHT"
+        local growY = db.trackerGrowY or "DOWN"
+        local visualAnchor = self:GetAnchorFromGrowth(growX, growY)
+        self.trackerFrame:ClearAllPoints()
+        self.trackerFrame:SetPoint(visualAnchor, self.trackerAnchor, visualAnchor, 0, 0)
+    end
+
+    if self.currencyFrame and self.currencyAnchor then
+        local growX = db.currencyGrowX or "RIGHT"
+        local growY = db.currencyGrowY or "DOWN"
+        local visualAnchor = self:GetAnchorFromGrowth(growX, growY)
+        self.currencyFrame:ClearAllPoints()
+        self.currencyFrame:SetPoint(visualAnchor, self.currencyAnchor, visualAnchor, 0, 0)
+    end
+
+    if self.utilityBar and self.utilityAnchor then
+        local growX = db.utilityGrowX or "RIGHT"
+        local growY = db.utilityGrowY or "DOWN"
+        local visualAnchor = self:GetAnchorFromGrowth(growX, growY)
+        self.utilityBar:ClearAllPoints()
+        self.utilityBar:SetPoint(visualAnchor, self.utilityAnchor, visualAnchor, 0, 0)
+    end
+end
+
+function addon:ResetAllPositions()
+    local db = self.db.profile
+
+    db.point = DEFAULT_HUD_POSITION.point
+    db.relPoint = DEFAULT_HUD_POSITION.relPoint
+    db.xOfs = DEFAULT_HUD_POSITION.xOfs
+    db.yOfs = DEFAULT_HUD_POSITION.yOfs
+    db.hudWidth = nil
+
+    -- Reset bars too
+    self:ResetBarPositions()
+
     if self.HUD and self.HUD.frame then
         self.HUD.frame:ClearAllPoints()
         self.HUD.frame:SetPoint(db.point, UIParent, db.relPoint, db.xOfs, db.yOfs)
         self.HUD.frame:SetWidth(self.CONST.HUD_WIDTH)
     end
 
-    -- Fixed default positions (no auto-snapping)
-    if self.utilityBar then
-        self.utilityBar:ClearAllPoints()
-        self.utilityBar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -420)
-    end
-
-    if self.trackerFrame then
-        self.trackerFrame:ClearAllPoints()
-        self.trackerFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -475)
-    end
-
-    if self.currencyFrame then
-        self.currencyFrame:ClearAllPoints()
-        self.currencyFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 10, -530)
-    end
-
     self:SafeLayoutHUD()
 end
 
 function addon:ResetAllSettings()
+    -- Deep copy function to properly clone defaults
+    local function deepCopy(src)
+        if type(src) ~= "table" then
+            return src
+        end
+        local copy = {}
+        for k, v in pairs(src) do
+            copy[k] = deepCopy(v)
+        end
+        return copy
+    end
+
+    -- Preserve data that should not be reset
     local characters = self.db.characters
     local guilds = self.db.guilds
+    local warband = self.db.warband
 
-    self.db.profile = {
-        enabled             = true,
-        scale               = 1.0,
-        fontSize            = 13,
-        lockFrame           = false,
-        hideInCombat        = true,
-        hideInInstances     = true,
-        showHeaders         = true,
-        showTitleBar        = true,
-        showBackground      = true,
-        backgroundOpacity   = 0.30,
-        preferWarbandBankOnOpen = false,
-        goldViewMode        = "simple",
+    -- Preserve user preferences (not UI/display settings)
+    local accountLabel = self.db.global.accountLabel
+    local sessionPersistOnLogout = self.db.global.sessionPersistOnLogout
+    local afkAutoPause = self.db.global.afkAutoPause
+    local showLoadMessage = self.db.global.showLoadMessage
+    local tsmSource = self.db.global.tsmSource
+    local tsmCustomSource = self.db.global.tsmCustomSource
+    local schemaVersion = self.db.global.schemaVersion
 
-        modules = {
-            Character   = true,
-            Gold        = true,
-            Inventory   = true,
-             Utility     = true,
-        },
+    -- Reset profile to defaults (deep copy to avoid reference issues)
+    self.db.profile = deepCopy(addon.DEFAULTS.profile)
 
-        elements = {
-            charIcon      = true,
-            charClassIcon = true,
-            charName      = true,
-            charRealm     = true,
-            charShardID   = false,
-            charMovespeed = false,
-            goldCharacter = true,
-            goldWarband   = true,
-            goldGuild     = true,
-            goldSession   = true,
-            goldToken     = true,
-            goldLootedValue = true,
-            goldPostedAuctions = false,
-            invBagSlots   = true,
-            invBagValue   = true,
-            invWarbank    = true,
-        },
+    -- Reset global VISUAL settings to defaults (scale, font, opacity)
+    self.db.global.scale = addon.DEFAULTS.global.scale
+    self.db.global.fontSize = addon.DEFAULTS.global.fontSize
+    self.db.global.backgroundOpacity = addon.DEFAULTS.global.backgroundOpacity
 
-        tsmSource           = "dbregionsaleavg",
-        tsmCustomSource     = "",
-        trackedItems        = {},
-        showTracker         = true,
-        showCurrencyTracker = true,
-        showTrackedItemValue = true,
-        trackerIncludeInventory = true,
-        trackerIncludePlayerBank = false,
-        trackerIncludeWarbandBank = false,
-
-        utilityButtons = {
-            logout            = false,
-            reload            = false,
-            mobileBank        = true,
-            mailbox           = true,
-            tradersBrutosaur  = true,
-            vendorMount       = true,
-            warbandBank       = true,
-            hearthstone       = true,
-            dalaranHS         = true,
-            garrisonHS        = true,
-            housingTeleport   = false,
-        },
-
-        point    = DEFAULT_HUD_POSITION.point,
-        relPoint = DEFAULT_HUD_POSITION.relPoint,
-        xOfs     = DEFAULT_HUD_POSITION.xOfs,
-        yOfs     = DEFAULT_HUD_POSITION.yOfs,
-        hudWidth = nil,
-
-        trackedCurrencies = {},
-    }
-
+    -- Restore preserved data
     self.db.characters = characters
     self.db.guilds = guilds
+    self.db.warband = warband
+
+    -- Restore user preferences (behavioral/technical settings)
+    self.db.global.accountLabel = accountLabel
+    self.db.global.sessionPersistOnLogout = sessionPersistOnLogout
+    self.db.global.afkAutoPause = afkAutoPause
+    self.db.global.showLoadMessage = showLoadMessage
+    self.db.global.tsmSource = tsmSource
+    self.db.global.tsmCustomSource = tsmCustomSource
+    self.db.global.schemaVersion = schemaVersion
 
     -- Reset current session state (in-memory only, character cache untouched)
     self.state.sessionStartGold = nil
@@ -2145,6 +2573,8 @@ function addon:ResetAllSettings()
     self:UpdateTitleBar()
     self:UpdateAllSections()
     self:UpdateUtilityBar()
+    self:UpdateTrackedBar()
+    self:UpdateCurrencyBar()
     self:UpdateVisibility()
 end
 
@@ -2153,19 +2583,31 @@ end
 -----------------------------------------------------------------------
 
 function addon:ApplyScale()
-    local scale = self.db.global.scale or 1.0
+    local globalScale = self.db.global.scale or 1.0
+    local db = self.db.profile
 
+    -- HUD uses global scale only
     if self.HUD and self.HUD.frame then
-        self.HUD.frame:SetScale(scale)
+        self.HUD.frame:SetScale(globalScale)
     end
+
+    -- Tracker bar: global * per-bar scale
+    -- Note: Only scale visual frame; anchor frame is never scaled
     if self.trackerFrame then
-        self.trackerFrame:SetScale(scale)
+        local barScale = db.trackerBarScale or 1.0
+        self.trackerFrame:SetScale(globalScale * barScale)
     end
+
+    -- Currency bar: global * per-bar scale
     if self.currencyFrame then
-        self.currencyFrame:SetScale(scale)
+        local barScale = db.currencyBarScale or 1.0
+        self.currencyFrame:SetScale(globalScale * barScale)
     end
+
+    -- Utility bar: global * per-bar scale
     if self.utilityBar then
-        self.utilityBar:SetScale(scale)
+        local barScale = db.utilityBarScale or 1.0
+        self.utilityBar:SetScale(globalScale * barScale)
     end
 end
 
@@ -2472,6 +2914,84 @@ StaticPopupDialogs["GOBLINTOOLBOX_APPLY_PRESET"] = {
         local presetName = self.data
         if presetName then
             addon:ApplyPreset(presetName)
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+-- TODO v1.1.1: Remove this entire StaticPopup dialog and related code (one-time notice for v1.1.0 only)
+StaticPopupDialogs["GOBLINTOOLBOX_V1_1_0_NOTICE"] = {
+    text = "|cffF7DB4AGoblin Toolbox - UI Update Notice|r\n\nVersion v1.1.0 brings the ability to scale and wrap Item, Currency, and Utility bars, giving you much greater flexibility over your UI layout.\n\nBecause of these changes, bars might have moved slightly. If anything looks off, simply drag them back into position, or use the Reset Bar Positions button below to start fresh.\n\nYou can find the new layout options (buttons per row, growth direction, per-bar scaling) in /gtb under each bar's section.\n\n|cff808080Note: Gold data is preserved.|r\n\n–Wooraah",
+    button1 = "Continue",
+    button2 = "Reset Bar Positions",
+    OnShow = function(self)
+        -- Only add checkbox to THIS specific dialog (StaticPopup frames are reused!)
+        if self.which ~= "GOBLINTOOLBOX_V1_1_0_NOTICE" then
+            return
+        end
+
+        -- Add "Don't show this again" checkbox (minimal bottom spacing)
+        if not self.gtbCheckbox then
+            local cb = CreateFrame("CheckButton", nil, self, "UICheckButtonTemplate")
+            cb:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 75, 40)  -- Reduced spacing to minimize blank area
+            cb:SetSize(24, 24)
+
+            local label = cb:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+            label:SetPoint("LEFT", cb, "RIGHT", 5, 0)
+            label:SetText("Don't show this again")
+
+            cb.label = label
+            self.gtbCheckbox = cb
+        end
+        self.gtbCheckbox:SetChecked(false)
+        self.gtbCheckbox:Show()
+
+        -- Left-justify text (StaticPopup defaults to center)
+        -- Multiple attempts with increasing delays to override StaticPopup's formatting
+        if self.text then
+            self.text:SetJustifyH("LEFT")
+            self.text:SetWidth(380)
+        end
+
+        C_Timer.After(0.05, function()
+            if self.text then
+                self.text:SetJustifyH("LEFT")
+                self.text:SetWidth(380)
+            end
+        end)
+
+        C_Timer.After(0.15, function()
+            if self.text then
+                self.text:SetJustifyH("LEFT")
+                self.text:SetWidth(380)
+            end
+        end)
+    end,
+    OnAccept = function(self)
+        -- Continue button - only mark as shown if checkbox is checked
+        if self.gtbCheckbox and self.gtbCheckbox:GetChecked() then
+            addon.db.global.shownV1_1_0Notice = true
+        end
+    end,
+    OnCancel = function(self)
+        -- Reset Bar Positions button - don't auto-close, don't reset HUD
+        addon:ResetBarPositions()
+        print("|cff00ff00Goblin Toolbox:|r Bar positions reset to defaults.")
+        -- Don't mark as shown yet - let user close manually
+        return true  -- Prevents dialog from closing
+    end,
+    OnHide = function(self)
+        -- Clean up checkbox to prevent it showing on other dialogs
+        if self.gtbCheckbox then
+            self.gtbCheckbox:Hide()
+        end
+
+        -- Only mark as shown if checkbox was checked
+        if self.gtbCheckbox and self.gtbCheckbox:GetChecked() then
+            addon.db.global.shownV1_1_0Notice = true
         end
     end,
     timeout = 0,
