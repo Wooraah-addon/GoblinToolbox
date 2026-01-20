@@ -722,7 +722,7 @@ local function RetryPendingLootedItems()
         local quantity = entry.quantity
 
         -- Try to get item info again
-        local name = GetItemInfo(itemLink)
+        local name = addon.API.GetItemInfo(itemLink)
         if name then
             -- Item cached now, calculate price
             local price = 0
@@ -784,7 +784,7 @@ function Gold:HandleLootMessage(message)
     end
 
     -- Try to get item info (may not be cached yet)
-    local name = GetItemInfo(itemLink)
+    local name = addon.API.GetItemInfo(itemLink)
     if name then
         -- Item is cached, calculate price immediately
         local price = 0
