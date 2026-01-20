@@ -139,9 +139,9 @@
   - ✅ Per-bar scaling (independent scale for Item, Currency, and Utility bars)
   - ✅ Buttons per row configuration (wrap bars to multiple rows)
   - ✅ Growth direction controls (4-corner anchoring: LEFT/RIGHT + UP/DOWN)
-  - ✅ Robust position persistence (scaling no longer causes position drift)
   - ✅ One-time update notice popup explaining bar layout changes
-  - ✅ "Reset Bar Positions" function (separate from HUD reset)
+  - ✅ "Reset Bar Positions" function to accompany popup (separate from HUD reset)
+  - ✅ The addition of a minimap button
 
   **Previous Updates (v1.0+):**
   - ✅ Posted auctions tracking with commodity support
@@ -223,15 +223,13 @@ Therefore the following proposed features are currently on hold/deffered or out 
   - Shard ID may show "Unknown" until you target or mouseover an NPC (by design - detection requires NPC interaction)
   - Guild bank gold requires visiting the guild bank to update (cached afterward)
   - Posted auctions only update when AH window is opened (Blizzard API limitation)
-  - Although the menu option exists for support of custom TSM prices, the functionality is not yet working
 
   ## Midnight (12.0.0) Compatibility
 
-  Goblin Toolbox is **fully compatible** with WoW Midnight (12.0.0) launching January 20, 2026:
-  - All deprecated API functions replaced with modern C_Item and C_SpellBook namespaced APIs
-  - Shard detection uses non-combat events (target/mouseover) instead of restricted combat log
-  - Session persistence and utility bar position saving working correctly
-  - Tested on Midnight beta and retail with zero errors
+  v1.1.0 of Goblin Toolbox is has been tested on the WoW Midnight beta client with no reported errors:
+  - All deprecated API functions have been updated/replaced with modern C_Item and C_SpellBook namespaced APIs
+  - Shard detection uses non-combat events now use (target/mouseover) instead of restricted combat log
+  - Session persistence and utility bar position should be saving and working correctly
 
   ## Feedback & suggestions
 
