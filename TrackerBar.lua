@@ -692,10 +692,10 @@ function addon:UpdateTrackedBar()
             if rank > 0 then
                 -- For ranked items, try to construct or find a link with rank
                 -- This is approximate - real itemLink from bags would be better, but harder to find
-                itemLink = select(2, GetItemInfo(itemID))
+                itemLink = select(2, addon.API.GetItemInfo(itemID))
             else
                 -- For unranked items, get the base itemLink
-                itemLink = select(2, GetItemInfo(itemID))
+                itemLink = select(2, addon.API.GetItemInfo(itemID))
             end
 
             local unitPrice = addon.Inventory and addon.Inventory:GetUnitPrice(itemLink, itemID)
@@ -743,7 +743,7 @@ function addon:AddTrackedItem(input)
         itemID = tonumber(input)
         itemLink = nil
     else
-        itemID = select(1, GetItemInfoInstant(input))
+        itemID = select(1, addon.API.GetItemInfoInstant(input))
     end
 
     -- If we found an item, add it to item tracker
