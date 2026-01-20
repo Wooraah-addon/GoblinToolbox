@@ -268,6 +268,20 @@ local EventHandlers = {
         addon:SaveSessionState()
     end,
 
+    -- Shard detection via target (Midnight-compatible alternative to combat log)
+    PLAYER_TARGET_CHANGED = function()
+        if addon.Character and addon.Character.UpdateShardFromUnit then
+            addon.Character:UpdateShardFromUnit("target")
+        end
+    end,
+
+    -- Shard detection via mouseover (Midnight-compatible alternative to combat log)
+    UPDATE_MOUSEOVER_UNIT = function()
+        if addon.Character and addon.Character.UpdateShardFromUnit then
+            addon.Character:UpdateShardFromUnit("mouseover")
+        end
+    end,
+
     PLAYER_MONEY = function()
         addon.Gold:UpdateCharacterCache()
 
@@ -508,6 +522,8 @@ end)
 EventFrame:RegisterEvent("PLAYER_LOGIN")
 EventFrame:RegisterEvent("PLAYER_LOGOUT")
 EventFrame:RegisterEvent("PLAYER_LEAVING_WORLD")
+EventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+EventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 EventFrame:RegisterEvent("PLAYER_MONEY")
 EventFrame:RegisterEvent("ACCOUNT_MONEY")
 EventFrame:RegisterEvent("BAG_UPDATE_DELAYED")

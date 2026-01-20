@@ -103,6 +103,31 @@ local function GetShardID()
     return cachedShardID or 0
 end
 
+-- Extract shard ID from a unit GUID
+-- Used by target/mouseover event handlers (Midnight-compatible)
+local function UpdateShardFromUnit(unitToken)
+    if not unitToken then return end
+
+    local guid = UnitGUID(unitToken)
+    if not guid then return end
+
+    -- Only process NPC/creature GUIDs (not players or pets)
+    if string.match(guid, "^Player%-") or string.match(guid, "^Pet%-") then
+        return
+    end
+
+    -- Extract zone_uid (5th component of GUID: Type-ServerID-InstanceID-ZoneUID-ID-SpawnUID)
+    local _, _, _, _, zone_uid = strsplit("-", guid)
+    if zone_uid then
+        local shardID = tonumber(zone_uid)
+        if shardID and shardID > 0 then
+            cachedShardID = shardID
+            lastShardUpdate = GetTime()
+        end
+    end
+end
+
+-- Legacy combat log handler (deprecated, kept for pre-Midnight compatibility)
 local function OnCombatLogEvent()
     local _, subevent, _, _, _, _, _, destGUID = CombatLogGetCurrentEventInfo()
 
@@ -317,6 +342,14 @@ function Character:StartCombatLogMonitoring()
         end
         self._combatLogFrame = nil
     end
+end
+
+-----------------------------------------------------------------------
+-- Public API: Shard detection from unit tokens (Midnight-compatible)
+-----------------------------------------------------------------------
+
+function Character:UpdateShardFromUnit(unitToken)
+    UpdateShardFromUnit(unitToken)
 end
 
 -----------------------------------------------------------------------
