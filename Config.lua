@@ -1597,8 +1597,10 @@ local function CreateConfigFrame()
     f.sections = {
         generalSection,
         appearanceSection,
+        profileSection,
         modulesSection,
-        trackersSection,
+        itemTrackerSection,
+        currencyTrackerSection,
         goldOptsSection,
         tooltipSection,
         behaviorSection,

@@ -1377,13 +1377,87 @@ end
 
 function addon.API.GetSpellName(spellID)
     if not spellID then return nil end
-    
+
     if C_Spell and C_Spell.GetSpellName then
         return C_Spell.GetSpellName(spellID)
     elseif GetSpellInfo then
         return GetSpellInfo(spellID)
     end
     return nil
+end
+
+-- Item Info API (replaces legacy GetItemInfo)
+-- Returns full item info tuple or nil if uncached
+function addon.API.GetItemInfo(itemInfo)
+    if not itemInfo then return nil end
+
+    if C_Item and C_Item.GetItemInfo then
+        return C_Item.GetItemInfo(itemInfo)
+    end
+
+    return nil
+end
+
+-- Item Info Instant API (replaces legacy GetItemInfoInstant)
+-- Returns instant item info (no server query) or nil
+function addon.API.GetItemInfoInstant(itemInfo)
+    if not itemInfo then return nil end
+
+    if C_Item and C_Item.GetItemInfoInstant then
+        return C_Item.GetItemInfoInstant(itemInfo)
+    end
+
+    return nil
+end
+
+-- Item Count API (replaces legacy GetItemCount)
+-- Returns item count across specified inventories (default 0)
+function addon.API.GetItemCount(itemInfo, includeBank, includeUses, includeReagentBank, includeAccountBank)
+    if not itemInfo then return 0 end
+
+    if C_Item and C_Item.GetItemCount then
+        local count = C_Item.GetItemCount(itemInfo, includeBank, includeUses, includeReagentBank, includeAccountBank)
+        return count or 0
+    end
+
+    return 0
+end
+
+-- Item Spell API (replaces legacy GetItemSpell)
+-- Returns (spellName, spellID) for items with spell effects, or nil
+function addon.API.GetItemSpell(itemInfo)
+    if not itemInfo then return nil end
+
+    if C_Item and C_Item.GetItemSpell then
+        return C_Item.GetItemSpell(itemInfo)
+    end
+
+    return nil
+end
+
+-- Spell Known API (replaces legacy IsSpellKnown)
+-- Returns true if player knows the spell (default false)
+-- Note: Uses C_SpellBook namespace, not C_Spell
+function addon.API.IsSpellKnown(spellID, spellBank)
+    if not spellID then return false end
+
+    if C_SpellBook and C_SpellBook.IsSpellKnown then
+        local isKnown = C_SpellBook.IsSpellKnown(spellID, spellBank)
+        return isKnown or false
+    end
+
+    return false
+end
+
+-- Helper: Extract vendor sell price from item info
+-- Replaces select(11, GetItemInfo(...)) patterns
+-- Returns vendor price in copper (default 0)
+function addon.API.GetVendorSellPrice(itemInfo)
+    if not itemInfo then return 0 end
+
+    -- GetItemInfo returns 18 values; sellPrice is at index 11
+    local sellPrice = select(11, addon.API.GetItemInfo(itemInfo))
+    return sellPrice or 0
 end
 
 -----------------------------------------------------------------------
