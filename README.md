@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-1.1.1-green)
+  ![Version](https://img.shields.io/badge/Version-1.1.2-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview

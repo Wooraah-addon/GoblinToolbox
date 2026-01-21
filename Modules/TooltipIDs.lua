@@ -54,8 +54,9 @@ local function AddIDLine(tooltip, id, idType)
     end
     
     -- Check if we already added this ID to avoid duplicates
+    -- Skip duplicate check in combat (GetText returns secret values in Midnight 12.0+)
     local name = tooltip:GetName()
-    if name then
+    if name and not InCombatLockdown() then
         for i = 1, tooltip:NumLines() do
             local line = _G[name .. "TextLeft" .. i]
             if line then
