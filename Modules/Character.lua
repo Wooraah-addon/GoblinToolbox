@@ -105,26 +105,30 @@ end
 
 -- Extract shard ID from a unit GUID
 -- Used by target/mouseover event handlers (Midnight-compatible)
+-- Note: In Midnight 12.0+, UnitGUID can return secret values during combat
+-- that cannot be used in string operations. We use pcall to handle this.
 local function UpdateShardFromUnit(unitToken)
     if not unitToken then return end
 
-    local guid = UnitGUID(unitToken)
-    if not guid then return end
+    pcall(function()
+        local guid = UnitGUID(unitToken)
+        if not guid then return end
 
-    -- Only process NPC/creature GUIDs (not players or pets)
-    if string.match(guid, "^Player%-") or string.match(guid, "^Pet%-") then
-        return
-    end
-
-    -- Extract zone_uid (5th component of GUID: Type-ServerID-InstanceID-ZoneUID-ID-SpawnUID)
-    local _, _, _, _, zone_uid = strsplit("-", guid)
-    if zone_uid then
-        local shardID = tonumber(zone_uid)
-        if shardID and shardID > 0 then
-            cachedShardID = shardID
-            lastShardUpdate = GetTime()
+        -- Only process NPC/creature GUIDs (not players or pets)
+        if string.match(guid, "^Player%-") or string.match(guid, "^Pet%-") then
+            return
         end
-    end
+
+        -- Extract zone_uid (5th component of GUID: Type-ServerID-InstanceID-ZoneUID-ID-SpawnUID)
+        local _, _, _, _, zone_uid = strsplit("-", guid)
+        if zone_uid then
+            local shardID = tonumber(zone_uid)
+            if shardID and shardID > 0 then
+                cachedShardID = shardID
+                lastShardUpdate = GetTime()
+            end
+        end
+    end)
 end
 
 -- Legacy combat log handler (deprecated, kept for pre-Midnight compatibility)

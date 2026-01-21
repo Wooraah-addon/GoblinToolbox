@@ -54,19 +54,24 @@ local function AddIDLine(tooltip, id, idType)
     end
     
     -- Check if we already added this ID to avoid duplicates
-    -- Skip duplicate check in combat (GetText returns secret values in Midnight 12.0+)
+    -- Use pcall to handle secret values in Midnight 12.0+ (can appear outside combat lockdown)
+    local isDuplicate = false
     local name = tooltip:GetName()
-    if name and not InCombatLockdown() then
-        for i = 1, tooltip:NumLines() do
-            local line = _G[name .. "TextLeft" .. i]
-            if line then
-                local text = line:GetText()
-                if type(text) == "string" and text:find(ID_TYPES[idType]) then
-                    return
+    if name then
+        pcall(function()
+            for i = 1, tooltip:NumLines() do
+                local line = _G[name .. "TextLeft" .. i]
+                if line then
+                    local text = line:GetText()
+                    if type(text) == "string" and text:find(ID_TYPES[idType]) then
+                        isDuplicate = true
+                        return
+                    end
                 end
             end
-        end
+        end)
     end
+    if isDuplicate then return end
     
     local label = ID_TYPES[idType]
     tooltip:AddDoubleLine(label, tostring(id), 0.5, 0.8, 1, 1, 1, 1)
@@ -83,24 +88,28 @@ function TooltipIDs:Initialize()
     end
     
     TooltipDataProcessor.AddTooltipPostCall(TooltipDataProcessor.AllTypes, function(tooltip, data)
-        if not data or not data.type then
-            return
-        end
-        
-        local idType = TOOLTIP_TYPE_MAP[tonumber(data.type)]
-        if not idType then
-            return
-        end
-        
-        -- Special handling for units (extract NPC ID from GUID)
-        if idType == "unit" and data.guid then
-            local unitId = tonumber(data.guid:match("-(%d+)-%x+$"), 10)
-            if unitId and data.guid:match("%a+") ~= "Player" then
-                AddIDLine(tooltip, unitId, "unit")
+        -- Wrap in pcall to handle secret values in Midnight 12.0+
+        -- (InCombatLockdown check is insufficient - secret values appear outside lockdown too)
+        pcall(function()
+            if not data or not data.type then
+                return
             end
-        else
-            AddIDLine(tooltip, data.id, idType)
-        end
+
+            local idType = TOOLTIP_TYPE_MAP[tonumber(data.type)]
+            if not idType then
+                return
+            end
+
+            -- Special handling for units (extract NPC ID from GUID)
+            if idType == "unit" and data.guid then
+                local unitId = tonumber(data.guid:match("-(%d+)-%x+$"), 10)
+                if unitId and data.guid:match("%a+") ~= "Player" then
+                    AddIDLine(tooltip, unitId, "unit")
+                end
+            else
+                AddIDLine(tooltip, data.id, idType)
+            end
+        end)
     end)
 end
 

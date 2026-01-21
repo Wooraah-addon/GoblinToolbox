@@ -9,12 +9,9 @@ externals:
   Libs/LibDBIcon-1.0: https://repos.wowace.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
 
 ignore:
-  - README.md
-  - CLAUDE.md
   - .git
   - .gitignore
   - .github
-  - "*.md"
   - screenshots
   - docs
   - Initial_Project_Brief_-_Goblin_toolbox.docx
@@ -22,6 +19,8 @@ ignore:
   - DesignDoc.txt
   - Font_Options_Notes.md
   - AGENTS.md
+  - CLAUDE.md
+  - README.md
   - .cursor/**
   - .pkgmeta
 

@@ -5,6 +5,16 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-01-21
+
+### Fixed
+- **Comprehensive secret value handling**: Replaced `InCombatLockdown()` guards with `pcall()` wrappers
+  - Secret values can appear outside of combat lockdown, making the lockdown check insufficient
+  - All tooltip data processor callbacks now wrapped in pcall
+  - Shard ID extraction from UnitGUID now wrapped in pcall
+  - Tooltip duplicate ID checks now wrapped in pcall
+  - Features gracefully degrade (skip updates) when secret values are encountered
+
 ## [1.1.2] - 2026-01-21
 
 ### Fixed
