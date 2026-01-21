@@ -436,11 +436,17 @@ local function NormalizeEnabled(v)
 end
 
 -- TWW/11.x compatibility: GetSpellCooldown removed; use C_Spell.GetSpellCooldown (returns table)
+-- Note: In Midnight (12.0+), cooldown info fields are "secret values" during combat
+-- that cannot be used in boolean tests, comparisons, or arithmetic. Skip reading them.
 local function GetSpellCooldownCompat(spellID)
     if C_Spell and C_Spell.GetSpellCooldown then
         local info = C_Spell.GetSpellCooldown(spellID)
         if not info then
-            return 0, 0, 0
+            return 0, 0, 1
+        end
+        -- Skip reading cooldown info during combat to avoid secret value errors (Midnight 12.0+)
+        if InCombatLockdown() then
+            return 0, 0, 1
         end
         local start = info.startTime or 0
         local duration = info.duration or 0
@@ -682,7 +688,7 @@ local function IsWarbandBankAvailable()
     -- Method 1: Check if spell is usable (most reliable)
     if C_Spell and C_Spell.IsSpellUsable then
         local usable = C_Spell.IsSpellUsable(spellID)
-        if usable then
+        if type(usable) == "boolean" and usable then
             return true, nil
         end
     end

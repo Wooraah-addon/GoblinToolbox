@@ -1346,19 +1346,28 @@ function addon.API.GetItemIcon(itemID)
     return nil
 end
 
+-- Note: In Midnight (12.0+), cooldown info fields are "secret values" during combat
+-- that cannot be used in boolean tests, comparisons, or arithmetic. Skip reading them.
 function addon.API.GetSpellCooldown(spellID)
-    if not spellID then return 0, 0, 0 end
-    
+    if not spellID then return 0, 0, 1 end
+
     if C_Spell and C_Spell.GetSpellCooldown then
         local info = C_Spell.GetSpellCooldown(spellID)
         if info then
-            return info.startTime or 0, info.duration or 0, info.isEnabled and 1 or 0
+            -- Skip reading cooldown info during combat to avoid secret value errors (Midnight 12.0+)
+            if InCombatLockdown() then
+                return 0, 0, 1
+            end
+            local start = info.startTime or 0
+            local duration = info.duration or 0
+            local enabled = info.isEnabled and 1 or 0
+            return start, duration, enabled
         end
     elseif GetSpellCooldown then
         local start, duration, enabled = GetSpellCooldown(spellID)
         return start or 0, duration or 0, enabled and 1 or 0
     end
-    return 0, 0, 0
+    return 0, 0, 1
 end
 
 function addon.API.GetSpellTexture(spellID)

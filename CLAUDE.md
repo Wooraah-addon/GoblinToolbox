@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.0**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.1**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -78,6 +78,50 @@ Failure to validate API currency can result in:
 - Poor performance from using outdated, slower API patterns
 - Taint issues from using insecure methods when secure alternatives exist
 - User-facing errors and negative community feedback
+
+## Development Tools (Recommended)
+
+### WoW API Extension for VS Code / Cursor
+
+**Extension:** [WoW API - Ketho](https://marketplace.visualstudio.com/items?itemName=ketho.wow-api)
+
+**What it provides:**
+- LuaLS (Lua Language Server) type annotations for all WoW APIs
+- Full function signatures with parameter/return types
+- `@deprecated` warnings for outdated functions
+- Direct links to warcraft.wiki.gg in hover tooltips
+- IntelliSense autocomplete for WoW namespaces (C_Item, C_SpellBook, etc.)
+
+**Installation:**
+1. **VS Code**: Install from Extensions marketplace (search "WoW API")
+2. **Cursor**: Same extension works in Cursor (built on VS Code) - install from Extensions marketplace
+
+**How it helps GTB:**
+- Flags deprecated API usage with strikethrough/warnings before testing
+- Shows exact replacement functions (e.g., `GetItemInfo` → `C_Item.GetItemInfo`)
+- Catches namespace typos (e.g., nonexistent `C_Spell.IsSpellKnown` vs correct `C_SpellBook.IsSpellKnown`)
+- Validates function signatures at write-time instead of in-game
+
+**Current workspace configuration** (`.vscode/settings.json`):
+```json
+{
+    "Lua.runtime.version": "Lua 5.1",
+    "Lua.workspace.library": [
+        "~\\.vscode\\extensions\\ketho.wow-api-0.21.0\\Annotations\\Core"
+    ]
+}
+```
+
+**Note for Claude Code:**
+I can read the extension's annotation files to verify specific APIs if needed:
+- API definitions: `~/.vscode/extensions/ketho.wow-api-*/Annotations/Core/Blizzard_APIDocumentationGenerated/`
+- Deprecated APIs: `~/.vscode/extensions/ketho.wow-api-*/Annotations/Core/FrameXML/Blizzard_Deprecated/`
+
+**Complementary workflow:**
+1. **Extension** catches deprecated usage at write-time (strikethrough, warnings)
+2. **Manual wiki check** confirms replacement API behavior before implementation
+3. **Claude Code** implements migration and runs grep to find all instances
+4. **In-game testing** verifies behavior matches expectations
 
 ## Task Delegation & Model Selection
 

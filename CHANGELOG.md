@@ -5,6 +5,21 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-01-21
+
+### Fixed
+- **Midnight (12.0) compatibility**: Fixed combat errors caused by "secret values" in spell cooldown API
+  - `C_Spell.GetSpellCooldown()` returns protected values during combat that cannot be used in boolean tests or comparisons
+  - Utility bar cooldown updates now skip reading spell cooldowns during combat to prevent errors
+  - Tooltip ID injection now guards against secret values when reading tooltip text
+  - Affects: UtilityBar.lua, Core.lua, TooltipIDs.lua
+
+### Technical
+- Added `InCombatLockdown()` guards to `GetSpellCooldown()` API wrappers
+  - Returns safe defaults `(0, 0, 1)` during combat instead of reading secret values
+  - Cooldown displays update normally when out of combat
+- Tooltip text reading now uses `type(text) == "string"` guard before calling string methods
+
 ## [1.1.0] - 2026-01-20
 
 ### Added

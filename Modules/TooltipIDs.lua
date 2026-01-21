@@ -60,7 +60,7 @@ local function AddIDLine(tooltip, id, idType)
             local line = _G[name .. "TextLeft" .. i]
             if line then
                 local text = line:GetText()
-                if text and text:find(ID_TYPES[idType]) then
+                if type(text) == "string" and text:find(ID_TYPES[idType]) then
                     return
                 end
             end
