@@ -5,6 +5,14 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2026-01-22
+
+### Fixed
+- **Button removal**: Standard utility buttons now correctly remove themselves instead of custom buttons
+  - When buttons were reused from the pool, custom button properties were not cleared
+  - Shift+right-clicking standard buttons (e.g., Hearthstone) could incorrectly remove custom buttons
+  - Added cleanup of `isCustomSlot`, `customIndex`, `customKind`, `customID` properties when configuring standard buttons
+
 ## [1.1.5] - 2026-01-22
 
 ### Fixed

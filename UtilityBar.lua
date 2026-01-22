@@ -1543,6 +1543,12 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
     btn.unavailableReason = nil
     btn.cooldownSpellID = nil
 
+    -- Clear custom button properties (important when reusing buttons)
+    btn.isCustomSlot = nil
+    btn.customIndex = nil
+    btn.customKind = nil
+    btn.customID = nil
+
     -- Check availability for this button type
     local checkFunc = AVAILABILITY_CHECKS[def.key]
     local isAvailable = true
