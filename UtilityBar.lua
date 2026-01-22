@@ -1501,17 +1501,13 @@ local function ConfigureCustomButton(btn, kind, id, index)
             unavailableReason = "Mount not found"
         end
     elseif kind == "pet" then
-        -- Check if player owns this pet species
+        -- Check if player owns this pet species (filter-independent check)
         local ownsSpecies = false
-        if btn.petSpeciesID and C_PetJournal and C_PetJournal.GetNumPets then
-            local numPets = C_PetJournal.GetNumPets()
-            for i = 1, numPets do
-                local _, speciesID = C_PetJournal.GetPetInfoByIndex(i)
-                if speciesID == btn.petSpeciesID then
-                    ownsSpecies = true
-                    break
-                end
-            end
+        if btn.petSpeciesID and C_PetJournal then
+            -- Use C_PetJournal.GetOwnedBattlePetString which is filter-independent
+            -- Returns a string like "1:2:1" indicating owned pet counts, or nil if not owned
+            local ownedString = C_PetJournal.GetOwnedBattlePetString(btn.petSpeciesID)
+            ownsSpecies = (ownedString ~= nil)
         end
 
         if not ownsSpecies then

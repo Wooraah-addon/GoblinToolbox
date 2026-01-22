@@ -5,6 +5,15 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-01-22
+
+### Fixed
+- **Custom pet buttons**: Pet availability check now filter-independent
+  - Previously, custom pet buttons would grey out if the pet journal had an active search filter
+  - Changed from `GetNumPets()`/`GetPetInfoByIndex()` (filter-affected) to `GetOwnedBattlePetString()` (filter-independent)
+  - Pet buttons now correctly show as available regardless of pet journal search state
+  - Fix persists across `/reload` (previously required logout/login to clear)
+
 ## [1.1.4] - 2026-01-22
 
 ### Added
