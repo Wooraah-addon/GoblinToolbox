@@ -433,8 +433,9 @@ local EventHandlers = {
     end,
 
     CHAT_MSG_LOOT = function(message)
+        -- Use pcall to handle secret values in Midnight 12.0+ (message can be secret in instances)
         if addon.Gold and addon.Gold.HandleLootMessage then
-            addon.Gold:HandleLootMessage(message)
+            pcall(addon.Gold.HandleLootMessage, addon.Gold, message)
         end
     end,
 

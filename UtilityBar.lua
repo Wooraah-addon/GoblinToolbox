@@ -436,22 +436,26 @@ local function NormalizeEnabled(v)
 end
 
 -- TWW/11.x compatibility: GetSpellCooldown removed; use C_Spell.GetSpellCooldown (returns table)
--- Note: In Midnight (12.0+), cooldown info fields are "secret values" during combat
--- that cannot be used in boolean tests, comparisons, or arithmetic. Skip reading them.
+-- Note: In Midnight (12.0+), cooldown info fields are "secret values" in instanced content
+-- that cannot be used in boolean tests, comparisons, or arithmetic. Use pcall to handle this.
 local function GetSpellCooldownCompat(spellID)
     if C_Spell and C_Spell.GetSpellCooldown then
         local info = C_Spell.GetSpellCooldown(spellID)
         if not info then
             return 0, 0, 1
         end
-        -- Skip reading cooldown info during combat to avoid secret value errors (Midnight 12.0+)
-        if InCombatLockdown() then
+        -- Use pcall to handle secret values in Midnight 12.0+ (can appear in instances, not just combat)
+        local success, start, duration, enabled = pcall(function()
+            local s = info.startTime or 0
+            local d = info.duration or 0
+            local e = info.isEnabled and 1 or 0
+            return s, d, e
+        end)
+        if success then
+            return start, duration, enabled
+        else
             return 0, 0, 1
         end
-        local start = info.startTime or 0
-        local duration = info.duration or 0
-        local enabled = info.isEnabled and 1 or 0
-        return start, duration, enabled
     end
 
     -- Legacy fallback (pre-11.0)
