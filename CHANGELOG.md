@@ -5,6 +5,36 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-01-22
+
+### Added
+- **Custom Utility Slots**: Add your own spells, toys, mounts, and battle pets to the Utility Bar
+  - Use `/gtb add [link]` after shift-clicking items from spellbook/toy box/mount journal/pet journal
+  - Supports class spells, profession panels, toys, mounts, and battle pets
+  - Automatically displays cooldowns for toys and spells
+  - Greys out unavailable items with helpful tooltips (e.g., "Mount not collected", "Spell not learned")
+  - Remove custom buttons with shift+right-click
+  - No limit on number of custom slots (limited only by bar layout space)
+  - Config option to hide all custom buttons with a single toggle
+
+### Changed
+- **Memory optimization**: Reduced memory usage during combat
+  - Throttled cooldown event updates to 3x per second (from ~10x per second)
+  - Cached element table references in LayoutHUD to reduce garbage collection
+  - Optimized speed ticker to skip unnecessary table creation
+  - Combined: ~15-20% reduction in combat memory footprint
+
+### Fixed
+- **Secret value handling**: Improved Midnight (12.0+) compatibility
+  - Added pcall wrappers to Gold.lua loot message handler
+  - Added pcall wrapper to UtilityBar.lua cooldown info access
+  - Prevents "attempt to perform operation on secret value" errors in dungeons/instances
+
+### Removed
+- **v1.1.0 update notice**: Removed one-time popup notification for v1.1.0 bar layout changes
+  - Cleanup of temporary user communication code
+  - Prevents StaticPopup frame pollution that could affect other addon dialogs
+
 ## [1.1.3] - 2026-01-21
 
 ### Fixed

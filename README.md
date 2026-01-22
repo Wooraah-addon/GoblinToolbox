@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-1.1.3-green)
+  ![Version](https://img.shields.io/badge/Version-1.1.4-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview
@@ -66,10 +66,14 @@
     - Housing teleport (when available)
     - Reset Instances (party leader required when grouped)
     - Optional Logout/Reload buttons
+  - **Custom Utility Slots**: Add your own spells, toys, mounts, and battle pets to the utility bar
+    - Use `/gtb add [link]` - shift-click items from spellbook/toy box/mount journal/pet journal
+    - Supports spells (class abilities, professions), toys, mounts, and battle pets
+    - Automatically shows cooldowns and greys out unavailable items
+    - Remove custom buttons with shift+right-click
   - **Flexible layout**: Buttons per row (1-12), growth direction (4 corners), independent scaling (0.5x-2.0x)
   - Fully draggable with persistent positioning
   - Unavailable buttons show grey overlay with tooltip explanations
-  - Shift+Right-click to remove buttons from bar
 
   ### Additional Features
   - **Minimap button**: Quick access to GTB configuration via minimap icon

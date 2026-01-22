@@ -735,7 +735,38 @@ function addon:AddTrackedItem(input)
         return
     end
 
-    -- First try as an item
+    -- Check for spell/toy/mount/pet/trade links first (these go to custom utility slots)
+    local spellID = input:match("|Hspell:(%d+)")
+    local mountID = input:match("|Hmount:(%d+)")
+    local petSpeciesID = input:match("|Hbattlepet:(%d+)")
+    local tradeSpellID = input:match("|Htrade:[^:]*:(%d+)")  -- Trade skill links: |Htrade:profession:spellID:...|h
+
+    if spellID then
+        self:AddCustomUtilitySlot("spell", tonumber(spellID))
+        return
+    elseif tradeSpellID then
+        self:AddCustomUtilitySlot("spell", tonumber(tradeSpellID))
+        return
+    elseif mountID then
+        self:AddCustomUtilitySlot("mount", tonumber(mountID))
+        return
+    elseif petSpeciesID then
+        self:AddCustomUtilitySlot("pet", tonumber(petSpeciesID))
+        return
+    end
+
+    -- Try to resolve spell by name (for professions and other spells without proper links)
+    -- Extract name from brackets if present: [Cooking] -> Cooking
+    local spellName = input:match("%[(.+)%]") or input
+    if spellName and spellName ~= "" then
+        local spellInfo = C_Spell.GetSpellInfo(spellName)
+        if spellInfo and spellInfo.spellID then
+            self:AddCustomUtilitySlot("spell", spellInfo.spellID)
+            return
+        end
+    end
+
+    -- Try as an item
     local itemID
     local itemLink = input
 
@@ -744,6 +775,16 @@ function addon:AddTrackedItem(input)
         itemLink = nil
     else
         itemID = select(1, addon.API.GetItemInfoInstant(input))
+    end
+
+    -- If we found an item, check if it's a toy first
+    if itemID then
+        if C_ToyBox.GetToyInfo(itemID) then
+            self:AddCustomUtilitySlot("toy", itemID)
+            return
+        end
+
+        -- Regular item, add to item tracker
     end
 
     -- If we found an item, add it to item tracker
@@ -821,4 +862,43 @@ function addon:RemoveTrackedItem(entry)
         end
     end
     self:UpdateTrackedBar()
+end
+
+function addon:AddCustomUtilitySlot(kind, id)
+    if not kind or not id then
+        return
+    end
+
+    -- Enforce cap
+    local MAX_CUSTOM_SLOTS = 20
+    local slots = self.db.profile.customUtilitySlots or {}
+    if #slots >= MAX_CUSTOM_SLOTS then
+        print("|cff00ff00Goblin Toolbox:|r Custom button limit reached (20)")
+        return
+    end
+
+    -- Get name for confirmation message
+    local name
+    if kind == "spell" then
+        local info = C_Spell.GetSpellInfo(id)
+        name = info and info.name or "Spell " .. id
+    elseif kind == "toy" then
+        local _, toyName = C_ToyBox.GetToyInfo(id)
+        name = toyName or "Toy " .. id
+    elseif kind == "mount" then
+        local mountName = C_MountJournal.GetMountInfoByID(id)
+        name = mountName or "Mount " .. id
+    elseif kind == "pet" then
+        local petName = C_PetJournal.GetPetInfoBySpeciesID(id)
+        name = petName or "Pet " .. id
+    end
+
+    -- Add to list (duplicates allowed per user preference)
+    table.insert(self.db.profile.customUtilitySlots, { kind = kind, id = id })
+    print("|cff00ff00Goblin Toolbox:|r Added " .. (name or "custom button") .. " to Utility Bar")
+
+    -- Update utility bar to show new button
+    if addon.UpdateUtilityBar then
+        addon:UpdateUtilityBar()
+    end
 end

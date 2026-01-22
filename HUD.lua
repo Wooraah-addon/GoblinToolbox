@@ -770,6 +770,7 @@ function addon:LayoutHUD()
 
     local frame = HUD.frame
     local db = self.db.profile
+    local elem = db.elements or {}  -- Cache once to avoid repeated table creation in loops
 
     UpdateResizeGripVisibility()
 
@@ -886,7 +887,7 @@ function addon:LayoutHUD()
                         local rightPad = -6
 
                         if key == "Gold" and i == 4 and section.sessionResetBtn and section.sessionPauseBtn then
-                            local elem = db.elements or {}
+                            -- elem is cached at function start
                             local showButtons = (elem.goldSession ~= false)
 
                             if showButtons then
@@ -959,7 +960,7 @@ function addon:LayoutHUD()
 
                         -- Position Character tooltip buttons
                         if key == "Character" then
-                            local elem = db.elements or {}
+                            -- elem is cached at function start
 
                             -- Shard ID tooltip (Line 2, only if ShardID or MoveSpeed is shown)
                             if i == 2 and section.shardTooltipBtn and (elem.charShardID ~= false or elem.charMovespeed ~= false) then
@@ -972,7 +973,7 @@ function addon:LayoutHUD()
 
                         -- Position Inventory tooltip buttons
                         if key == "Inventory" then
-                            local elem = db.elements or {}
+                            -- elem is cached at function start
 
                             -- Bag Value tooltip (Line 1)
                             if i == 1 and section.bagValueTooltipBtn and elem.invBagValue ~= false then
@@ -1001,7 +1002,7 @@ function addon:LayoutHUD()
 
                         -- Position Gold tooltip buttons
                         if key == "Gold" then
-                            local elem = db.elements or {}
+                            -- elem is cached at function start
                             local isDetailed = (db.goldViewMode == "detailed")
 
                             -- Posted Auctions tooltip (Line 2 always)
@@ -1061,7 +1062,7 @@ function addon:LayoutHUD()
             end
 
             if key == "Gold" and section.sessionResetBtn and section.sessionPauseBtn then
-                local elem = db.elements or {}
+                -- elem is cached at function start
                 local sessionText = section.lines[4] and section.lines[4]:GetText() or ""
                 local showButtons = (elem.goldSession ~= false) and (not collapsed) and (sessionText ~= "")
                 if not showButtons then

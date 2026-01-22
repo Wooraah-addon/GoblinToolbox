@@ -1151,6 +1151,19 @@ local function CreateConfigFrame()
     f.utilityConfirmCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     modulesSection:AddChild(f.utilityConfirmCB)
 
+    y = y - ITEM_HEIGHT
+
+    f.hideCustomButtonsCB = CreateCheckbox(scrollChild, "Hide custom buttons", INDENT + 24, y)
+    f.hideCustomButtonsCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Hide Custom Buttons", 1, 1, 1)
+        GameTooltip:AddLine("Hides all custom buttons added via /gtb add [spell/toy/mount/pet/profession]. Does not remove them from the list.", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("Use Shift+Right-Click on buttons to permanently remove them.", 0.7, 0.7, 0.7, true)
+        GameTooltip:Show()
+    end)
+    f.hideCustomButtonsCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    modulesSection:AddChild(f.hideCustomButtonsCB)
+
     y = y - ITEM_HEIGHT - 12
 
     -- Utility Bar Layout subsection
@@ -2069,6 +2082,7 @@ local function CreateConfigFrame()
 
         -- Utility bar confirmation setting
         f.utilityConfirmCB:SetChecked(db.utilityConfirmSensitiveActions or false)
+        f.hideCustomButtonsCB:SetChecked(db.hideCustomButtons or false)
 
         -- Tracker bars
         f.trackerCB:SetChecked(db.showTracker ~= false)
@@ -2275,6 +2289,7 @@ local function CreateConfigFrame()
 
         -- Utility bar confirmation setting
         db.utilityConfirmSensitiveActions = f.utilityConfirmCB:GetChecked()
+        db.hideCustomButtons = f.hideCustomButtonsCB:GetChecked()
 
         -- Tracker bars
         db.showTracker          = f.trackerCB:GetChecked()
@@ -2339,6 +2354,7 @@ local function CreateConfigFrame()
     -- Tracker source checkboxes already have OnClick handlers set
     HookCheckbox(f.tooltipEnabledCB)
     HookCheckbox(f.utilityConfirmCB)
+    HookCheckbox(f.hideCustomButtonsCB)
 
     f.opacityContainer.slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value * 20 + 0.5) / 20
@@ -2916,84 +2932,6 @@ StaticPopupDialogs["GOBLINTOOLBOX_APPLY_PRESET"] = {
         local presetName = self.data
         if presetName then
             addon:ApplyPreset(presetName)
-        end
-    end,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-}
-
--- TODO v1.1.1: Remove this entire StaticPopup dialog and related code (one-time notice for v1.1.0 only)
-StaticPopupDialogs["GOBLINTOOLBOX_V1_1_0_NOTICE"] = {
-    text = "|cffF7DB4AGoblin Toolbox - UI Update Notice|r\n\nVersion 1.1.0 brings new features:\n\n• Bar layout customization (scale, wrap, buttons per row, growth direction)\n• Minimap button for quick access\n• Midnight (12.0.0) compatibility\n\nBecause of layout changes, bars might have moved slightly. If anything looks off, simply drag them back into position, or use the Reset Bar Positions button below to start fresh.\n\nYou can find the new layout options in /gtb under each bar's section.\n\n|cff808080Note: Gold data is preserved.|r\n\n–Wooraah",
-    button1 = "Continue",
-    button2 = "Reset Bar Positions",
-    OnShow = function(self)
-        -- Only add checkbox to THIS specific dialog (StaticPopup frames are reused!)
-        if self.which ~= "GOBLINTOOLBOX_V1_1_0_NOTICE" then
-            return
-        end
-
-        -- Add "Don't show this again" checkbox (minimal bottom spacing)
-        if not self.gtbCheckbox then
-            local cb = CreateFrame("CheckButton", nil, self, "UICheckButtonTemplate")
-            cb:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 75, 40)  -- Reduced spacing to minimize blank area
-            cb:SetSize(24, 24)
-
-            local label = cb:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-            label:SetPoint("LEFT", cb, "RIGHT", 5, 0)
-            label:SetText("Don't show this again")
-
-            cb.label = label
-            self.gtbCheckbox = cb
-        end
-        self.gtbCheckbox:SetChecked(false)
-        self.gtbCheckbox:Show()
-
-        -- Left-justify text (StaticPopup defaults to center)
-        -- Multiple attempts with increasing delays to override StaticPopup's formatting
-        if self.text then
-            self.text:SetJustifyH("LEFT")
-            self.text:SetWidth(380)
-        end
-
-        C_Timer.After(0.05, function()
-            if self.text then
-                self.text:SetJustifyH("LEFT")
-                self.text:SetWidth(380)
-            end
-        end)
-
-        C_Timer.After(0.15, function()
-            if self.text then
-                self.text:SetJustifyH("LEFT")
-                self.text:SetWidth(380)
-            end
-        end)
-    end,
-    OnAccept = function(self)
-        -- Continue button - only mark as shown if checkbox is checked
-        if self.gtbCheckbox and self.gtbCheckbox:GetChecked() then
-            addon.db.global.shownV1_1_0Notice = true
-        end
-    end,
-    OnCancel = function(self)
-        -- Reset Bar Positions button - don't auto-close, don't reset HUD
-        addon:ResetBarPositions()
-        print("|cff00ff00Goblin Toolbox:|r Bar positions reset to defaults.")
-        -- Don't mark as shown yet - let user close manually
-        return true  -- Prevents dialog from closing
-    end,
-    OnHide = function(self)
-        -- Clean up checkbox to prevent it showing on other dialogs
-        if self.gtbCheckbox then
-            self.gtbCheckbox:Hide()
-        end
-
-        -- Only mark as shown if checkbox was checked
-        if self.gtbCheckbox and self.gtbCheckbox:GetChecked() then
-            addon.db.global.shownV1_1_0Notice = true
         end
     end,
     timeout = 0,

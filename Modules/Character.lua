@@ -306,13 +306,14 @@ function Character:StartSpeedTicker()
             return
         end
 
+        -- Skip updates when HUD isn't visible (reduces combat garbage)
         if not addon.HUD or not addon.HUD.frame or not addon.HUD.frame:IsShown() then
             return
         end
 
         -- Only update if movement speed element is enabled
-        local elem = db.elements or {}
-        if elem.charMovespeed ~= false then
+        -- Use direct access instead of creating fallback table
+        if db.elements and db.elements.charMovespeed ~= false then
             Character:Update()
         end
     end)

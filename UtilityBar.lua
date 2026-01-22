@@ -1122,14 +1122,25 @@ local function CreateUtilityButton(parent, index, size)
     end)
 
     btn:SetScript("OnMouseUp", function(selfBtn, mouseButton)
-        if mouseButton == "RightButton" and IsShiftKeyDown() and selfBtn.utilityKey then
+        if mouseButton == "RightButton" and IsShiftKeyDown() then
             -- Prevent secure frame modification during combat
             if InCombatLockdown() then
                 print("|cff00ff00Goblin Toolbox:|r Cannot modify Utility Bar during combat")
                 return
             end
 
-            if addon.db and addon.db.profile and addon.db.profile.utilityButtons then
+            -- Handle custom button removal
+            if selfBtn.isCustomSlot and selfBtn.customIndex then
+                if addon.db and addon.db.profile and addon.db.profile.customUtilitySlots then
+                    table.remove(addon.db.profile.customUtilitySlots, selfBtn.customIndex)
+                    print("|cff00ff00Goblin Toolbox:|r Removed custom button")
+                    addon:UpdateUtilityBar()
+                end
+                return
+            end
+
+            -- Handle standard button removal
+            if selfBtn.utilityKey and addon.db and addon.db.profile and addon.db.profile.utilityButtons then
                 addon.db.profile.utilityButtons[selfBtn.utilityKey] = false
 
                 local def = UTILITY_ACTIONS[selfBtn.utilityKey]
@@ -1161,15 +1172,40 @@ end
 -----------------------------------------------------------------------
 
 local function GetCooldownForUtilityButton(btn)
-    if not btn or not btn.utilDef then
+    if not btn then
+        return 0, 0, 0
+    end
+
+    -- Custom buttons may not have utilDef but can have cooldown info
+    if btn.cooldownSpellID then
+        return GetSpellCooldownCompat(btn.cooldownSpellID)
+    end
+
+    -- Custom toys
+    if btn.isCustomSlot and btn.customKind == "toy" and btn.itemID then
+        -- Try C_Container.GetItemCooldown first (works for toys)
+        if C_Container and C_Container.GetItemCooldown then
+            local start, duration, enabled = C_Container.GetItemCooldown(btn.itemID)
+            if start and duration then
+                return start, duration, NormalizeEnabled(enabled)
+            end
+        end
+
+        -- Fallback to C_Item
+        if C_Item and C_Item.GetItemCooldown then
+            local start, duration, enabled = C_Item.GetItemCooldown(btn.itemID)
+            return start or 0, duration or 0, NormalizeEnabled(enabled)
+        end
+
+        return 0, 0, 0
+    end
+
+    -- Standard utility buttons need utilDef
+    if not btn.utilDef then
         return 0, 0, 0
     end
 
     local def = btn.utilDef
-
-    if btn.cooldownSpellID then
-        return GetSpellCooldownCompat(btn.cooldownSpellID)
-    end
 
     if def.kind == "spell" or def.kind == "mount" then
         local spellID = def.spellID
@@ -1219,7 +1255,12 @@ local function GetCooldownForUtilityButton(btn)
 end
 
 local function UpdateUtilityButtonCooldown(btn)
-    if not btn or not btn.cooldown or not btn.utilDef then
+    if not btn or not btn.cooldown then
+        return
+    end
+
+    -- Custom buttons don't have utilDef but may have cooldown info
+    if not btn.utilDef and not btn.isCustomSlot then
         return
     end
 
@@ -1262,6 +1303,240 @@ end
 -----------------------------------------------------------------------
 -- Button setup
 -----------------------------------------------------------------------
+
+local function IsProfessionSpell(spellID)
+    -- Check if this spell ID corresponds to a profession
+    if not spellID or not C_TradeSkillUI then
+        return false, nil
+    end
+
+    -- Get all profession trade skill line IDs
+    local professionIDs = C_TradeSkillUI.GetAllProfessionTradeSkillLines()
+    if professionIDs then
+        for _, professionID in ipairs(professionIDs) do
+            -- Get detailed info for this profession
+            local profInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(professionID)
+            if profInfo and profInfo.professionID == spellID then
+                return true, profInfo.professionName
+            end
+        end
+    end
+
+    return false, nil
+end
+
+local function ConfigureCustomButton(btn, kind, id, index)
+    -- Clear standard utility properties
+    btn.utilDef = nil
+    btn.itemID = nil
+    btn.itemName = nil
+    btn.spellKey = nil
+    btn.utilityKey = nil
+    btn.unavailableReason = nil
+    btn.cooldownSpellID = nil
+
+    local icon, name
+
+    if kind == "spell" then
+        local info = C_Spell.GetSpellInfo(id)
+        name = info and info.name or "Spell " .. id
+        icon = info and info.iconID or GetSpellTexture(id) or "Interface\\Icons\\INV_Misc_QuestionMark"
+
+        -- Check if this is a profession spell
+        local isProfession, professionName = IsProfessionSpell(id)
+
+        if isProfession and professionName then
+            -- Profession spells should use macro to open profession UI
+            if not InCombatLockdown() then
+                btn:SetAttribute("type", "macro")
+                btn:SetAttribute("macrotext", "/cast " .. professionName)
+                btn:SetAttribute("spell", nil)
+                btn:SetAttribute("toy", nil)
+                btn:SetAttribute("item", nil)
+                btn:SetAttribute("mount", nil)
+            end
+            btn.isProfession = true
+            btn.professionName = professionName
+        else
+            -- Regular spell
+            if not InCombatLockdown() then
+                btn:SetAttribute("type", "spell")
+                btn:SetAttribute("typerelease", "spell")
+                btn:SetAttribute("spell", name)
+                btn:SetAttribute("toy", nil)
+                btn:SetAttribute("item", nil)
+                btn:SetAttribute("mount", nil)
+            end
+            btn.cooldownSpellID = id
+        end
+
+    elseif kind == "toy" then
+        local _, toyName, toyIcon = C_ToyBox.GetToyInfo(id)
+        name = toyName or "Toy " .. id
+        icon = toyIcon or "Interface\\Icons\\INV_Misc_QuestionMark"
+
+        if not InCombatLockdown() then
+            btn:SetAttribute("type", "toy")
+            btn:SetAttribute("typerelease", "toy")
+            btn:SetAttribute("toy", id)
+            btn:SetAttribute("spell", nil)
+            btn:SetAttribute("item", nil)
+            btn:SetAttribute("mount", nil)
+        end
+
+        btn.itemID = id
+
+    elseif kind == "mount" then
+        -- Mount links contain spell IDs, not mount journal IDs
+        -- Need to convert: spell ID -> mount journal ID -> mount info
+        local mountJournalID = nil
+        local mountName, mountSpellID, mountIcon = nil, nil, nil
+
+        if C_MountJournal and C_MountJournal.GetMountFromSpell then
+            mountJournalID = C_MountJournal.GetMountFromSpell(id)
+        end
+
+        if mountJournalID and C_MountJournal.GetMountInfoByID then
+            mountName, mountSpellID, mountIcon = C_MountJournal.GetMountInfoByID(mountJournalID)
+        end
+
+        name = mountName or "Mount " .. id
+        icon = mountIcon or "Interface\\Icons\\INV_Misc_QuestionMark"
+
+        if mountName and not InCombatLockdown() then
+            btn:SetAttribute("type", "spell")
+            btn:SetAttribute("typerelease", "spell")
+            btn:SetAttribute("spell", mountName)
+            btn:SetAttribute("toy", nil)
+            btn:SetAttribute("item", nil)
+            btn:SetAttribute("mount", nil)
+        end
+
+        btn.spellKey = mountName
+        btn.cooldownSpellID = mountSpellID or id  -- Use mount's spell ID if available, else original ID
+        btn.mountJournalID = mountJournalID  -- Store for availability check
+
+    elseif kind == "pet" then
+        -- Battle pet handling - id is species ID
+        local petName, petIcon = C_PetJournal.GetPetInfoBySpeciesID(id)
+        name = petName or "Pet " .. id
+        icon = petIcon or "Interface\\Icons\\INV_Misc_QuestionMark"
+
+        -- Pets are summoned via macro that calls the pet by name
+        if petName and not InCombatLockdown() then
+            local macroText = "/summonpet " .. petName
+            btn:SetAttribute("type", "macro")
+            btn:SetAttribute("macrotext", macroText)
+            btn:SetAttribute("toy", nil)
+            btn:SetAttribute("item", nil)
+            btn:SetAttribute("spell", nil)
+            btn:SetAttribute("mount", nil)
+        end
+
+        btn.petSpeciesID = id  -- Store for availability check
+    end
+
+    btn.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+    btn.customName = name or "Custom Button"
+    btn.tooltipTitle = name or "Custom Button"
+
+    -- Set appropriate subtext
+    if btn.isProfession then
+        btn.tooltipSubtext = "Profession"
+    else
+        btn.tooltipSubtext = "Custom " .. kind
+    end
+
+    btn.tooltip = nil
+
+    -- Availability checks and grey-out for custom buttons
+    local isAvailable = true
+    local unavailableReason = nil
+
+    if kind == "spell" then
+        -- Special handling for profession spells
+        if btn.isProfession then
+            -- Check if player has this profession
+            local hasProfession = false
+            if C_TradeSkillUI and C_TradeSkillUI.GetAllProfessionTradeSkillLines then
+                local professionIDs = C_TradeSkillUI.GetAllProfessionTradeSkillLines()
+                if professionIDs then
+                    for _, professionID in ipairs(professionIDs) do
+                        local profInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(professionID)
+                        if profInfo and profInfo.professionID == id and profInfo.skillLevel and profInfo.skillLevel > 0 then
+                            hasProfession = true
+                            break
+                        end
+                    end
+                end
+            end
+
+            if not hasProfession then
+                isAvailable = false
+                unavailableReason = "Profession not learned"
+            end
+        else
+            -- Regular spell availability check
+            if not IsSpellKnown(id) and not IsPlayerSpell(id) then
+                isAvailable = false
+                unavailableReason = "Spell not known"
+            end
+        end
+    elseif kind == "toy" then
+        if not PlayerHasToy(id) then
+            isAvailable = false
+            unavailableReason = "Toy not owned"
+        end
+    elseif kind == "mount" then
+        -- Check if mount is collected using the mount journal ID
+        if btn.mountJournalID then
+            local _, _, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(btn.mountJournalID)
+            if not isCollected then
+                isAvailable = false
+                unavailableReason = "Mount not collected"
+            end
+        else
+            -- Couldn't find mount in journal
+            isAvailable = false
+            unavailableReason = "Mount not found"
+        end
+    elseif kind == "pet" then
+        -- Check if player owns this pet species
+        local ownsSpecies = false
+        if btn.petSpeciesID and C_PetJournal and C_PetJournal.GetNumPets then
+            local numPets = C_PetJournal.GetNumPets()
+            for i = 1, numPets do
+                local _, speciesID = C_PetJournal.GetPetInfoByIndex(i)
+                if speciesID == btn.petSpeciesID then
+                    ownsSpecies = true
+                    break
+                end
+            end
+        end
+
+        if not ownsSpecies then
+            isAvailable = false
+            unavailableReason = "Pet not owned"
+        end
+    end
+
+    if isAvailable then
+        btn.icon:SetDesaturated(false)
+        if btn.overlay then
+            btn.overlay:Hide()
+        end
+        btn.unavailableReason = nil
+    else
+        btn.icon:SetDesaturated(true)
+        if btn.overlay then
+            btn.overlay:Show()
+        end
+        btn.unavailableReason = unavailableReason
+    end
+
+    ApplySecureAttributeGuards(btn)
+    UpdateUtilityButtonCooldown(btn)
+end
 
 local function SetupUtilityButton(btn, def, resolvedItemID)
     btn.utilDef = def
@@ -1865,6 +2140,31 @@ function addon:UpdateUtilityBar()
                 end
                 SetupUtilityButton(btn, def, nil)
             end
+        end
+    end
+
+    -- Custom utility slots (positioned at right end of bar)
+    bar.customButtons = bar.customButtons or {}
+    local customSlots = db.customUtilitySlots or {}
+    local hideCustom = db.hideCustomButtons or false
+
+    if not hideCustom then
+        for i, slot in ipairs(customSlots) do
+            shown = shown + 1
+            local btn = bar.buttons[shown]
+            if not btn then
+                btn = CreateUtilityButton(bar, shown, size)
+                bar.buttons[shown] = btn
+            end
+
+            -- Mark as custom button
+            btn.isCustomSlot = true
+            btn.customIndex = i
+            btn.customKind = slot.kind
+            btn.customID = slot.id
+
+            -- Configure the button
+            ConfigureCustomButton(btn, slot.kind, slot.id, i)
         end
     end
 

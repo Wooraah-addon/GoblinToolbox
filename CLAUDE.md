@@ -2,24 +2,13 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.3**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.4**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
 ## Author
 
 Wooraah (golbintoolbox@gmail.com)
-
-## IMPORTANT: v1.1.1 Cleanup Task
-
-**REMOVE IN v1.1.1:** The v1.1.0 update notice popup is a ONE-TIME notification for the v1.1.0 release. It must be removed in v1.1.1.
-
-**Files to clean up:**
-1. **Config.lua** (line ~2889): Remove entire `StaticPopupDialogs["GOBLINTOOLBOX_V1_1_0_NOTICE"]` definition (marked with TODO comment)
-2. **GoblinToolbox.lua** (line ~246-251): Remove the entire v1.1.0 notice display block including debug prints
-3. **Core.lua** (line ~223): Remove `shownV1_1_0Notice = false` from DEFAULTS.global
-
-**Why this matters:** StaticPopup frames are reused by Blizzard's UI, and leftover hooks/checkboxes can bleed into other dialogs. The popup serves no purpose after v1.1.0 adoption and should not persist.
 
 ## Project Planning & User Priorities
 

@@ -245,14 +245,6 @@ local EventHandlers = {
         if addon.db.global.showLoadMessage ~= false then
             print("Goblin Toolbox loaded. Type /gtb for options.")
         end
-
-        -- TODO v1.1.1: Remove this entire block (one-time notice for v1.1.0 only)
-        -- Show v1.1.0 UI update notice (one-time, account-wide)
-        if not addon.db.global.shownV1_1_0Notice then
-            C_Timer.After(1.5, function()
-                StaticPopup_Show("GOBLINTOOLBOX_V1_1_0_NOTICE")
-            end)
-        end
     end,
 
     PLAYER_LOGOUT = function()
@@ -503,8 +495,19 @@ local EventHandlers = {
     end,
 }
 
--- Cooldown-related events share one handler
+-- Cooldown-related events share one handler with throttling
+-- SPELL_UPDATE_COOLDOWN fires 10-30x/sec during combat - throttle to reduce garbage
+-- This is a gold-making HUD, not a combat addon - 3x/sec is plenty for visual updates
+local lastCooldownUpdate = 0
+local COOLDOWN_THROTTLE_INTERVAL = 0.33  -- Update at most 3x/sec
+
 local function OnCooldownEvent()
+    local now = GetTime()
+    if now - lastCooldownUpdate < COOLDOWN_THROTTLE_INTERVAL then
+        return  -- Skip this update, too soon
+    end
+    lastCooldownUpdate = now
+
     if InCombatLockdown() then
         addon._needsUtilityRefresh = true
         addon:UpdateUtilityCooldowns()
@@ -715,7 +718,7 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
     else
         print("Goblin Toolbox commands:")
         print("  /gtb              - open settings window")
-        print("  /gtb add [link/name] - add item or currency to tracker")
+        print("  /gtb add [link]   - add spell/toy/mount/pet/profession to utility bar, or item/currency to tracker")
         print("  /gtb addcurrency [name/ID] - add currency to tracker")
         print("  /gtb currencies   - list tracked currencies")
         print("  /gtb reset        - reset gold session")

@@ -163,6 +163,10 @@ local DEFAULTS = {
         -- Utility bar behavior settings
         utilityConfirmSensitiveActions = false,  -- Add confirmation prompts for Logout, Reload, and Mailbox buttons
 
+        -- Custom utility slots (user-added spells/toys/mounts)
+        customUtilitySlots = {},         -- Array of { kind = "spell"|"toy"|"mount", id = number }
+        hideCustomButtons = false,       -- Single toggle to hide all custom buttons
+
         -- Utility Bar layout settings
         utilityButtonsPerRow = 15,   -- Max 15 (all utility buttons fit in one row)
         utilityGrowX = "RIGHT",      -- Horizontal growth direction: "RIGHT" or "LEFT"
@@ -221,9 +225,6 @@ local DEFAULTS = {
         tsmSource = "dbregionsaleavg",
         tsmCustomSource = "",
         schemaVersion = 5,  -- Current schema version for fresh installs (migrations 1-5 complete)
-        -- UI update notices (account-wide, dismissed once)
-        -- TODO v1.1.1: Remove shownV1_1_0Notice (one-time notice for v1.1.0 only)
-        shownV1_1_0Notice = false,  -- v1.1.0 bar layout update notice
     },
 
     profiles = {},      -- Will be populated with Default profile after migration
