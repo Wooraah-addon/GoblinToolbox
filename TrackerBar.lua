@@ -678,9 +678,12 @@ function addon:UpdateTrackedBar()
         btn.count:SetTextColor(1, 1, 1)
 
         -- Set rank overlay (top-left)
-        if rank > 0 and C_Texture and C_Texture.GetCraftingReagentQualityChatIcon then
-            local rankIcon = C_Texture.GetCraftingReagentQualityChatIcon(rank)
-            btn.rank:SetText(rankIcon or "")
+        -- Use atlas markup directly since GetCraftingReagentQualityChatIcon doesn't exist in-game
+        if rank > 0 then
+            -- Atlas format: |A:atlasName:width:height|a
+            local atlasName = "Professions-ChatIcon-Quality-Tier" .. rank
+            local rankIcon = string.format("|A:%s:16:16|a", atlasName)
+            btn.rank:SetText(rankIcon)
         else
             btn.rank:SetText("")
         end
