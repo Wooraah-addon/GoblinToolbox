@@ -421,7 +421,7 @@ function addon:UpdateTrackedBar()
         return
     end
 
-    -- Check if we should hide due to combat/instances
+    -- Check if we should hide due to combat/instances/groups
     if db.hideInCombat and UnitAffectingCombat("player") then
         f:Hide()
         return
@@ -433,6 +433,11 @@ function addon:UpdateTrackedBar()
             f:Hide()
             return
         end
+    end
+
+    if db.hideWhenGrouped and IsInGroup() then
+        f:Hide()
+        return
     end
 
     f:Show()

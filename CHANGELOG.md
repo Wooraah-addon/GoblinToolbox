@@ -5,6 +5,36 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2026-01-29
+
+### Added
+- **Hide in groups option**: New visibility toggle to automatically hide HUD when in a party or raid
+  - Added checkbox in General settings alongside existing combat/instance hide options
+  - Applies to all frames (HUD, tracker bars, currency bar, utility bar)
+  - Useful for players who prefer minimal UI during group content
+
+### Changed
+- **Session timer precision**: Timer now displays seconds when session duration is under 10 minutes
+  - Format: "9m 45s" when under 10 minutes, "42m" when 10+ minutes, "2h 15m" when 1+ hours
+  - Helps track short farming sessions more precisely (e.g., timing corpse despawns)
+- **Config menu layout**: Reorganized General section for better readability
+  - Row 1: Enable HUD (alone)
+  - Row 2: Hide in combat, Hide in instances/raids, Hide in groups
+  - Row 3: Lock frames, Show load message, Minimap button
+
+### Fixed
+- **Gold tracking accuracy**: Removed 100k gold transaction cap that was causing tracking discrepancies
+  - Previously, any single transaction over 100k gold was silently excluded from Earned/Spent tracking
+  - This caused Net to diverge from Earned-Spent for high-value AH sales (common for gold-makers)
+  - All transaction sizes now tracked correctly, regardless of amount
+- **Bank transfer matching**: Made transfer intent matching symmetric
+  - Now allows delta to be slightly less OR more than intent amount (within 5% tolerance)
+  - Fixes edge cases where API timing caused actual gold change to differ slightly from deposit/withdrawal
+
+### Technical
+- Registered `GROUP_ROSTER_UPDATE` event to handle visibility updates when joining/leaving groups
+- Improved transfer offset tolerance calculation for large warband/guild bank transactions
+
 ## [1.1.7] - 2026-01-22
 
 ### Fixed

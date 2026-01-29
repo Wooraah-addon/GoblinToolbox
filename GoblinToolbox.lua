@@ -413,6 +413,10 @@ local EventHandlers = {
         addon:UpdateVisibility()
     end,
 
+    GROUP_ROSTER_UPDATE = function()
+        addon:UpdateVisibility()
+    end,
+
     CURRENCY_DISPLAY_UPDATE = function()
         addon:UpdateCurrencyBar()
     end,
@@ -547,6 +551,7 @@ EventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 EventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 EventFrame:RegisterEvent("ZONE_CHANGED")
 EventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 EventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 EventFrame:RegisterEvent("TOKEN_MARKET_PRICE_UPDATED")
 EventFrame:RegisterEvent("CHAT_MSG_LOOT")
@@ -728,8 +733,6 @@ SlashCmdList["GOBLINTOOLBOX"] = function(msg)
         print("  /gtb show         - show HUD")
         print("  /gtb hide         - hide HUD")
         print("  /gtb headers      - toggle group headers")
-        print("  /gtb debugtransfers - toggle bank transfer debug logging")
-        print("  /gtb sessiondebug - show session persistence debug info")
     end
 end
 

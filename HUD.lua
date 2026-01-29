@@ -1150,6 +1150,10 @@ function addon:UpdateVisibility()
         end
     end
 
+    if db.hideWhenGrouped and IsInGroup() then
+        hideAll = true
+    end
+
     if hideAll then
         HUD.frame:Hide()
         if self.trackerFrame then self.trackerFrame:Hide() end

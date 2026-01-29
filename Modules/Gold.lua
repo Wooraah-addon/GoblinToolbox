@@ -70,12 +70,12 @@ local function TryConsumeTransferIntent(playerDelta)
                           (playerDelta == 0 and intent.amount == 0)
 
         if signsMatch then
-            -- Check magnitude (strict match first, then allow 5% tolerance)
+            -- Check magnitude with symmetric tolerance (delta can be slightly less OR more)
             local intentMag = math.abs(intent.amount)
             local deltaMag = math.abs(playerDelta)
             local tolerance = math.max(10000, intentMag * 0.05)  -- 1g or 5%, whichever is larger
 
-            if deltaMag >= intentMag and deltaMag <= (intentMag + tolerance) then
+            if deltaMag >= (intentMag - tolerance) and deltaMag <= (intentMag + tolerance) then
                 -- Match found!
                 local matchedAmount = intent.amount
                 LogTransfer(string.format("Matched %s transfer: intent=%s, delta=%s",
@@ -492,14 +492,6 @@ local function UpdateEarnedSpent()
         s.sessionTransferOffset = (s.sessionTransferOffset or 0) + matchedTransfer
         LogTransfer(string.format("Transfer offset updated: %s (total: %s)",
             tostring(matchedTransfer), tostring(s.sessionTransferOffset)))
-    end
-
-    -- Guard against unreasonably large deltas (likely from login race condition)
-    -- Apply this check AFTER transfer matching so large transfers don't get skipped
-    local maxDelta = 100000 * 10000  -- 100k gold in copper
-    if math.abs(adjustedDelta) > maxDelta then
-        s.lastMoney = currentMoney
-        return
     end
 
     -- Apply the adjusted delta to Earned/Spent
@@ -1166,11 +1158,15 @@ function Gold:Update()
         local elapsed, net, gph = self:GetSessionStats()
         local hours = math.floor(elapsed / 3600)
         local minutes = math.floor((elapsed % 3600) / 60)
+        local seconds = math.floor(elapsed % 60)
         local timeStr
         if hours > 0 then
             timeStr = string.format("%dh %02dm", hours, minutes)
-        else
+        elseif minutes >= 10 then
             timeStr = string.format("%dm", minutes)
+        else
+            -- Under 10 minutes: show seconds too
+            timeStr = string.format("%dm %02ds", minutes, seconds)
         end
 
         local isPaused = s.sessionPaused

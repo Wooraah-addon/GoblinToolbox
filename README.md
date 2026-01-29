@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-1.1.7-green)
+  ![Version](https://img.shields.io/badge/Version-1.1.8-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview
@@ -28,7 +28,7 @@
   - **Guild bank gold** with staleness indicator (shows age of data)
   - **Posted Auctions**: Total value and count of active auctions (updates on AH open/post)
   - **Session tracking** with pause/resume and AFK auto-pause:
-    - Time elapsed with manual pause and automatic AFK pause
+    - Time elapsed with seconds precision under 10 minutes (e.g., "9m 45s"), manual pause, and automatic AFK pause
     - Session persistence option (keep data across logouts with visual indicator)
     - Bank transfer neutralization (deposits/withdrawals don't affect session net)
     - Two display modes:
@@ -84,7 +84,7 @@
   - **Profile system**: Create, copy, and switch between named profiles per character
   - **Interactive tooltips**: Hover over HUD elements for detailed explanations
   - **Tooltip ID display**: Optional display of IDs for items, spells, NPCs, currencies, mounts, and icons
-  - **Customizable visibility**: Hide in combat / hide in instances options
+  - **Customizable visibility**: Hide in combat / hide in instances / hide in groups options
   - **Flexible layout**: Fully movable and resizable HUD with background opacity control
   - **Auto-switch to Warband Bank tab** (optional, Blizzard UI only)
   - **Minimal configuration** with sensible defaults

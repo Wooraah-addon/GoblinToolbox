@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.7**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.8**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -380,14 +380,19 @@ Counts tracked both aggregated by `itemID` and rank-aware by `itemID:rank` key (
 - Auctionator / Oribos Exchange price source support
 - Profile import/export functionality
 
-## Debug / Slash Commands
+## Slash Commands
 
 - `/gtb` - Opens config panel
-- `/gtb debugtransfers` - Toggles bank transfer debug logging
-- `/gtb sessiondebug` - Prints persisted + live session state
+- `/gtb add [link]` - Add spell/toy/mount/pet/profession to utility bar, or item/currency to tracker
 - `/gtb reset` - Reset session
 - `/gtb pause` - Pause/resume session
 - `/gtb lock` / `/gtb unlock` - Lock/unlock frame positions
+- `/gtb show` / `/gtb hide` - Show/hide HUD
+- `/gtb headers` - Toggle group headers
+
+**Hidden debug commands (not shown in help):**
+- `/gtb debugtransfers` - Toggles bank transfer debug logging
+- `/gtb sessiondebug` - Prints persisted + live session state
 
 ## Change Impact Considerations (CRITICAL - Addon is Live)
 

@@ -81,6 +81,7 @@ local DEFAULTS = {
         lockFrame        = false,
         hideInCombat     = false,
         hideInInstances  = false,
+        hideWhenGrouped  = false,
         showHeaders      = true,
         showTitleBar     = true,
         showBackground   = true,

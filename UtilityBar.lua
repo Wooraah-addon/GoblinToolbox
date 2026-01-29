@@ -2052,6 +2052,9 @@ function addon:UpdateUtilityBar()
                 hide = true
             end
         end
+        if db.hideWhenGrouped and IsInGroup() then
+            hide = true
+        end
     else
         hide = true
     end

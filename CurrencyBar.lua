@@ -438,7 +438,7 @@ function addon:UpdateCurrencyBar()
         return
     end
 
-    -- Check hide in combat/instances
+    -- Check hide in combat/instances/groups
     local shouldHide = false
     if db.hideInCombat and UnitAffectingCombat("player") then
         shouldHide = true
@@ -448,6 +448,9 @@ function addon:UpdateCurrencyBar()
         if inInstance and instanceType ~= "none" then
             shouldHide = true
         end
+    end
+    if db.hideWhenGrouped and IsInGroup() then
+        shouldHide = true
     end
 
     if shouldHide then
