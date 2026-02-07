@@ -5,6 +5,25 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.9] - 2026-02-07
+
+### Fixed
+- **Custom profession spells**: Profession buttons added to utility bar now work reliably for all professions
+  - Leatherworking and Inscription previously failed when clicked (WoW's `/cast` doesn't work for these professions)
+  - Now uses `C_TradeSkillUI.OpenTradeSkill()` API for all profession buttons
+  - Tested across 7+ professions including Inscription, Blacksmithing, Archaeology, Fishing, Jewelcrafting, Enchanting, Leatherworking
+- **Custom utility button errors**: Fixed lua error when custom spells (toys/mounts/pets) triggered cooldown updates
+  - Error: "attempt to index local 'def' (a nil value)" in `UpdateUtilityButtonCooldown`
+  - Custom slots now correctly skip hearthstone GCD filtering logic
+- **Toggle spell double-fire**: Custom profession/racial spells no longer open and immediately close when clicked
+  - Cleared stale `typerelease` attribute that caused action on both mouse press and release
+  - Affects toggle-style spells that open windows (professions) or have press-and-hold behavior
+
+### Technical
+- Rewrote `IsProfessionSpell()` to use spell name matching against `parentProfessionName` from profession API
+- Added cleanup of kind-specific button properties (`isProfession`, `professionName`, `mountJournalID`, `petSpeciesID`) when buttons are reused
+- Added nil guard for `btn.utilDef` in cooldown update logic for custom slots
+
 ## [1.1.8] - 2026-01-29
 
 ### Added

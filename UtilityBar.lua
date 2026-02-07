@@ -1270,7 +1270,7 @@ local function UpdateUtilityButtonCooldown(btn)
     -- (prevents spurious GCD swirlies from appearing on hearthstone icons)
     local def = btn.utilDef
     local minDuration = 1.5
-    if InCombatLockdown() and def.kind == "item" then
+    if def and InCombatLockdown() and def.kind == "item" then
         local isHearthstoneType = (def.key == "hearthstone" or def.key == "dalaranHS" or def.key == "garrisonHS")
         if isHearthstoneType then
             minDuration = 3.0  -- Require at least 3s cooldown during combat to filter out GCD noise
@@ -1305,24 +1305,43 @@ end
 -----------------------------------------------------------------------
 
 local function IsProfessionSpell(spellID)
-    -- Check if this spell ID corresponds to a profession
+    -- Check if this spell ID corresponds to a profession the player knows.
+    -- Returns: isProfession, professionName, baseSkillLineID
     if not spellID or not C_TradeSkillUI then
-        return false, nil
+        return false, nil, nil
     end
 
-    -- Get all profession trade skill line IDs
-    local professionIDs = C_TradeSkillUI.GetAllProfessionTradeSkillLines()
-    if professionIDs then
-        for _, professionID in ipairs(professionIDs) do
-            -- Get detailed info for this profession
-            local profInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(professionID)
-            if profInfo and profInfo.professionID == spellID then
-                return true, profInfo.professionName
+    -- Resolve the spell name to match against profession names
+    local spellInfo = C_Spell.GetSpellInfo(spellID)
+    if not spellInfo or not spellInfo.name then
+        return false, nil, nil
+    end
+    local spellName = spellInfo.name
+
+    -- Check against the player's known professions
+    local tradeSkillLines = C_TradeSkillUI.GetAllProfessionTradeSkillLines()
+    if tradeSkillLines then
+        for _, skillLineID in ipairs(tradeSkillLines) do
+            local profInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(skillLineID)
+            if profInfo and profInfo.professionName then
+                -- Match if spell name equals or contains the profession name
+                -- (handles expansion-prefixed names like "Khaz Algar Leatherworking")
+                -- Match against both expansion name ("Midnight Enchanting") and
+                -- parent name ("Enchanting") for reliable detection
+                local profName = profInfo.parentProfessionName or profInfo.professionName
+                if spellName == profName
+                    or spellName:find(profName, 1, true)
+                    or profName:find(spellName, 1, true) then
+                    -- parentProfessionID is the base skill line ID (e.g., 333 for
+                    -- Enchanting, 165 for Leatherworking) that OpenTradeSkill() expects
+                    local baseSkillLineID = profInfo.parentProfessionID or skillLineID
+                    return true, profName, baseSkillLineID
+                end
             end
         end
     end
 
-    return false, nil
+    return false, nil, nil
 end
 
 local function ConfigureCustomButton(btn, kind, id, index)
@@ -1335,6 +1354,21 @@ local function ConfigureCustomButton(btn, kind, id, index)
     btn.unavailableReason = nil
     btn.cooldownSpellID = nil
 
+    -- Clear kind-specific properties from previous custom configuration
+    -- (critical when buttons are reused between different custom types)
+    btn.isProfession = nil
+    btn.professionName = nil
+    btn.professionSkillLineID = nil
+    btn.mountJournalID = nil
+    btn.petSpeciesID = nil
+
+    -- Clear stale typerelease from previous button configuration to prevent
+    -- double-fire (action on press + duplicate action on release) which causes
+    -- toggle spells (professions, racials) to open then immediately close.
+    if not InCombatLockdown() then
+        btn:SetAttribute("typerelease", nil)
+    end
+
     local icon, name
 
     if kind == "spell" then
@@ -1343,13 +1377,15 @@ local function ConfigureCustomButton(btn, kind, id, index)
         icon = info and info.iconID or GetSpellTexture(id) or "Interface\\Icons\\INV_Misc_QuestionMark"
 
         -- Check if this is a profession spell
-        local isProfession, professionName = IsProfessionSpell(id)
+        local isProfession, professionName, skillLineID = IsProfessionSpell(id)
 
-        if isProfession and professionName then
-            -- Profession spells should use macro to open profession UI
+        if isProfession and professionName and skillLineID then
+            -- Use C_TradeSkillUI.OpenTradeSkill(baseSkillLineID) via /run macro.
+            -- /cast doesn't work for all professions (e.g., Leatherworking, Inscription).
+            -- Uses same proven /run macro pattern as resetInstances and housingTeleport.
             if not InCombatLockdown() then
                 btn:SetAttribute("type", "macro")
-                btn:SetAttribute("macrotext", "/cast " .. professionName)
+                btn:SetAttribute("macrotext", "/run C_TradeSkillUI.OpenTradeSkill(" .. skillLineID .. ")")
                 btn:SetAttribute("spell", nil)
                 btn:SetAttribute("toy", nil)
                 btn:SetAttribute("item", nil)
@@ -1357,11 +1393,11 @@ local function ConfigureCustomButton(btn, kind, id, index)
             end
             btn.isProfession = true
             btn.professionName = professionName
+            btn.professionSkillLineID = skillLineID
         else
-            -- Regular spell
+            -- Regular spell (no typerelease - prevents double-fire on toggle spells)
             if not InCombatLockdown() then
                 btn:SetAttribute("type", "spell")
-                btn:SetAttribute("typerelease", "spell")
                 btn:SetAttribute("spell", name)
                 btn:SetAttribute("toy", nil)
                 btn:SetAttribute("item", nil)
@@ -1377,7 +1413,6 @@ local function ConfigureCustomButton(btn, kind, id, index)
 
         if not InCombatLockdown() then
             btn:SetAttribute("type", "toy")
-            btn:SetAttribute("typerelease", "toy")
             btn:SetAttribute("toy", id)
             btn:SetAttribute("spell", nil)
             btn:SetAttribute("item", nil)
@@ -1405,7 +1440,6 @@ local function ConfigureCustomButton(btn, kind, id, index)
 
         if mountName and not InCombatLockdown() then
             btn:SetAttribute("type", "spell")
-            btn:SetAttribute("typerelease", "spell")
             btn:SetAttribute("spell", mountName)
             btn:SetAttribute("toy", nil)
             btn:SetAttribute("item", nil)
@@ -1454,33 +1488,12 @@ local function ConfigureCustomButton(btn, kind, id, index)
     local unavailableReason = nil
 
     if kind == "spell" then
-        -- Special handling for profession spells
-        if btn.isProfession then
-            -- Check if player has this profession
-            local hasProfession = false
-            if C_TradeSkillUI and C_TradeSkillUI.GetAllProfessionTradeSkillLines then
-                local professionIDs = C_TradeSkillUI.GetAllProfessionTradeSkillLines()
-                if professionIDs then
-                    for _, professionID in ipairs(professionIDs) do
-                        local profInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(professionID)
-                        if profInfo and profInfo.professionID == id and profInfo.skillLevel and profInfo.skillLevel > 0 then
-                            hasProfession = true
-                            break
-                        end
-                    end
-                end
-            end
-
-            if not hasProfession then
-                isAvailable = false
-                unavailableReason = "Profession not learned"
-            end
-        else
-            -- Regular spell availability check
-            if not IsSpellKnown(id) and not IsPlayerSpell(id) then
-                isAvailable = false
-                unavailableReason = "Spell not known"
-            end
+        -- Use IsPlayerSpell for both profession and regular spells.
+        -- GetAllProfessionTradeSkillLines() returns ALL skill lines in the game,
+        -- so IsProfessionSpell matching doesn't guarantee the character has it.
+        if not IsSpellKnown(id) and not IsPlayerSpell(id) then
+            isAvailable = false
+            unavailableReason = btn.isProfession and "Profession not learned" or "Spell not known"
         end
     elseif kind == "toy" then
         if not PlayerHasToy(id) then
