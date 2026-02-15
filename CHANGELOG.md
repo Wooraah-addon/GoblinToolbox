@@ -5,6 +5,12 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.10] - 2026-02-15
+
+### Added
+- **Hearthstone bind location**: Hearthstone tooltip on the utility bar now shows "Returns you to [location]", matching Blizzard's native tooltip style
+- **Copy Name-Realm to clipboard**: Alt+Click the character name line on the HUD to copy your `Name-Realm` (invite-ready format) to clipboard via a quick popup — press Ctrl+C and it auto-closes
+
 ## [1.1.9] - 2026-02-07
 
 ### Fixed

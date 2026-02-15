@@ -1787,7 +1787,10 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         btn.tooltipSubtext = btn.housingTooltipLine or "Teleport Home"
     elseif def.key == "hearthstone" then
         btn.tooltipTitle = "Hearthstone"
-        if btn.itemID == 6948 then
+        local bindLoc = GetBindLocation()
+        if bindLoc and bindLoc ~= "" then
+            btn.tooltipSubtext = "Returns you to " .. bindLoc
+        elseif btn.itemID == 6948 then
             btn.tooltipSubtext = "Uses Hearthstone"
         else
             btn.tooltipSubtext = "Uses an available Hearthstone toy"

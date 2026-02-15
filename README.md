@@ -3,7 +3,7 @@
   A lightweight, modular gold-making HUD addon for World of Warcraft (Retail).
 
   ![WoW Version](https://img.shields.io/badge/WoW-12.0%2B-blue)
-  ![Version](https://img.shields.io/badge/Version-1.1.9-green)
+  ![Version](https://img.shields.io/badge/Version-1.1.10-green)
   ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 
   ## Overview
@@ -21,6 +21,7 @@
   - **Account Label**: Custom account-wide identifier (e.g., [WOW1]) shown next to your name
   - **Shard ID tracking** with tooltip guidance (for farming coordination and phasing troubleshooting)
   - **Movement speed display** to 3 decimal places (for testing speed sets)
+  - **Copy Name-Realm**: Alt+Click the character name line to copy `Name-Realm` to clipboard (invite-ready format)
 
   ### Gold & Economy Module
   - **Current character gold**
@@ -62,7 +63,7 @@
     - Mobile Banking (guild perk)
     - Portable Mailbox (Katy Stampwhistle, MOLL-E, Ohuna Perch)
     - Warband Bank access (Trader's Brutosaur, Vendor mounts)
-    - Hearthstone (auto-detects toys like Dalaran HS, Garrison HS)
+    - Hearthstone (auto-detects toys; tooltip shows your bind location)
     - Housing teleport (when available)
     - Reset Instances (party leader required when grouped)
     - Optional Logout/Reload buttons

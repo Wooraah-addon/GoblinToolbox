@@ -28,6 +28,53 @@ local MAX_WIDTH = 600
 local MIN_HEIGHT = 60  -- Will be overridden by content
 
 -----------------------------------------------------------------------
+-- Copy-to-clipboard popup (reusable EditBox)
+-----------------------------------------------------------------------
+
+local copyFrame
+
+local function ShowCopyPopup(text)
+    if not copyFrame then
+        copyFrame = CreateFrame("Frame", "GoblinToolboxCopyFrame", UIParent, "BackdropTemplate")
+        copyFrame:SetSize(260, 50)
+        copyFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 100)
+        copyFrame:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile     = true, tileSize = 16, edgeSize = 16,
+            insets   = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
+        copyFrame:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+        copyFrame:SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
+        copyFrame:SetFrameStrata("DIALOG")
+        copyFrame:EnableMouse(true)
+
+        local label = copyFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        label:SetPoint("TOP", copyFrame, "TOP", 0, -6)
+        label:SetText("Press Ctrl+C to copy")
+
+        local editBox = CreateFrame("EditBox", nil, copyFrame, "InputBoxTemplate")
+        editBox:SetSize(230, 20)
+        editBox:SetPoint("BOTTOM", copyFrame, "BOTTOM", 0, 8)
+        editBox:SetAutoFocus(true)
+        editBox:SetScript("OnEscapePressed", function() copyFrame:Hide() end)
+        editBox:SetScript("OnEnterPressed", function() copyFrame:Hide() end)
+        editBox:SetScript("OnKeyUp", function(self, key)
+            if key == "C" and IsControlKeyDown() then
+                C_Timer.After(0.1, function() copyFrame:Hide() end)
+            end
+        end)
+        editBox:SetScript("OnEditFocusLost", function() copyFrame:Hide() end)
+        copyFrame.editBox = editBox
+    end
+
+    copyFrame.editBox:SetText(text)
+    copyFrame:Show()
+    copyFrame.editBox:HighlightText()
+    copyFrame.editBox:SetFocus()
+end
+
+-----------------------------------------------------------------------
 -- Position management
 -----------------------------------------------------------------------
 
@@ -218,6 +265,37 @@ local function CreateSection(frame, key, headerText, numLines)
     end
 
     if key == "Character" then
+        -- Create invisible click button for character name line (Alt+Click to copy)
+        section.nameClickBtn = CreateFrame("Button", nil, frame)
+        section.nameClickBtn:SetSize(1, 1)
+        section.nameClickBtn:Hide()
+        section.nameClickBtn:EnableMouse(true)
+        section.nameClickBtn:RegisterForClicks("LeftButtonUp")
+
+        section.nameClickBtn:SetScript("OnClick", function(self)
+            if not IsAltKeyDown() then return end
+            local pName, pRealm = UnitFullName("player")
+            pRealm = pRealm or GetRealmName() or "Unknown"
+            pName = pName or "Unknown"
+            -- Remove spaces from realm name for invite-friendly format
+            local formatted = pName .. "-" .. pRealm:gsub("%s+", "")
+            ShowCopyPopup(formatted)
+        end)
+
+        section.nameClickBtn:SetScript("OnEnter", function(self)
+            if HUD.minimized then return end
+            local elem = addon.db.profile.elements or {}
+            if elem.charName == false and elem.charRealm == false then return end
+
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Character", 1, 1, 1)
+            GameTooltip:AddLine("Alt+Click to copy Name-Realm to clipboard", 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        section.nameClickBtn:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+
         -- Create invisible tooltip button for Shard ID line
         section.shardTooltipBtn = CreateFrame("Button", nil, frame)
         section.shardTooltipBtn:SetSize(1, 1)
@@ -961,6 +1039,14 @@ function addon:LayoutHUD()
                         -- Position Character tooltip buttons
                         if key == "Character" then
                             -- elem is cached at function start
+
+                            -- Name click button (Line 1, only if name or realm is shown)
+                            if i == 1 and section.nameClickBtn and (elem.charName ~= false or elem.charRealm ~= false) then
+                                section.nameClickBtn:ClearAllPoints()
+                                section.nameClickBtn:SetPoint("TOPLEFT", fs, "TOPLEFT", 0, 0)
+                                section.nameClickBtn:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 0, 0)
+                                section.nameClickBtn:Show()
+                            end
 
                             -- Shard ID tooltip (Line 2, only if ShardID or MoveSpeed is shown)
                             if i == 2 and section.shardTooltipBtn and (elem.charShardID ~= false or elem.charMovespeed ~= false) then

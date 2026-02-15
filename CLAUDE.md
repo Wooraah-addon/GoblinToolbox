@@ -2,13 +2,24 @@
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.9**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.10**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
 ## Author
 
 Wooraah (golbintoolbox@gmail.com)
+
+## Session Management
+
+Use the custom Claude Code skills to start and end development sessions:
+
+- **`/start`** — Reads project context, recent changes, and open decisions, then outputs a briefing and asks what to work on. Skill: `.claude/skills/start/SKILL.md`
+- **`/end`** — Logs changes and decisions, prepares a git commit (with user approval), and outputs a handoff summary. Skill: `.claude/skills/end/SKILL.md`
+
+Session artifacts (managed automatically by the skills):
+- `.claude/session-changelog.md` — Timestamped log of code changes per session
+- `.claude/decision-log.md` — Significant architectural and design decisions
 
 ## Project Planning & User Priorities
 
