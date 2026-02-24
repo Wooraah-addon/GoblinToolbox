@@ -5,6 +5,14 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.11] - 2026-02-24
+
+### Fixed
+- **Combat shard ID error**: Fixed "attempt to perform string conversion on a secret string value" lua error that fired repeatedly during combat when Shard ID display was enabled
+  - `UnitGUID()` returns tainted/secret strings during combat in Midnight 12.0+ that cannot be used in `strsplit`
+  - Wrapped GUID extraction in `pcall` to match the protection already used by event handlers
+  - Shard ID now falls back to its last known value during combat instead of erroring
+
 ## [1.1.10] - 2026-02-15
 
 ### Added

@@ -67,34 +67,27 @@ local function GetShardID()
         return cachedShardID
     end
 
-    -- Try target
-    local guid = UnitGUID("target")
-    if guid and not UnitPlayerControlled("target") then
-        local _, _, _, _, zone_uid = strsplit("-", guid)
-        if zone_uid then
-            cachedShardID = tonumber(zone_uid)
-            lastShardUpdate = GetTime()
-            return cachedShardID
-        end
+    -- UnitGUID can return secret/tainted strings during combat in Midnight 12.0+
+    -- which cannot be used in string operations like strsplit. Wrap in pcall.
+    local function TryExtractShard(unitToken)
+        local ok, result = pcall(function()
+            local guid = UnitGUID(unitToken)
+            if not guid then return nil end
+            if UnitPlayerControlled(unitToken) then return nil end
+            local _, _, _, _, zone_uid = strsplit("-", guid)
+            if zone_uid then
+                return tonumber(zone_uid)
+            end
+            return nil
+        end)
+        return ok and result or nil
     end
 
-    -- Try mouseover
-    guid = UnitGUID("mouseover")
-    if guid and not UnitPlayerControlled("mouseover") then
-        local _, _, _, _, zone_uid = strsplit("-", guid)
-        if zone_uid then
-            cachedShardID = tonumber(zone_uid)
-            lastShardUpdate = GetTime()
-            return cachedShardID
-        end
-    end
-
-    -- Try pet
-    guid = UnitGUID("pet")
-    if guid and not UnitPlayerControlled("pet") then
-        local _, _, _, _, zone_uid = strsplit("-", guid)
-        if zone_uid then
-            cachedShardID = tonumber(zone_uid)
+    -- Try target, mouseover, pet in order
+    for _, unit in ipairs({"target", "mouseover", "pet"}) do
+        local shard = TryExtractShard(unit)
+        if shard and shard > 0 then
+            cachedShardID = shard
             lastShardUpdate = GetTime()
             return cachedShardID
         end
