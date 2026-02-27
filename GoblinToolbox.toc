@@ -1,8 +1,8 @@
-## Interface: 120000
+## Interface: 120001
 ## Title: Goblin Toolbox
 ## Notes: A gold making HUD for goblins
 ## Author: Wooraah
-## Version: 1.1.11
+## Version: 1.1.12
 ## SavedVariables: GoblinToolboxDB
 ## License: GPL-3.0
 

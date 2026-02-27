@@ -219,7 +219,6 @@ local EventHandlers = {
             addon:UpdateCharacterSection()
             addon:SafeLayoutHUD()
         end)
-        addon:UpdateVisibility()
 
         -- Set default positions only on true first run (HUD has never been positioned)
         local db = addon.db.profile

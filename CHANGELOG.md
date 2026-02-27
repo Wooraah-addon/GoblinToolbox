@@ -5,6 +5,17 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.12] - 2026-02-27
+
+### Changed
+- **Bag slot counting optimized**: `GetBagSlots()` now uses `C_Container.GetContainerNumFreeSlots()` API instead of iterating every individual bag slot — cleaner and slightly more efficient on bag updates
+
+### Fixed
+- **Duplicate visibility call at login**: Removed redundant `UpdateVisibility()` call during PLAYER_LOGIN initialization
+
+### Technical
+- Updated TOC Interface version from `120000` to `120001` (game version 12.0.1)
+
 ## [1.1.11] - 2026-02-24
 
 ### Fixed

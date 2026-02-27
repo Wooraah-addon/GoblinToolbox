@@ -16,40 +16,25 @@ function Inventory:GetBagSlots()
     end
 
     local normalTotal = 0
-    local normalUsed = 0
-    local reagentTotal = 0
-    local reagentUsed = 0
+    local normalFree = 0
 
     -- Normal bags (0-4)
     for bag = 0, NUM_BAG_SLOTS do
         local n = C_Container.GetContainerNumSlots(bag) or 0
         normalTotal = normalTotal + n
-
-        for slot = 1, n do
-            local itemID = C_Container.GetContainerItemID(bag, slot)
-            if itemID then
-                normalUsed = normalUsed + 1
-            end
-        end
+        local free = C_Container.GetContainerNumFreeSlots(bag) or 0
+        normalFree = normalFree + free
     end
 
     -- Reagent bag
+    local reagentTotal = 0
+    local reagentFree = 0
     if Enum and Enum.BagIndex and Enum.BagIndex.ReagentBag then
         local bag = Enum.BagIndex.ReagentBag
-        local n = C_Container.GetContainerNumSlots(bag) or 0
-        reagentTotal = reagentTotal + n
-
-        for slot = 1, n do
-            local itemID = C_Container.GetContainerItemID(bag, slot)
-            if itemID then
-                reagentUsed = reagentUsed + 1
-            end
-        end
+        reagentTotal = C_Container.GetContainerNumSlots(bag) or 0
+        reagentFree = C_Container.GetContainerNumFreeSlots(bag) or 0
     end
 
-    local normalFree = math.max(normalTotal - normalUsed, 0)
-    local reagentFree = math.max(reagentTotal - reagentUsed, 0)
-    
     return normalFree, normalTotal, reagentFree, reagentTotal
 end
 
