@@ -115,8 +115,14 @@ end
 -----------------------------------------------------------------------
 
 function Gold:UpdateGuildGoldFromBank()
-    local guildName = GetGuildInfo("player")
+    local guildName, _, _, guildRealm = GetGuildInfo("player")
     if not guildName then
+        return
+    end
+    if not guildRealm or guildRealm == "" then
+        guildRealm = GetNormalizedRealmName()
+    end
+    if not guildRealm or guildRealm == "" then
         return
     end
 
@@ -126,23 +132,35 @@ function Gold:UpdateGuildGoldFromBank()
     end
 
     local db = addon.db
-    db.guilds[guildName] = db.guilds[guildName] or {}
-    db.guilds[guildName].gold = money
-    db.guilds[guildName].lastUpdate = time()
+    local guildKey = guildName .. "-" .. guildRealm
+    db.guilds[guildKey] = db.guilds[guildKey] or {}
+    db.guilds[guildKey].gold = money
+    db.guilds[guildKey].lastUpdate = time()
 end
 
 function Gold:GetGuildGold()
-    local guildName = GetGuildInfo("player")
+    local guildName, _, _, guildRealm = GetGuildInfo("player")
     if not guildName then
         return nil, nil, nil
     end
+    if not guildRealm or guildRealm == "" then
+        guildRealm = GetNormalizedRealmName()
+    end
+    local guildKey = (guildRealm and guildRealm ~= "") and (guildName .. "-" .. guildRealm) or nil
 
-    local data = addon.db.guilds[guildName]
+    -- Prefer realm-qualified key, fall back to legacy name-only key
+    local data = guildKey and addon.db.guilds[guildKey]
     if data and type(data.gold) == "number" then
         return data.gold, guildName, data.lastUpdate
     end
 
-    return nil, guildName, data and data.lastUpdate
+    -- Legacy fallback: name-only key from before realm was added
+    local legacy = addon.db.guilds[guildName]
+    if legacy and type(legacy.gold) == "number" then
+        return legacy.gold, guildName, legacy.lastUpdate
+    end
+
+    return nil, guildName, nil
 end
 
 -----------------------------------------------------------------------
