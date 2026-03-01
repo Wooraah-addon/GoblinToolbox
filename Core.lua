@@ -1271,6 +1271,9 @@ addon.utilityButtons = {}
 
 function addon:GetCharacterKey()
     local name, realm = UnitFullName("player")
+    if not realm or realm == "" then
+        realm = GetNormalizedRealmName()
+    end
     return string.format("%s-%s", realm or "Unknown", name or "Unknown")
 end
 
