@@ -158,6 +158,7 @@ local EventHandlers = {
         addon:CreateTrackerFrame()
         addon:CreateCurrencyFrame()
         addon:CreateUtilityBar()
+        addon:InitHousingCache()
         addon:CreateMinimapButton()
         addon:ApplyScale()  -- Apply saved scale to all frames
         addon:UpdateBackground()

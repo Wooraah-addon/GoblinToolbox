@@ -167,6 +167,7 @@ local DEFAULTS = {
         -- Custom utility slots (user-added spells/toys/mounts)
         customUtilitySlots = {},         -- Array of { kind = "spell"|"toy"|"mount", id = number }
         hideCustomButtons = false,       -- Single toggle to hide all custom buttons
+        hideUnavailableButtons = false,  -- Hide utility buttons the character can't use
 
         -- Utility Bar layout settings
         utilityButtonsPerRow = 15,   -- Max 15 (all utility buttons fit in one row)

@@ -1178,6 +1178,19 @@ local function CreateConfigFrame()
     f.hideCustomButtonsCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
     modulesSection:AddChild(f.hideCustomButtonsCB)
 
+    y = y - ITEM_HEIGHT
+
+    f.hideUnavailBtnCB = CreateCheckbox(scrollChild, "Hide unavailable buttons", INDENT + 24, y)
+    f.hideUnavailBtnCB:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Hide Unavailable Buttons", 1, 1, 1)
+        GameTooltip:AddLine("Completely hides utility buttons the current character can't use (e.g. unlearned professions, uncollected hearthstone toys, Mobile Banking without rep).", 0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine("Useful when sharing a profile across characters with different abilities.", 0.7, 0.7, 0.7, true)
+        GameTooltip:Show()
+    end)
+    f.hideUnavailBtnCB:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    modulesSection:AddChild(f.hideUnavailBtnCB)
+
     y = y - ITEM_HEIGHT - 12
 
     -- Utility Bar Layout subsection
@@ -2098,6 +2111,7 @@ local function CreateConfigFrame()
         -- Utility bar confirmation setting
         f.utilityConfirmCB:SetChecked(db.utilityConfirmSensitiveActions or false)
         f.hideCustomButtonsCB:SetChecked(db.hideCustomButtons or false)
+        f.hideUnavailBtnCB:SetChecked(db.hideUnavailableButtons or false)
 
         -- Tracker bars
         f.trackerCB:SetChecked(db.showTracker ~= false)
@@ -2306,6 +2320,7 @@ local function CreateConfigFrame()
         -- Utility bar confirmation setting
         db.utilityConfirmSensitiveActions = f.utilityConfirmCB:GetChecked()
         db.hideCustomButtons = f.hideCustomButtonsCB:GetChecked()
+        db.hideUnavailableButtons = f.hideUnavailBtnCB:GetChecked()
 
         -- Tracker bars
         db.showTracker          = f.trackerCB:GetChecked()
@@ -2372,6 +2387,7 @@ local function CreateConfigFrame()
     HookCheckbox(f.tooltipEnabledCB)
     HookCheckbox(f.utilityConfirmCB)
     HookCheckbox(f.hideCustomButtonsCB)
+    HookCheckbox(f.hideUnavailBtnCB)
 
     f.opacityContainer.slider:SetScript("OnValueChanged", function(self, value)
         value = math.floor(value * 20 + 0.5) / 20

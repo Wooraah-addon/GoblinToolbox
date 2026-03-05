@@ -5,6 +5,17 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.13] - 2026-03-05
+
+### Added
+- **Moxie currency labels**: When tracking Moxie currencies on the Currency Tracker bar, the profession abbreviation (e.g. "LW", "Ench", "JC") now appears above each icon automatically — no more hovering to figure out which Moxie belongs to which profession
+- **Housing: Return to Previous Location**: The Housing utility button now automatically switches to "Return to Previous Location" when you're visiting a housing zone, with a distinct icon and tooltip. Switches back to Teleport Home when you leave
+- **Hide unavailable utility buttons**: New option under Utility in the /gtb menu. When enabled, utility buttons your character can't use (unlearned professions, uncollected toys, mounts you don't own) are hidden instead of greyed out. Useful if you share a profile across characters with different abilities
+
+### Fixed
+- **Housing teleport no longer causes "blocked action" errors**: Rewrote the Housing utility button to use Blizzard's native secure teleport system, eliminating the taint error that appeared when clicking Teleport Home
+- **Unavailable custom buttons now hidden by default**: Custom utility buttons for spells, toys, or mounts that the current character can't use no longer show as greyed-out icons — they simply don't appear on characters that can't use them
+
 ## [1.1.12] - 2026-02-27
 
 ### Changed

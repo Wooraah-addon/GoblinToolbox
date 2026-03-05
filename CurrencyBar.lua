@@ -319,6 +319,24 @@ function addon:RestoreCurrencyBarPosition()
 end
 
 -----------------------------------------------------------------------
+-- Moxie currency → profession short name map
+-----------------------------------------------------------------------
+
+local MOXIE_PROFESSIONS = {
+    [3256] = "Alch",
+    [3257] = "BS",
+    [3258] = "Ench",
+    [3259] = "Eng",
+    [3260] = "Herb",
+    [3261] = "Insc",
+    [3262] = "JC",
+    [3263] = "LW",
+    [3264] = "Min",
+    [3265] = "Skin",
+    [3266] = "Tail",
+}
+
+-----------------------------------------------------------------------
 -- Currency info helpers
 -----------------------------------------------------------------------
 
@@ -599,6 +617,23 @@ function addon:UpdateCurrencyBar()
         local name, count, icon = GetCurrencyData(currencyID)
 
         btn.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+
+        -- Moxie profession label above the button
+        local moxieName = MOXIE_PROFESSIONS[currencyID]
+        if moxieName then
+            if not btn.profLabel then
+                btn.profLabel = btn:CreateFontString(nil, "OVERLAY")
+                btn.profLabel:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
+                btn.profLabel:SetPoint("TOP", btn, "TOP", 0, -2)
+                btn.profLabel:SetTextColor(1.0, 0.5, 0.8)  -- Pink
+                btn.profLabel:SetShadowOffset(1, -1)
+                btn.profLabel:SetShadowColor(0, 0, 0, 1)
+            end
+            btn.profLabel:SetText(moxieName)
+            btn.profLabel:Show()
+        elseif btn.profLabel then
+            btn.profLabel:Hide()
+        end
 
         -- Format count (abbreviate large numbers)
         local countText = ""

@@ -618,34 +618,109 @@ end
 -- Housing helpers
 -----------------------------------------------------------------------
 
--- Global helper function using correct async event pattern
-function GoblinToolbox_HousingTeleport()
-    local success, err = pcall(function()
-        if not C_Housing or not EventUtil then
-            return
-        end
+-- Hidden secure buttons for Housing (uses native "teleporthome" / "returnhome" action types)
+local housingTeleportBtn = CreateFrame("Button", "GTB_HousingTeleport", UIParent, "SecureActionButtonTemplate")
+housingTeleportBtn:SetSize(1, 1)
+housingTeleportBtn:SetPoint("BOTTOMRIGHT", UIParent, "TOPLEFT", -1, -1)
+housingTeleportBtn:RegisterForClicks("AnyDown", "AnyUp")
 
-        -- Correct pattern: register ONCE, then request
-        -- The event callback receives the house list as argument
+local housingReturnBtn = CreateFrame("Button", "GTB_HousingReturn", UIParent, "SecureActionButtonTemplate")
+housingReturnBtn:SetSize(1, 1)
+housingReturnBtn:SetPoint("BOTTOMRIGHT", UIParent, "TOPLEFT", -2, -2)
+housingReturnBtn:RegisterForClicks("AnyDown", "AnyUp")
+
+-- Set up return button immediately (no house data needed)
+if not InCombatLockdown() then
+    housingReturnBtn:SetAttribute("type", "returnhome")
+end
+
+local function SetHousingTeleportAttributes(neighborhoodGUID, houseGUID, plotID)
+    if InCombatLockdown() then
+        housingTeleportBtn._pendingData = { neighborhoodGUID, houseGUID, plotID }
+        housingTeleportBtn:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    if neighborhoodGUID and houseGUID and plotID then
+        housingTeleportBtn:SetAttribute("type", "teleporthome")
+        housingTeleportBtn:SetAttribute("house-neighborhood-guid", neighborhoodGUID)
+        housingTeleportBtn:SetAttribute("house-guid", houseGUID)
+        housingTeleportBtn:SetAttribute("house-plot-id", plotID)
+    end
+end
+
+housingTeleportBtn:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_REGEN_ENABLED" and self._pendingData then
+        SetHousingTeleportAttributes(unpack(self._pendingData))
+        self._pendingData = nil
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    end
+end)
+
+-- Track whether we're in a housing zone for dual-mode button
+local isInHousingZone = false
+
+local function UpdateHousingZoneState()
+    local wasReturn = isInHousingZone
+
+    -- CanReturnAfterVisitingHouse = true when visiting another player's house
+    -- (the only scenario where "Return to Previous Location" applies)
+    local canReturn = C_HousingNeighborhood
+        and C_HousingNeighborhood.CanReturnAfterVisitingHouse
+        and C_HousingNeighborhood.CanReturnAfterVisitingHouse()
+        or false
+
+    isInHousingZone = canReturn
+
+    -- Refresh utility bar if state changed (swaps icon/macro)
+    if wasReturn ~= isInHousingZone and addon.UpdateUtilityBar then
+        addon:UpdateUtilityBar()
+    end
+end
+
+function addon:IsInHousingZone()
+    -- Always check live state (covers reload-in-zone and missed events)
+    if C_HousingNeighborhood
+        and C_HousingNeighborhood.CanReturnAfterVisitingHouse
+        and C_HousingNeighborhood.CanReturnAfterVisitingHouse() then
+        return true
+    end
+    return isInHousingZone
+end
+
+-- Housing zone event listener
+local housingZoneFrame = CreateFrame("Frame")
+housingZoneFrame:RegisterEvent("HOUSE_PLOT_ENTERED")
+housingZoneFrame:RegisterEvent("HOUSE_PLOT_EXITED")
+housingZoneFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+housingZoneFrame:SetScript("OnEvent", function()
+    UpdateHousingZoneState()
+end)
+
+-- Called from GoblinToolbox.lua on PLAYER_LOGIN
+function addon:InitHousingCache()
+    if not C_Housing or not EventUtil then
+        return
+    end
+
+    -- Set return button attribute if we missed the initial setup (combat at load)
+    if not InCombatLockdown() then
+        housingReturnBtn:SetAttribute("type", "returnhome")
+    end
+
+    pcall(function()
         EventUtil.RegisterOnceFrameEventAndCallback("PLAYER_HOUSE_LIST_UPDATED", function(houseList)
             if houseList and houseList[1] then
                 local h = houseList[1]
                 if h.neighborhoodGUID and h.houseGUID and h.plotID then
-                    C_Housing.TeleportHome(h.neighborhoodGUID, h.houseGUID, h.plotID)
-
-                    -- Refresh cooldown display shortly after teleport
-                    C_Timer.After(0.1, function()
-                        if addon and addon.UpdateUtilityCooldowns then
-                            addon:UpdateUtilityCooldowns()
-                        end
-                    end)
+                    SetHousingTeleportAttributes(h.neighborhoodGUID, h.houseGUID, h.plotID)
                 end
             end
         end)
-
-        -- Request the list (triggers the event with data)
         C_Housing.GetPlayerOwnedHouses()
     end)
+
+    -- Check initial housing zone state
+    UpdateHousingZoneState()
 end
 
 -----------------------------------------------------------------------
@@ -1216,7 +1291,10 @@ local function GetCooldownForUtilityButton(btn)
     end
 
     if def.kind == "housing" then
-        -- Use cooldownSpellID for housing button cooldown display
+        -- No cooldown display in return mode
+        if btn.housingReturnMode then
+            return 0, 0, 0
+        end
         local spellID = def.cooldownSpellID
         if spellID then
             return GetSpellCooldownCompat(spellID)
@@ -1679,17 +1757,28 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         tip = def.label or "Macro"
 
     elseif def.kind == "housing" then
-        -- Housing button: always teleport mode
+        -- Housing button: dual-mode (teleport home / return from housing)
+        local returnMode = addon:IsInHousingZone()
         if not InCombatLockdown() then
             btn:SetAttribute("type", "macro")
-            btn:SetAttribute("macrotext", "/run GoblinToolbox_HousingTeleport()")
+            if returnMode then
+                btn:SetAttribute("macrotext", "/click GTB_HousingReturn")
+            else
+                btn:SetAttribute("macrotext", "/click GTB_HousingTeleport")
+            end
             btn:SetAttribute("toy", nil)
             btn:SetAttribute("item", nil)
             btn:SetAttribute("spell", nil)
         end
 
-        icon = def.iconTexture or 7252953  -- Ui_homestone-64
-        tip = "Teleport Home"
+        btn.housingReturnMode = returnMode
+        if returnMode then
+            icon = nil  -- Will use atlas below
+            tip = "Return to Previous Location"
+        else
+            icon = def.iconTexture or 7252953  -- Ui_homestone-64
+            tip = "Teleport Home"
+        end
 
     elseif def.kind == "spell" then
         local spellName = addon.API.GetSpellName(def.spellID)
@@ -1770,7 +1859,10 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         -- Explicitly set fallback
         btn.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
     end
-    -- If icon is nil, assume texture/atlas was already set by kind-specific code
+    -- Housing return mode: distinct icon (Spell_Dalaran_Teleport - man with flag)
+    if btn.housingReturnMode then
+        btn.icon:SetTexture(236350)
+    end
     btn.tooltip = nil
     btn.tooltipTitle = nil
     btn.tooltipSubtext = nil
@@ -1783,8 +1875,13 @@ local function SetupUtilityButton(btn, def, resolvedItemID)
         btn.tooltipTitle = "Vendor Mount"
         btn.tooltipSubtext = tip  -- Resolved mount name
     elseif def.key == "housingTeleport" then
-        btn.tooltipTitle = "Housing"
-        btn.tooltipSubtext = btn.housingTooltipLine or "Teleport Home"
+        if addon:IsInHousingZone() then
+            btn.tooltipTitle = "Housing"
+            btn.tooltipSubtext = "Return to Previous Location"
+        else
+            btn.tooltipTitle = "Housing"
+            btn.tooltipSubtext = "Teleport Home"
+        end
     elseif def.key == "hearthstone" then
         btn.tooltipTitle = "Hearthstone"
         local bindLoc = GetBindLocation()
@@ -2186,8 +2283,11 @@ function addon:UpdateUtilityBar()
 
             -- Configure the button
             ConfigureCustomButton(btn, slot.kind, slot.id, i)
+
         end
     end
+
+    local hideUnavail = db.hideUnavailableButtons or false
 
     -- Get growth settings and update anchor if needed
     local growX = db.utilityGrowX or "RIGHT"
@@ -2203,10 +2303,24 @@ function addon:UpdateUtilityBar()
         return
     end
 
+    -- Count visible buttons (excluding hidden unavailable ones)
+    local visible = 0
+    for i = 1, shown do
+        local btn = bar.buttons[i]
+        if btn and not (hideUnavail and btn.unavailableReason) then
+            visible = visible + 1
+        end
+    end
+
+    if visible == 0 then
+        self:SetSecureFrameVisible(bar, false)
+        return
+    end
+
     -- Grid layout calculation
-    local bpr = math.min(buttonsPerRow, shown)  -- Clamp to actual button count
-    local cols = math.min(bpr, shown)
-    local rows = math.ceil(shown / bpr)
+    local bpr = math.min(buttonsPerRow, visible)  -- Clamp to visible button count
+    local cols = math.min(bpr, visible)
+    local rows = math.ceil(visible / bpr)
 
     -- Frame size
     local step = size + spacing
@@ -2219,13 +2333,13 @@ function addon:UpdateUtilityBar()
     local ySign = (anchorPoint:find("TOP") and -1) or 1
 
     -- Position buttons using grid layout
+    local visSlot = 0
     for i = 1, #bar.buttons do
         local btn = bar.buttons[i]
         if btn then
-            if i <= shown then
-                local slot = i - 1  -- 0-indexed for grid calculation
-                local row = math.floor(slot / bpr)
-                local col = slot % bpr
+            if i <= shown and not (hideUnavail and btn.unavailableReason) then
+                local row = math.floor(visSlot / bpr)
+                local col = visSlot % bpr
                 local x = xSign * (padding + col * step)
                 local y = ySign * (padding + row * step)
 
@@ -2233,6 +2347,7 @@ function addon:UpdateUtilityBar()
                 btn:SetPoint(anchorPoint, bar, anchorPoint, x, y)
                 btn:Show()
                 UpdateUtilityButtonCooldown(btn)
+                visSlot = visSlot + 1
             else
                 btn:Hide()
             end
