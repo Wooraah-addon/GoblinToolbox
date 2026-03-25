@@ -1355,14 +1355,24 @@ local function UpdateUtilityButtonCooldown(btn)
         end
     end
 
-    local valid = (enabled == 1 and start > 0 and duration and duration > minDuration)
+    -- pcall to handle secret/tainted cooldown values from Blizzard API (Midnight 12.0+)
+    local ok, valid = pcall(function()
+        return (enabled == 1 and start > 0 and duration and duration > minDuration)
+    end)
+    if not ok then valid = false end
 
     if valid then
-        if btn._lastStart ~= start or btn._lastDuration ~= duration then
+        local cacheOk, changed = pcall(function()
+            return btn._lastStart ~= start or btn._lastDuration ~= duration
+        end)
+        if not cacheOk then changed = true end
+        if changed then
             btn._lastStart = start
             btn._lastDuration = duration
-            btn.cooldown:SetCooldown(start, duration)
-            btn.cooldown:Show()
+            local setOk = pcall(btn.cooldown.SetCooldown, btn.cooldown, start, duration)
+            if setOk then
+                btn.cooldown:Show()
+            end
         end
     else
         if btn.cooldown:IsShown() then

@@ -5,6 +5,14 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.14] - 2026-03-25
+
+### Fixed
+- **Utility bar cooldown taint error**: Wrapped cooldown comparisons in `pcall` to handle secret/tainted values from Blizzard's `C_Spell.GetSpellCooldown` API after the latest mini-patch tightened taint enforcement. Cooldowns gracefully degrade (hide) instead of throwing errors
+
+### Technical
+- Added `## Category: Professions` to TOC metadata
+
 ## [1.1.13] - 2026-03-05
 
 ### Added
