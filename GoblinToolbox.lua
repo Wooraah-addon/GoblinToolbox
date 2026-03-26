@@ -418,7 +418,17 @@ local EventHandlers = {
     end,
 
     CURRENCY_DISPLAY_UPDATE = function()
-        addon:UpdateCurrencyBar()
+        -- Delay slightly so C_CurrencyInfo.GetCurrencyInfo reflects the new value
+        C_Timer.After(0.1, function()
+            addon:UpdateCurrencyBar()
+        end)
+    end,
+
+    CHAT_MSG_CURRENCY = function()
+        -- Backup trigger for currency gains (e.g. loot, fishing, gathering)
+        C_Timer.After(0.2, function()
+            addon:UpdateCurrencyBar()
+        end)
     end,
 
     TOKEN_MARKET_PRICE_UPDATED = function()
@@ -553,6 +563,7 @@ EventFrame:RegisterEvent("ZONE_CHANGED")
 EventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 EventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+EventFrame:RegisterEvent("CHAT_MSG_CURRENCY")
 EventFrame:RegisterEvent("TOKEN_MARKET_PRICE_UPDATED")
 EventFrame:RegisterEvent("CHAT_MSG_LOOT")
 EventFrame:RegisterEvent("AUCTION_HOUSE_SHOW")

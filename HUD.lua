@@ -1260,7 +1260,7 @@ function addon:UpdateVisibility()
 
     if self.currencyFrame then
         if db.showCurrencyTracker ~= false then
-            self.currencyFrame:Show()
+            self:UpdateCurrencyBar()
         else
             self.currencyFrame:Hide()
         end
