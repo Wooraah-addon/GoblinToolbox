@@ -1,8 +1,14 @@
 # Goblin Toolbox - Claude Code Context
 
+## Voice & Interaction Style
+
+**Template:** `voice-wow` — `C:\Users\owen_\Desktop\Master Orchestrator\.claude\voice-templates\voice-wow.md`
+
+Goldmaker/dev blend. WoW API and Lua assumed known territory. Retail (Midnight/12.0+) primary. Casual UK English. Delivery-focused — outcomes first, detail second.
+
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.15**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.16**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -37,6 +43,19 @@ When proposing work or evaluating implementation approaches, cross-reference thi
 - Prioritize HIGH/MEDIUM items over LOW priority work
 - Understand user perspective on feature value and complexity
 - Check if a similar request has already been addressed or deferred
+
+### GTB Tracker (bugs / features / ideas)
+
+**Also read `tracker/tracker-data.json` at session start** — a structured tracker
+(ids B#/F#/I#, priority high|med|low, status open|done) shared between the user
+and Claude. The user edits it via `tracker/tracker.html`, served by
+`tracker/tracker_server.py` (port 8789, POST /save) and launched from
+`Desktop\GTB Tracker.bat`. Claude edits the JSON directly; while the user has
+the page open, the page wins — coordinate before writing. Update item status
++ notes as work ships. Relationship to `Current Development status.txt`: the
+txt remains the user's manually-maintained narrative status doc; the tracker
+is the structured work queue. If they disagree, ask the user which is current.
+The tracker folder is dev tooling — exclude it from any CurseForge packaging.
 
 ## Design Philosophy (Non-negotiables)
 

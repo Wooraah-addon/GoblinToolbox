@@ -23,6 +23,7 @@ ignore:
   - README.md
   - .cursor/**
   - .pkgmeta
+  - tracker
 
 manual-changelog:
   filename: CHANGELOG.md
