@@ -8,7 +8,7 @@ Goldmaker/dev blend. WoW API and Lua assumed known territory. Retail (Midnight/1
 
 ## Project Overview
 
-Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.16**.
+Goblin Toolbox is a lightweight, modular gold-making HUD addon for World of Warcraft (Retail). It targets Midnight (12.0+) and is currently at **v1.1.17**.
 
 The addon is intentionally "at-a-glance": it consolidates small, high-signal gold-making utilities (gold/session/value/tracking/utility buttons) without trying to replace full systems like TSM/Auctionator.
 
@@ -77,6 +77,14 @@ Before using ANY WoW API function, event, or frame method:
 3. **Check for modern alternatives** - Blizzard frequently replaces old APIs with C_NamespacedAPI equivalents
 4. **Review event documentation** - Ensure event payloads and registration requirements are current
 5. **When refactoring existing code** - Audit all WoW API calls for deprecated functions even if currently working
+
+**Restricted APIs: never reach them via `/run` macros (NON-NEGOTIABLE)**
+
+If an API is marked `Protected` or `SecretArguments` in the annotations, it must be invoked through a native secure action type (`type="spell"` with a spell ID, `type="toy"`, `type="teleporthome"`, …) — never through `btn:SetAttribute("macrotext", "/run SomeAPI(...)")`. `SecretArguments = "AllowedWhenUntainted"` means the call is silently refused whenever the execution path is tainted, which presents as a button that works intermittently rather than as a visible error. `pcall` cannot rescue it. Treat `SecretArguments` as equivalent to `Protected` for this purpose.
+
+This pattern has caused two shipped bugs — Housing teleport (fixed v1.1.13) and Utility Bar profession buttons (fixed v1.1.17) — the second because a stale code comment cited the first as precedent. See the decision log entry dated 2026-07-31.
+
+**Legacy globals depend on a CVar**: deprecated globals such as `IsSpellKnown`, `IsPlayerSpell`, and `GetItemCooldown` only exist while `loadDeprecationFallbacks` is enabled; Blizzard's shim file is the authoritative source for what each maps to. Do not assume a legacy global and its modern replacement are 1:1 — `IsPlayerSpell` → `C_SpellBook.IsSpellKnown` but `IsSpellKnown` → `C_SpellBook.IsSpellInSpellBook`.
 
 **Common deprecation patterns to watch for:**
 - Legacy global functions replaced by C_* namespaced APIs (e.g., `GetItemInfo` → `C_Item.GetItemInfo`)

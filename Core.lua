@@ -1346,8 +1346,6 @@ function addon.API.GetItemIcon(itemID)
     
     if C_Item and C_Item.GetItemIconByID then
         return C_Item.GetItemIconByID(itemID)
-    elseif GetItemIcon then
-        return GetItemIcon(itemID)
     end
     return nil
 end
@@ -1369,9 +1367,6 @@ function addon.API.GetSpellCooldown(spellID)
             local enabled = info.isEnabled and 1 or 0
             return start, duration, enabled
         end
-    elseif GetSpellCooldown then
-        local start, duration, enabled = GetSpellCooldown(spellID)
-        return start or 0, duration or 0, enabled and 1 or 0
     end
     return 0, 0, 1
 end
@@ -1381,11 +1376,6 @@ function addon.API.GetSpellTexture(spellID)
     
     if C_Spell and C_Spell.GetSpellTexture then
         return C_Spell.GetSpellTexture(spellID)
-    elseif GetSpellTexture then
-        return GetSpellTexture(spellID)
-    elseif GetSpellInfo then
-        local _, _, tex = GetSpellInfo(spellID)
-        return tex
     end
     return nil
 end
@@ -1395,8 +1385,6 @@ function addon.API.GetSpellName(spellID)
 
     if C_Spell and C_Spell.GetSpellName then
         return C_Spell.GetSpellName(spellID)
-    elseif GetSpellInfo then
-        return GetSpellInfo(spellID)
     end
     return nil
 end
@@ -1450,15 +1438,38 @@ function addon.API.GetItemSpell(itemInfo)
     return nil
 end
 
--- Spell Known API (replaces legacy IsSpellKnown)
--- Returns true if player knows the spell (default false)
+-- Spell bank default: the player's own book, not the pet's
+local function ResolveSpellBank(spellBank)
+    if spellBank ~= nil then
+        return spellBank
+    end
+    return Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
+end
+
+-- Spell Known API (replaces legacy IsPlayerSpell)
+-- True if the player actually knows the spell. Default false.
 -- Note: Uses C_SpellBook namespace, not C_Spell
 function addon.API.IsSpellKnown(spellID, spellBank)
     if not spellID then return false end
 
     if C_SpellBook and C_SpellBook.IsSpellKnown then
-        local isKnown = C_SpellBook.IsSpellKnown(spellID, spellBank)
+        local isKnown = C_SpellBook.IsSpellKnown(spellID, ResolveSpellBank(spellBank))
         return isKnown or false
+    end
+
+    return false
+end
+
+-- Spell Book API (replaces legacy IsSpellKnown)
+-- True if the spell appears in the player's spell book. Broader than
+-- IsSpellKnown: covers spells granted by a book entry the player has not
+-- necessarily learned outright. Default false.
+function addon.API.IsSpellInSpellBook(spellID, spellBank, includeOverrides)
+    if not spellID then return false end
+
+    if C_SpellBook and C_SpellBook.IsSpellInSpellBook then
+        local inBook = C_SpellBook.IsSpellInSpellBook(spellID, ResolveSpellBank(spellBank), includeOverrides or false)
+        return inBook or false
     end
 
     return false

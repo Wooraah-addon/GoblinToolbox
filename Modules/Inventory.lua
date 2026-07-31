@@ -44,13 +44,18 @@ end
 
 function Inventory:GetReagentRank(itemLink, itemID)
     -- Try to get rank from C_TradeSkillUI API (works for crafting reagents)
+    -- GetItemReagentQualityByItemInfo is SecretArguments = "AllowedWhenUntainted"
+    -- and this runs once per occupied bag slot, so pcall it: a tainted itemLink
+    -- must not throw and abort the whole scan.
     if C_TradeSkillUI and C_TradeSkillUI.GetItemReagentQualityByItemInfo then
         local rank = nil
         if itemLink then
-            rank = C_TradeSkillUI.GetItemReagentQualityByItemInfo(itemLink)
+            local ok, result = pcall(C_TradeSkillUI.GetItemReagentQualityByItemInfo, itemLink)
+            rank = ok and result or nil
         end
         if not rank and itemID then
-            rank = C_TradeSkillUI.GetItemReagentQualityByItemInfo(itemID)
+            local ok, result = pcall(C_TradeSkillUI.GetItemReagentQualityByItemInfo, itemID)
+            rank = ok and result or nil
         end
         return rank  -- Returns 1, 2, or 3 for quality tiers, or nil if not a reagent
     end
@@ -183,6 +188,11 @@ end
 
 local bagValuePending = false
 
+-- Items seen during a bag scan whose reagent rank could not be resolved because
+-- their item data had not loaded yet. Each entry is cleared when
+-- GET_ITEM_INFO_RECEIVED arrives for that item, which queues a rescan.
+local pendingRankItems = {}
+
 local function ScanBag(bag, countByID, countByKey, totalValue)
     local numSlots = C_Container.GetContainerNumSlots(bag)
     if not numSlots or numSlots <= 0 then
@@ -209,6 +219,14 @@ local function ScanBag(bag, countByID, countByKey, totalValue)
                 -- Unranked item: track by itemID:0
                 local key = tostring(itemID) .. ":0"
                 countByKey[key] = (countByKey[key] or 0) + count
+
+                -- A nil rank means either "not a reagent" or "item data not
+                -- loaded yet". Only the second case records the wrong key, so
+                -- flag those items for a rescan once their data arrives.
+                if C_Item and C_Item.IsItemDataCachedByID
+                   and not C_Item.IsItemDataCachedByID(itemID) then
+                    pendingRankItems[itemID] = true
+                end
             end
 
             if itemLink then
@@ -223,6 +241,7 @@ end
 
 function Inventory:RecalculateBagValue()
     bagValuePending = false
+    wipe(pendingRankItems)
 
     if not C_Container then
         addon.state.bagValue = 0
@@ -263,13 +282,53 @@ function Inventory:QueueRecalc()
     end)
 end
 
+-- Called from GET_ITEM_INFO_RECEIVED. Only queues a rescan when the item is one
+-- we actually failed to resolve a rank for, so the item cache flood at login
+-- does not trigger repeated full bag scans.
+function Inventory:OnItemDataLoaded(itemID)
+    if not itemID or not pendingRankItems[itemID] then
+        return
+    end
+    pendingRankItems[itemID] = nil
+    self:QueueRecalc()
+end
+
 -----------------------------------------------------------------------
 -- Player bank scanning and cache management
 -----------------------------------------------------------------------
 
 local playerBankScanPending = false
 
+-- Sum every rank variant of an itemID in an "itemID:rank" -> count table.
+-- Used when an exact key misses, which happens if a scan ran before the item's
+-- data was cached and therefore recorded it under rank 0. Each reagent quality
+-- tier is its own itemID, so at most one variant is ever populated.
+local function SumRankVariants(counts, itemID)
+    if not counts or not itemID then
+        return 0
+    end
+
+    local prefix = tostring(itemID) .. ":"
+    local prefixLen = #prefix
+    local total = 0
+
+    for k, v in pairs(counts) do
+        if type(k) == "string" and k:sub(1, prefixLen) == prefix then
+            total = total + (v or 0)
+        end
+    end
+
+    return total
+end
+
+local function ItemIDFromKey(key)
+    return tonumber(string.match(key or "", "^(%d+):"))
+end
+
 local function ScanPlayerBank()
+    -- Cleared up front so an early return cannot strand the queue flag
+    playerBankScanPending = false
+
     -- Only scan if we have access to bank containers
     if not C_Container then
         return
@@ -344,8 +403,6 @@ local function ScanPlayerBank()
         charCache.playerBankItemCounts = countByKey
         charCache.playerBankLastUpdate = time()
     end
-
-    playerBankScanPending = false
 end
 
 function Inventory:QueuePlayerBankScan()
@@ -369,7 +426,16 @@ function Inventory:GetPlayerBankCountForKey(key)
     if not charCache or not charCache.playerBankItemCounts then
         return 0
     end
-    return charCache.playerBankItemCounts[key] or 0
+
+    local counts = charCache.playerBankItemCounts
+    local exact = counts[key]
+    if exact then
+        return exact
+    end
+
+    -- Exact key missed: the scan may have recorded this item under a different
+    -- rank suffix because its data had not loaded at the time
+    return SumRankVariants(counts, ItemIDFromKey(key))
 end
 
 -----------------------------------------------------------------------
@@ -379,6 +445,9 @@ end
 local warbandScanPending = false
 
 local function ScanWarbandBank()
+    -- Cleared up front so an early return cannot strand the queue flag
+    warbandScanPending = false
+
     -- Only scan if warband bank is accessible
     if not C_Bank or not C_Bank.CanUseBank or not Enum.BankType then
         return
@@ -428,8 +497,6 @@ local function ScanWarbandBank()
         db.warband.itemCountsByKey = countByKey
         db.warband.itemsLastUpdate = time()
     end
-
-    warbandScanPending = false
 end
 
 function Inventory:QueueWarbandScan()
@@ -453,7 +520,15 @@ function Inventory:GetWarbandCountForKey(key)
     if not db or not db.warband or not db.warband.itemCountsByKey then
         return 0
     end
-    return db.warband.itemCountsByKey[key] or 0
+
+    local counts = db.warband.itemCountsByKey
+    local exact = counts[key]
+    if exact then
+        return exact
+    end
+
+    -- Exact key missed: see GetPlayerBankCountForKey
+    return SumRankVariants(counts, ItemIDFromKey(key))
 end
 
 -----------------------------------------------------------------------
@@ -471,7 +546,14 @@ function Inventory:GetTotalCountForKey(key)
 
     -- Add inventory (bags) count if enabled (default on)
     if db.trackerIncludeInventory ~= false then
-        local bagCount = addon.trackedCountsByKey and addon.trackedCountsByKey[key] or 0
+        local bagCount = addon.trackedCountsByKey and addon.trackedCountsByKey[key]
+        if not bagCount then
+            -- Exact key missed. The bag scan may have run before this item's
+            -- data was cached and recorded it under rank 0 instead. Fall back
+            -- to the by-itemID total, which is rank-agnostic and already
+            -- maintained by the same scan.
+            bagCount = addon.trackedCounts and addon.trackedCounts[ItemIDFromKey(key)] or 0
+        end
         totalCount = totalCount + bagCount
     end
 

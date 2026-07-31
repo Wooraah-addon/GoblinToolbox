@@ -325,6 +325,13 @@ function Gold:LoadSessionState()
         return false
     end
 
+    -- Read and clear the reload flag up front. This must happen before any of
+    -- the early returns below: if the flag is left set (e.g. no saved session on
+    -- this character), the next full logout looks like a reload and the session
+    -- is wrongly restored even with persistence turned off.
+    local isReload = addon.db.global.isReloading == true
+    addon.db.global.isReloading = false
+
     local db = addon.db.profile
 
     -- Load from character-specific cache
@@ -353,12 +360,6 @@ function Gold:LoadSessionState()
         end
         return false
     end
-
-    -- Check if this is a reload (flag set by ReloadUI hook) vs full logout
-    local isReload = addon.db.global.isReloading == true
-
-    -- Clear the reload flag for next time
-    addon.db.global.isReloading = false
 
     -- Persistence logic:
     -- - If persistence ON: always restore

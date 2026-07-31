@@ -1321,11 +1321,6 @@ local function GetCooldownForUtilityButton(btn)
             return start or 0, duration or 0, NormalizeEnabled(enabled)
         end
 
-        if GetItemCooldown then
-            local start, duration, enabled = GetItemCooldown(itemID)
-            return start or 0, duration or 0, NormalizeEnabled(enabled)
-        end
-
         return 0, 0, 0
     end
 
@@ -1462,22 +1457,29 @@ local function ConfigureCustomButton(btn, kind, id, index)
     if kind == "spell" then
         local info = C_Spell.GetSpellInfo(id)
         name = info and info.name or "Spell " .. id
-        icon = info and info.iconID or GetSpellTexture(id) or "Interface\\Icons\\INV_Misc_QuestionMark"
+        icon = info and info.iconID or addon.API.GetSpellTexture(id) or "Interface\\Icons\\INV_Misc_QuestionMark"
 
         -- Check if this is a profession spell
         local isProfession, professionName, skillLineID = IsProfessionSpell(id)
 
         if isProfession and professionName and skillLineID then
-            -- Use C_TradeSkillUI.OpenTradeSkill(baseSkillLineID) via /run macro.
-            -- /cast doesn't work for all professions (e.g., Leatherworking, Inscription).
-            -- Uses same proven /run macro pattern as resetInstances and housingTeleport.
+            -- Cast the profession spell by ID, which is how the game itself opens
+            -- the profession window. Do NOT go back to a
+            -- "/run C_TradeSkillUI.OpenTradeSkill(...)" macro: that API is
+            -- SecretArguments = "AllowedWhenUntainted", so it silently refuses
+            -- whenever the execution path happens to be tainted, which made these
+            -- buttons fire only some of the time. Same class of problem as the
+            -- Housing teleport, and the same fix - use a native secure action.
+            -- Bind the spell ID rather than the name: profession names are
+            -- expansion-prefixed ("Khaz Algar Leatherworking") and name lookup
+            -- picks the wrong rank for some professions.
             if not InCombatLockdown() then
-                btn:SetAttribute("type", "macro")
-                btn:SetAttribute("macrotext", "/run C_TradeSkillUI.OpenTradeSkill(" .. skillLineID .. ")")
-                btn:SetAttribute("spell", nil)
+                btn:SetAttribute("type", "spell")
+                btn:SetAttribute("spell", id)
                 btn:SetAttribute("toy", nil)
                 btn:SetAttribute("item", nil)
                 btn:SetAttribute("mount", nil)
+                btn:SetAttribute("macrotext", nil)
             end
             btn.isProfession = true
             btn.professionName = professionName
@@ -1579,7 +1581,7 @@ local function ConfigureCustomButton(btn, kind, id, index)
         -- Use IsPlayerSpell for both profession and regular spells.
         -- GetAllProfessionTradeSkillLines() returns ALL skill lines in the game,
         -- so IsProfessionSpell matching doesn't guarantee the character has it.
-        if not IsSpellKnown(id) and not IsPlayerSpell(id) then
+        if not addon.API.IsSpellInSpellBook(id) and not addon.API.IsSpellKnown(id) then
             isAvailable = false
             unavailableReason = btn.isProfession and "Profession not learned" or "Spell not known"
         end

@@ -322,6 +322,14 @@ local EventHandlers = {
         end
     end,
 
+    GET_ITEM_INFO_RECEIVED = function(itemID)
+        -- An item finished loading. If a bag scan recorded it before its
+        -- reagent rank was known, rescan so the count lands under the right key.
+        if addon.Inventory and addon.Inventory.OnItemDataLoaded then
+            addon.Inventory:OnItemDataLoaded(itemID)
+        end
+    end,
+
     GUILDBANK_UPDATE_MONEY = function()
         addon.Gold:UpdateGuildGoldFromBank()
         addon:UpdateGoldSection()
@@ -553,6 +561,7 @@ EventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 EventFrame:RegisterEvent("PLAYER_MONEY")
 EventFrame:RegisterEvent("ACCOUNT_MONEY")
 EventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
+EventFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 EventFrame:RegisterEvent("GUILDBANK_UPDATE_MONEY")
 EventFrame:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
 EventFrame:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")

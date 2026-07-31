@@ -5,6 +5,31 @@ All notable changes to Goblin Toolbox will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.17] - 2026-07-31
+
+### Fixed
+- **Tracked reagents showed a count of 0 until you opened a bank**: Tracked items (especially reagent-bag items like Fused Vitality) would sit at 0 after every login until a bank window was opened, which quietly fixed them until next time.
+
+  The cause was a timing problem, not bad saved data. Reagents are tracked per quality tier, so each tracked item is stored with its tier. The bag scan runs half a second after login, and at that point the game often hasn't finished loading item information yet — so the scan can't tell what tier an item is, and files the count under "no tier". The tracker then looks for the tier you actually tracked, finds nothing, and shows 0. Opening a bank triggered a fresh scan, by which point the item data had loaded, so the count appeared correct again.
+
+  Two changes fix it. The addon now notices which items it couldn't identify and re-counts them the moment the game finishes loading their data. And if a count still can't be found under an exact tier, it now falls back to the total for that item, which is always correct because each quality tier is a separate item. Counts are now right immediately at login, with no bank visit needed.
+
+  Thanks to the community contributor who reported this and did the legwork to pin down when it happens — that report is what made it findable.
+- **Profession buttons on the Utility Bar fired only some of the time**: Custom profession buttons (which sit at the right-hand end of the bar, hence the "last button doesn't work" reports) used a macro to open the profession window. That method is rejected by the game whenever another addon has "tainted" the click, which is why it worked sometimes and not others. The button now casts the profession directly, the same way the game's own UI opens a profession — no macro involved
+- **Session could survive a full logout with persistence turned off**: The internal "this was a /reload" marker was not always cleared, so a later full logout could be mistaken for a reload and restore a session that should have reset
+- **Warband and player bank item counts could stop updating**: If a bank scan was started but the bank turned out to be unavailable (bank closed too quickly, or no Warband bank on that character), the addon left itself flagged as "scan in progress" forever and silently skipped every later scan until you reloaded
+- **"Spell not known" showing on abilities you do have**: The check for whether your character knows a spell was missing a required argument, which could make Class Travel, Mobile Banking, and custom spell buttons grey out incorrectly
+
+### Changed
+- Migrated the last deprecated Blizzard API calls to their modern equivalents (`C_SpellBook.IsSpellKnown` / `C_SpellBook.IsSpellInSpellBook`, `C_Item.GetItemCooldown`, `C_Spell.GetSpellTexture`). These older functions currently only work because the game loads a compatibility shim, which can be switched off and is likely to disappear in a future patch — Goblin Toolbox no longer depends on it
+
+### Technical
+- TOC `## Interface` now lists `120007, 120100` — compatible with both the current 12.0.7 client and Patch 12.1.0 when it lands, so no out-of-date prompt on either side of the patch
+- `pcall`-wrapped reagent quality lookups during bag scans — the API is taint-sensitive in 12.0+ and runs once per occupied bag slot, so a tainted item link must not abort the whole scan
+- Registered `GET_ITEM_INFO_RECEIVED`, filtered to only the items a scan failed to resolve, so the item-cache flood at login doesn't cause repeated full bag scans
+- `addon.API.IsSpellKnown` now defaults `spellBank` to `Enum.SpellBookSpellBank.Player`; added `addon.API.IsSpellInSpellBook`. The two legacy globals map to *different* modern functions (`IsPlayerSpell` → `IsSpellKnown`, `IsSpellKnown` → `IsSpellInSpellBook`), so both wrappers are needed to preserve the original availability check
+- Dropped the dead legacy fallback branches from the `addon.API` wrapper layer — GTB is retail-only, so the `C_*` namespaced calls are always present
+
 ## [1.1.16] - 2026-06-22
 
 ### Technical
